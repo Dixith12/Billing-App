@@ -23,14 +23,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Pencil, Trash2 } from 'lucide-react'
 import { InventoryItem } from '@/lib/types'
-import { useApp } from '@/lib/app-context'
+import { useInventory } from '@/app/inventory/hooks/useInventory'
+
 
 interface InventoryListProps {
   items: InventoryItem[]
 }
 
 export function InventoryList({ items }: InventoryListProps) {
-  const { deleteInventoryItem, updateInventoryItem } = useApp()
+  const {
+  deleteItem,
+  updateItem,
+  calculateTotalPrice,
+  formatCurrency,
+} = useInventory()
+
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -41,13 +48,6 @@ export function InventoryList({ items }: InventoryListProps) {
     pricePerWidth: '',
   })
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
 
   const handleEdit = (item: InventoryItem) => {
     setEditingItem(item)
@@ -67,13 +67,8 @@ export function InventoryList({ items }: InventoryListProps) {
       return
     }
 
-    updateInventoryItem(editingItem.id, {
-      name: formData.name,
-      height: formData.height,
-      width: formData.width,
-      pricePerHeight: parseFloat(formData.pricePerHeight),
-      pricePerWidth: parseFloat(formData.pricePerWidth),
-    })
+    updateItem(editingItem.id, formData)
+
 
     setIsEditDialogOpen(false)
     setEditingItem(null)
@@ -105,7 +100,7 @@ export function InventoryList({ items }: InventoryListProps) {
           </TableHeader>
           <TableBody>
             {items.map((item) => {
-              const totalPrice = item.height * item.pricePerHeight + item.width * item.pricePerWidth
+              const totalPrice = calculateTotalPrice(item)
               return (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.name}</TableCell>
@@ -128,7 +123,7 @@ export function InventoryList({ items }: InventoryListProps) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => deleteInventoryItem(item.id)}
+                        onClick={() => deleteItem(item.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -217,7 +212,7 @@ export function InventoryList({ items }: InventoryListProps) {
               <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-primary text-primary-foreground">
+              <Button type="submit" className="bg-black text-white">
                 Save Changes
               </Button>
             </DialogFooter>

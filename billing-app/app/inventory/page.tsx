@@ -5,11 +5,11 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { AddInventoryModal } from '@/components/inventory/add-inventory-modal'
 import { InventoryList } from '@/components/inventory/inventory-list'
-import { useApp } from '@/lib/app-context'
+import { useInventory } from './hooks/useInventory'
 import { ArrowLeft, Plus } from 'lucide-react'
 
 export default function InventoryPage() {
-  const { inventoryItems } = useApp()
+  const { inventoryItems } = useInventory()
   const [isAddInventoryOpen, setIsAddInventoryOpen] = useState(false)
 
   return (

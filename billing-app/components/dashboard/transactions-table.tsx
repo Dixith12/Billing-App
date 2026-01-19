@@ -25,7 +25,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Eye, Send, MoreHorizontal, IndianRupee, Filter, ChevronDown, ChevronUp } from 'lucide-react'
-import { Invoice } from '@/lib/types'
+import { Invoice } from '@/lib/firebase/invoices'
 import { cn } from '@/lib/utils'
 
 interface TransactionsTableProps {
@@ -66,42 +66,48 @@ export function TransactionsTable({ invoices }: TransactionsTableProps) {
     return '6 hours ago'
   }
 
-  // Get unique modes from invoices
   const uniqueModes = useMemo(() => {
-  const modes = invoices.map(inv => inv.mode)
-  return [...new Set(modes)]
+  return [...new Set(invoices.map(inv => inv.mode))]
 }, [invoices])
 
 
-  const allStatuses: Invoice['status'][] = ['paid', 'pending', 'partially paid', 'cancelled', 'draft']
+
+  const allStatuses: Invoice['status'][] = ['paid', 'pending', 'partially paid', 'cancelled']
 
   const filteredInvoices = useMemo(() => {
     let result = invoices.filter((invoice) => {
       // Search filter
+      const search = searchQuery.toLowerCase()
+
       const matchesSearch =
-        invoice.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        invoice.billNo.toLowerCase().includes(searchQuery.toLowerCase())
+        invoice.customerName.toLowerCase().includes(search) ||
+        invoice.customerPhone.includes(search)
+
       
       // Amount filter
       const minAmount = amountMin ? parseFloat(amountMin) : null
       const maxAmount = amountMax ? parseFloat(amountMax) : null
       const matchesAmount = 
-        (minAmount === null || invoice.amount >= minAmount) &&
-        (maxAmount === null || invoice.amount <= maxAmount)
+        (minAmount === null || invoice.netAmount >= minAmount) &&
+        (maxAmount === null || invoice.netAmount <= maxAmount)
       
       // Status filter
       const matchesStatus = statusFilters.length === 0 || statusFilters.includes(invoice.status)
       
-      // Mode filter
-      const matchesMode = modeFilters.length === 0 || (invoice.mode && modeFilters.includes(invoice.mode))
-      
+      const matchesMode =
+      modeFilters.length === 0 || modeFilters.includes(invoice.mode)
+
+
+            
       return matchesSearch && matchesAmount && matchesStatus && matchesMode
     })
 
     // Sort by amount if selected
     if (amountSort) {
       result = [...result].sort((a, b) => {
-        return amountSort === 'asc' ? a.amount - b.amount : b.amount - a.amount
+return amountSort === 'asc'
+  ? a.netAmount - b.netAmount
+  : b.netAmount - a.netAmount
       })
     }
 
@@ -118,8 +124,6 @@ export function TransactionsTable({ invoices }: TransactionsTableProps) {
         return 'bg-blue-100 text-blue-800 border-blue-200'
       case 'cancelled':
         return 'bg-red-100 text-red-800 border-red-200'
-      case 'draft':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
       default:
         return ''
     }
@@ -139,7 +143,7 @@ export function TransactionsTable({ invoices }: TransactionsTableProps) {
   }
 
   const toggleModeFilter = (mode: Invoice['mode']) => {
-    if (!mode) return
+    
     setModeFilters(prev => 
       prev.includes(mode) 
         ? prev.filter(m => m !== mode)
@@ -329,12 +333,12 @@ export function TransactionsTable({ invoices }: TransactionsTableProps) {
             {filteredInvoices.map((invoice) => (
               <TableRow key={invoice.id}>
                 <TableCell>
-                  <div className="font-medium">{formatCurrency(invoice.amount)}</div>
-                  {invoice.pendingAmount && (
+                  <div className="font-medium">{formatCurrency(invoice.netAmount)}</div>
+                  {/* {invoice.pendingAmount && (
                     <div className="text-xs text-muted-foreground">
                       {formatCurrency(invoice.pendingAmount)} Pending
                     </div>
-                  )}
+                  )} */}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
@@ -357,11 +361,12 @@ export function TransactionsTable({ invoices }: TransactionsTableProps) {
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="text-sm font-medium">{invoice.customer.name}</div>
-                  <div className="text-xs text-muted-foreground">{invoice.customer.phone}</div>
+                  <div className="text-sm font-medium">{invoice.customerName}</div>
+                  <div className="text-xs text-muted-foreground">{invoice.customerPhone}</div>
+
                 </TableCell>
                 <TableCell>
-                  <div className="text-sm">{formatDate(invoice.date)}</div>
+                  <div className="text-sm">{invoice.createdAt? formatDate(invoice.createdAt.toDate()): "-"}</div>
                   <div className="text-xs text-muted-foreground">{getRelativeTime()}</div>
                 </TableCell>
                 <TableCell>
@@ -415,16 +420,12 @@ export function TransactionsTable({ invoices }: TransactionsTableProps) {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-muted-foreground">Bill No:</span>
-                  <p className="font-medium">{selectedInvoice.billNo}</p>
-                </div>
-                <div>
                   <span className="text-muted-foreground">Amount:</span>
-                  <p className="font-medium">{formatCurrency(selectedInvoice.amount)}</p>
+                  <p className="font-medium">{formatCurrency(selectedInvoice.netAmount)}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Customer:</span>
-                  <p className="font-medium">{selectedInvoice.customer.name}</p>
+                  <p className="font-medium">{selectedInvoice.customerName}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Status:</span>
@@ -435,14 +436,14 @@ export function TransactionsTable({ invoices }: TransactionsTableProps) {
                     {selectedInvoice.status}
                   </Badge>
                 </div>
-                {selectedInvoice.pendingAmount && (
+                {/* {selectedInvoice.pendingAmount && (
                   <div>
                     <span className="text-muted-foreground">Pending Amount:</span>
                     <p className="font-medium text-orange-600">
                       {formatCurrency(selectedInvoice.pendingAmount)}
                     </p>
                   </div>
-                )}
+                )} */}
               </div>
               <div className="flex justify-end">
                 <Button onClick={() => setIsPaymentDialogOpen(false)}>Close</Button>

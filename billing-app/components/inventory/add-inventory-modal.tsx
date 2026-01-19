@@ -13,7 +13,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useApp } from '@/lib/app-context'
+import { useInventory } from '@/app/inventory/hooks/useInventory'
+
 
 interface AddInventoryModalProps {
   isOpen: boolean
@@ -21,7 +22,7 @@ interface AddInventoryModalProps {
 }
 
 export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
-  const { addInventoryItem } = useApp()
+  const { addItem } = useInventory()
   const [formData, setFormData] = useState({
     name: '',
     height: 1,
@@ -37,13 +38,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
       return
     }
 
-    addInventoryItem({
-      name: formData.name,
-      height: formData.height,
-      width: formData.width,
-      pricePerHeight: parseFloat(formData.pricePerHeight),
-      pricePerWidth: parseFloat(formData.pricePerWidth),
-    })
+    addItem(formData)
 
     setFormData({
       name: '',
@@ -133,7 +128,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
             <Button type="button" variant="outline" onClick={onClose}>
               Close
             </Button>
-            <Button type="submit" className="bg-primary text-primary-foreground">
+            <Button type="submit" className="bg-black text-white">
               Save
             </Button>
           </DialogFooter>

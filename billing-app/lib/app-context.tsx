@@ -7,7 +7,10 @@ import React, {
   ReactNode,
   useEffect,
 } from 'react'
-import { Invoice, InventoryItem } from './types'
+import { InventoryItem } from './types'
+import { Invoice } from '@/lib/firebase/invoices'
+import { getInvoices } from "@/lib/firebase/invoices"
+
 
 // 🔥 IMPORT FIREBASE INVENTORY FUNCTIONS
 import {
@@ -20,49 +23,10 @@ import {
 // -----------------------------
 // TEMP: invoices still hardcoded
 // -----------------------------
-const generateSampleInvoices = (): Invoice[] => {
-  const customers = [
-    { name: 'Ramesh', phone: '+915558626322' },
-    { name: 'Rahul', phone: '+919876567899' },
-    { name: 'Priya', phone: '+919123456789' },
-    { name: 'Amit', phone: '+918765432100' },
-  ]
-
-  const statuses: Invoice['status'][] = [
-    'paid',
-    'pending',
-    'partially paid',
-    'paid',
-    'paid',
-  ]
-  const modes: Invoice['mode'][] = [
-    'UPI',
-    'Cash',
-    'Bank Transfer',
-    'UPI',
-    'UPI',
-  ]
-  const amounts = [49900, 150000, 24950, 250000, 35000]
-
-  return statuses.map((status, index) => ({
-    id: `inv-${index + 1}`,
-    amount: amounts[index],
-    status,
-    mode: modes[index],
-    billNo: `INV/24-25/${39 - index}`,
-    customer: customers[index % customers.length],
-    createdBy: 'Sanmeet',
-    date: new Date(2025, 11, 6),
-    pendingAmount: status === 'partially paid' ? 100000 : undefined,
-  }))
-}
 
 interface AppContextType {
   invoices: Invoice[]
   inventoryItems: InventoryItem[]
-  addInvoice: (
-    invoice: Omit<Invoice, 'id' | 'billNo' | 'date' | 'createdBy'>
-  ) => void
   addInventoryItem: (
     item: Omit<InventoryItem, 'id' | 'createdAt'>
   ) => Promise<void>
@@ -77,7 +41,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [invoices, setInvoices] = useState<Invoice[]>(generateSampleInvoices())
+  const [invoices, setInvoices] = useState<Invoice[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [invoiceCounter, setInvoiceCounter] = useState(40)
 
@@ -90,27 +54,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // -----------------------------
   // Invoice (unchanged for now)
   // -----------------------------
-  const addInvoice = (
-    invoiceData: Omit<Invoice, 'id' | 'billNo' | 'date' | 'createdBy'>
-  ) => {
-    const newInvoice: Invoice = {
-      ...invoiceData,
-      id: `inv-${Date.now()}`,
-      billNo: `INV/24-25/${invoiceCounter}`,
-      date: new Date(),
-      createdBy: 'Sanmeet',
-    }
-    setInvoices((prev) => [newInvoice, ...prev])
-    setInvoiceCounter((prev) => prev + 1)
-  }
-
+  
   const getTotalSales = () => {
-    return invoices
-      .filter(
-        (inv) => inv.status === 'paid' || inv.status === 'partially paid'
-      )
-      .reduce((sum, inv) => sum + inv.amount, 0)
-  }
+  return invoices
+    .filter(inv => inv.status === 'paid' || inv.status === 'partially paid')
+    .reduce((sum, inv) => sum + inv.netAmount, 0)
+}
+
+
+  useEffect(() => {
+  loadInvoices()
+}, [])
+
+const loadInvoices = async () => {
+  const data = await getInvoices()
+  setInvoices(data)
+}
+
 
   return (
     <AppContext.Provider
@@ -122,8 +82,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addInventoryItem: addInventory,
         updateInventoryItem: updateInventory,
         deleteInventoryItem: deleteInventory,
-
-        addInvoice,
         getTotalSales,
       }}
     >

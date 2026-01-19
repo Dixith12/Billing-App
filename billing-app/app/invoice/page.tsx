@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect  } from "react"
 import { ArrowLeft, Plus, Search, X, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,14 +22,11 @@ import {
 import { Label } from "@/components/ui/label"
 import { useSearchParams } from "next/navigation"
 import { useApp } from "@/lib/app-context"
+import { InvoiceSummary } from "../../components/invoice/invoice-summary"
+import { Customer, addCustomer, getCustomers } from "@/lib/firebase/customers"
+import { addInvoice } from "@/lib/firebase/invoices"
 
 
-interface Customer {
-  id: string
-  name: string
-  gstin: string
-  phone: string
-}
 
 interface Product {
   id: string
@@ -42,12 +40,6 @@ interface Product {
 }
 
 
-// Sample customers for search
-const sampleCustomers = [
-  { id: "1", name: "Ramesh Kumar", gstin: "22AAAAA0000A1Z5", phone: "9876543210" },
-  { id: "2", name: "Suresh Patel", gstin: "24BBBBB1111B2Y4", phone: "9765432109" },
-  { id: "3", name: "Priya Sharma", gstin: "27CCCCC2222C3X3", phone: "9654321098" },
-]
 
 
 
@@ -55,29 +47,80 @@ export default function CreateInvoicePage() {
   const { inventoryItems } = useApp()
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [customerSearch, setCustomerSearch] = useState("")
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [loadingCustomers, setLoadingCustomers] = useState(false)
+
   const [productSearch, setProductSearch] = useState("")
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
   const [isAddProductOpen, setIsAddProductOpen] = useState(false)
   const [billedProducts, setBilledProducts] = useState<Product[]>([])
 
   // New customer form state
-  const [newCustomer, setNewCustomer] = useState({
-    name: "",
-    gstin: "",
-    phone: "",
-  })
+const [newCustomer, setNewCustomer] = useState({
+  name: "",
+  gstin: "",
+  phone: "",
+  address: "",
+})
 
   // New product form state
   const [newProduct, setNewProduct] = useState({
     name: "",
   })
 
+
+
+  const [billingAddress, setBillingAddress] = useState("")
+  const calculateDiscountTotal = () => {
+  return billedProducts.reduce((sum, product) => {
+    const productBase =
+      (parseFloat(product.height) || 0) +
+      (parseFloat(product.width) || 0)
+
+    let discount = 0
+    const discountValue = parseFloat(product.discount) || 0
+
+    if (discountValue > 0) {
+      if (product.discountType === "%") {
+        discount = (product.total * discountValue) / 100
+      } else {
+        discount = discountValue
+      }
+    }
+
+    return sum + discount
+  }, 0)
+}
+
+useEffect(() => {
+  loadCustomers()
+}, [])
+
+const loadCustomers = async () => {
+  setLoadingCustomers(true)
+  try {
+    const data = await getCustomers()
+    setCustomers(data)
+  } catch (err) {
+    console.error("Failed to load customers", err)
+  } finally {
+    setLoadingCustomers(false)
+  }
+}
+
+
   // Filter customers based on search
-  const filteredCustomers = sampleCustomers.filter(
-    (customer) =>
-      customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-      customer.gstin.toLowerCase().includes(customerSearch.toLowerCase())
+const filteredCustomers = customers.filter((customer) => {
+  const search = customerSearch.toLowerCase()
+
+  return (
+    customer.name.toLowerCase().includes(search) ||
+    (customer.gstin && customer.gstin.toLowerCase().includes(search)) ||
+    customer.phone.includes(search)
   )
+})
+
+
 
   // Filter products based on search
   const filteredProducts = inventoryItems.filter((item) =>
@@ -85,26 +128,40 @@ export default function CreateInvoicePage() {
 )
 
 
-  const handleSelectCustomer = (customer: Customer) => {
-    setSelectedCustomer(customer)
-    setCustomerSearch("")
-  }
+const handleSelectCustomer = (customer: Customer) => {
+  setSelectedCustomer(customer)
+  setCustomerSearch("")
+  setBillingAddress(customer.address || "")
+}
+
+
 
   const handleRemoveCustomer = () => {
     setSelectedCustomer(null)
   }
 
-  const handleAddCustomer = () => {
-    if (newCustomer.name && newCustomer.phone) {
-      const customer: Customer = {
-        id: Date.now().toString(),
-        ...newCustomer,
-      }
-      setSelectedCustomer(customer)
-      setNewCustomer({ name: "", gstin: "", phone: "" })
-      setIsAddCustomerOpen(false)
-    }
+const handleAddCustomer = async () => {
+  if (!newCustomer.name || !newCustomer.phone) return
+
+  try {
+    const saved = await addCustomer(newCustomer)
+
+    setCustomers((prev) => [...prev, saved])
+    setSelectedCustomer(saved)
+
+    setNewCustomer({
+      name: "",
+      gstin: "",
+      phone: "",
+      address: "",
+    })
+
+    setIsAddCustomerOpen(false)
+  } catch (err) {
+    console.error("Error saving customer", err)
   }
+}
+
 
   const handleAddToBill = (item: any) => {
   const baseTotal =
@@ -150,13 +207,6 @@ export default function CreateInvoicePage() {
         height * inventory.pricePerHeight +
         width * inventory.pricePerWidth
 
-      const discountValue = parseFloat(updated.discount) || 0
-      if (updated.discountType === "%") {
-        total -= (total * discountValue) / 100
-      } else {
-        total -= discountValue
-      }
-
       updated.total = total * updated.quantity
       return updated
     })
@@ -168,14 +218,67 @@ export default function CreateInvoicePage() {
     setBilledProducts((prev) => prev.filter((product) => product.id !== id))
   }
 
-  const calculateGrandTotal = () => {
+  const calculateSubTotal = () => {
     return billedProducts.reduce((sum, product) => sum + product.total, 0)
   }
 
-  const handleSave = () => {
-    console.log("Saving invoice:", { customer: selectedCustomer, products: billedProducts })
-    // Add save logic here
+    const subtotal = calculateSubTotal()
+    const discount = calculateDiscountTotal()
+    const taxableAmount = subtotal - discount
+
+
+      const cgst = taxableAmount * 0.09
+      const sgst = taxableAmount * 0.09
+
+const netAmount = taxableAmount + cgst + sgst
+
+const handleSave = async () => {
+  if (!selectedCustomer) {
+    alert("Please select a customer before saving invoice")
+    return
   }
+
+  if (billedProducts.length === 0) {
+    alert("Please add at least one product to invoice")
+    return
+  }
+
+  try {
+    await addInvoice({
+      customerId: selectedCustomer.id,
+      customerName: selectedCustomer.name,
+      customerPhone: selectedCustomer.phone,
+      customerGstin: selectedCustomer.gstin,
+      billingAddress,
+    products: billedProducts.map((p) => ({
+        name: p.name,
+        quantity: p.quantity,
+        height: p.height,
+        width: p.width,
+        discount: p.discount,
+        discountType: p.discountType,
+        total: p.total,
+      })),
+
+      subtotal,
+      discount,
+      cgst,
+      sgst,
+      netAmount,
+    })
+
+    alert("Invoice saved successfully ✅")
+
+    setSelectedCustomer(null)
+    setBilledProducts([])
+    setBillingAddress("")
+  } catch (err) {
+    console.error("Error saving invoice", err)
+    alert("Failed to save invoice")
+  }
+}
+
+
 
   const handleClose = () => {
     // Navigate back or close
@@ -233,7 +336,7 @@ export default function CreateInvoicePage() {
 
             {/* Customer Search Results Dropdown */}
             {customerSearch && filteredCustomers.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
+              <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
                 {filteredCustomers.map((customer) => (
                   <button
                     key={customer.id}
@@ -270,14 +373,14 @@ export default function CreateInvoicePage() {
         <section className="space-y-4">
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-medium">Products & Services</h2>
-            <Button
+            {/* <Button
               variant="link"
               className="text-blue-600 p-0 h-auto"
               onClick={() => setIsAddProductOpen(true)}
             >
               <Plus className="h-4 w-4 mr-1" />
               Add new Product
-            </Button>
+            </Button> */}
           </div>
 
           {/* Product Search with Add to Bill */}
@@ -286,7 +389,7 @@ export default function CreateInvoicePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search for existing products"
-                className="pl-10"
+                className="pl-10 bg-blue-50/50"
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
               />
@@ -446,6 +549,17 @@ export default function CreateInvoicePage() {
                   </tbody>
                 </table>
               </div>
+              <div className="border-t bg-muted/30 p-4">
+                    <InvoiceSummary
+                  address={billingAddress}
+                  onAddressChange={setBillingAddress}
+                  grandTotal={subtotal}
+                  discount={discount}
+                  cgst={cgst}
+                  sgst={sgst}
+                />
+              </div>
+                
 
               {/* Totals and Action Buttons */}
               <div className="border-t bg-muted/30 p-4">
@@ -458,7 +572,7 @@ export default function CreateInvoicePage() {
                     <div className="text-right">
                       <span className="text-sm text-muted-foreground">Grand Total: </span>
                       <span className="text-xl font-bold">
-                        ₹{calculateGrandTotal().toFixed(2)}
+                        ₹{netAmount.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -530,7 +644,10 @@ export default function CreateInvoicePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="customerGstin">GSTIN Number</Label>
+              <Label htmlFor="customerGstin">
+                GSTIN Number <span className="text-muted-foreground">(optional)</span>
+              </Label>
+
               <Input
                 id="customerGstin"
                 placeholder="Enter GSTIN number"
@@ -551,6 +668,18 @@ export default function CreateInvoicePage() {
                 }
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerAddress">Address</Label>
+              <Input
+                id="customerAddress"
+                placeholder="Enter address"
+                value={newCustomer.address}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, address: e.target.value })
+                }
+              />
+            </div>
+
           </div>
           <SheetFooter>
             <Button
@@ -563,7 +692,7 @@ export default function CreateInvoicePage() {
               className="bg-black text-white"
               onClick={handleAddCustomer}
             >
-              Done
+              Save
             </Button>
           </SheetFooter>
         </SheetContent>

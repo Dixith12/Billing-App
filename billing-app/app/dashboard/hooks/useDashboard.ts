@@ -1,0 +1,249 @@
+// app/dashboard/hooks/useDashboard.ts
+'use client'
+
+import { useState, useMemo } from 'react'
+import type { Invoice } from '@/lib/firebase/invoices'
+
+export type SortOrder = 'asc' | 'desc' | null
+
+export function useDashboard(invoices: Invoice[]) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+
+  // Filters - Amount
+  const [amountSort, setAmountSort] = useState<SortOrder>(null)
+  const [amountMin, setAmountMin] = useState('')
+  const [amountMax, setAmountMax] = useState('')
+
+  // Filters - Status & Mode
+  const [statusFilters, setStatusFilters] = useState<Invoice['status'][]>([])
+  const [modeFilters, setModeFilters] = useState<Invoice['mode'][]>([])
+
+  // Filters - Date
+  const [datePreset, setDatePreset] = useState<string | null>(null)
+  const [dateFrom, setDateFrom] = useState<string>('')
+  const [dateTo, setDateTo] = useState<string>('')
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2,
+    }).format(amount)
+
+  const formatDate = (date: Date | undefined) =>
+    date
+      ? new Intl.DateTimeFormat('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }).format(date)
+      : '-'
+
+  // Real relative time calculation
+  const getRelativeTime = (timestamp: Date | undefined): string => {
+    if (!timestamp) return '—'
+
+    const now = new Date()
+    const diffMs = now.getTime() - timestamp.getTime()
+
+    if (diffMs < 0) return 'just now' // future dates (unlikely but safe)
+
+    const diffSeconds = Math.floor(diffMs / 1000)
+    const diffMinutes = Math.floor(diffSeconds / 60)
+    const diffHours = Math.floor(diffMinutes / 60)
+    const diffDays = Math.floor(diffHours / 24)
+    const diffWeeks = Math.floor(diffDays / 7)
+    const diffMonths = Math.floor(diffDays / 30)
+    const diffYears = Math.floor(diffDays / 365)
+
+    if (diffSeconds < 45) return 'just now'
+    if (diffSeconds < 90) return '1 minute ago'
+    if (diffMinutes < 45) return `${diffMinutes} minutes ago`
+    if (diffMinutes < 90) return '1 hour ago'
+    if (diffHours < 22) return `${diffHours} hours ago`
+    if (diffHours < 36) return '1 day ago'
+    if (diffDays < 6) return `${diffDays} days ago`
+    if (diffDays < 10) return '1 week ago'
+    if (diffWeeks < 4) return `${diffWeeks} weeks ago`
+    if (diffMonths < 12) return `${diffMonths} months ago`
+    if (diffYears === 1) return '1 year ago'
+
+    return `${diffYears} years ago`
+  }
+
+  const uniqueModes = useMemo(() => [...new Set(invoices.map((inv) => inv.mode))], [invoices])
+
+  const allStatuses: Invoice['status'][] = ['paid', 'pending', 'partially paid', 'cancelled']
+
+  const filteredInvoices = useMemo(() => {
+    let result = invoices.filter((invoice) => {
+      const search = searchQuery.toLowerCase()
+      const matchesSearch =
+        invoice.customerName.toLowerCase().includes(search) ||
+        invoice.customerPhone.includes(search)
+
+      const minAmount = amountMin ? parseFloat(amountMin) : null
+      const maxAmount = amountMax ? parseFloat(amountMax) : null
+      const matchesAmount =
+        (minAmount === null || invoice.netAmount >= minAmount) &&
+        (maxAmount === null || invoice.netAmount <= maxAmount)
+
+      const matchesStatus = statusFilters.length === 0 || statusFilters.includes(invoice.status)
+      const matchesMode = modeFilters.length === 0 || modeFilters.includes(invoice.mode ?? '')
+
+      let matchesDate = true
+
+      if (invoice.createdAt) {
+        const invDate = invoice.createdAt.toDate()
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        if (datePreset) {
+          switch (datePreset) {
+            case 'today':
+              matchesDate = invDate.toDateString() === today.toDateString()
+              break
+            case 'yesterday': {
+              const yesterday = new Date(today)
+              yesterday.setDate(yesterday.getDate() - 1)
+              matchesDate = invDate.toDateString() === yesterday.toDateString()
+              break
+            }
+            case 'thisMonth':
+              matchesDate =
+                invDate.getMonth() === today.getMonth() &&
+                invDate.getFullYear() === today.getFullYear()
+              break
+            case 'last30days': {
+              const last30 = new Date(today)
+              last30.setDate(last30.getDate() - 30)
+              matchesDate = invDate >= last30
+              break
+            }
+            default:
+              matchesDate = true
+          }
+        } else if (dateFrom || dateTo) {
+          const from = dateFrom ? new Date(dateFrom) : null
+          const to = dateTo ? new Date(dateTo) : null
+
+          if (from) from.setHours(0, 0, 0, 0)
+          if (to) to.setHours(23, 59, 59, 999)
+
+          matchesDate =
+            (!from || invDate >= from) &&
+            (!to || invDate <= to)
+        }
+      }
+
+      return matchesSearch && matchesAmount && matchesStatus && matchesMode && matchesDate
+    })
+
+    if (amountSort) {
+      result = [...result].sort((a, b) =>
+        amountSort === 'asc' ? a.netAmount - b.netAmount : b.netAmount - a.netAmount
+      )
+    }
+
+    return result
+  }, [
+    invoices,
+    searchQuery,
+    amountMin,
+    amountMax,
+    statusFilters,
+    modeFilters,
+    amountSort,
+    datePreset,
+    dateFrom,
+    dateTo,
+  ])
+
+  const getStatusBadgeVariant = (status: Invoice['status']) => {
+    switch (status) {
+      case 'paid':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'partially paid':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 border-red-200'
+      default:
+        return ''
+    }
+  }
+
+  const handleRecordPayment = (invoice: Invoice) => {
+    setSelectedInvoice(invoice)
+    setIsPaymentDialogOpen(true)
+  }
+
+  const toggleStatusFilter = (status: Invoice['status']) => {
+    setStatusFilters((prev) =>
+      prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+    )
+  }
+
+  const toggleModeFilter = (mode: Invoice['mode']) => {
+    setModeFilters((prev) =>
+      prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode]
+    )
+  }
+
+  const clearAmountFilter = () => {
+    setAmountMin('')
+    setAmountMax('')
+    setAmountSort(null)
+  }
+
+  const clearDateFilter = () => {
+    setDatePreset(null)
+    setDateFrom('')
+    setDateTo('')
+  }
+
+  return {
+    searchQuery,
+    setSearchQuery,
+    selectedInvoice,
+    isPaymentDialogOpen,
+    setIsPaymentDialogOpen,
+
+    amountSort,
+    setAmountSort,
+    amountMin,
+    setAmountMin,
+    amountMax,
+    setAmountMax,
+
+    statusFilters,
+    setStatusFilters,
+    modeFilters,
+    setModeFilters,
+
+    datePreset,
+    setDatePreset,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    clearDateFilter,
+
+    filteredInvoices,
+    uniqueModes,
+    allStatuses,
+
+    formatCurrency,
+    formatDate,
+    getRelativeTime,           // now dynamic
+    getStatusBadgeVariant,
+
+    handleRecordPayment,
+    toggleStatusFilter,
+    toggleModeFilter,
+    clearAmountFilter,
+  }
+}

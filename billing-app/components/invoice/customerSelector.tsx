@@ -37,7 +37,7 @@ export function CustomerSelector(props: CustomerSelectorProps) {
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-4">
-        <h2 className="text-lg font-medium">Customer details</h2>
+        <h2 className="text-lg font-medium">Customer Details</h2>
         <Button
           variant="link"
           className="text-blue-600 p-0 h-auto"

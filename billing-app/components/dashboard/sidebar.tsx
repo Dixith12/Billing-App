@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Package, FileText, X } from 'lucide-react'
+import { Package, FileText, X, PersonStanding } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -12,15 +12,21 @@ interface SidebarProps {
 
 const navItems = [
   {
+    label: 'Invoices',
+    href: '/dashboard',
+    icon: FileText,
+  },
+  {
     label: 'Inventory',
     href: '/inventory',
     icon: Package,
   },
   {
-    label: 'Invoices',
-    href: '/dashboard',
-    icon: FileText,
-  },
+    label:'Customers',
+    href:'/customer',
+    icon: PersonStanding,
+  }
+  
 ]
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {

@@ -67,7 +67,7 @@ export function BilledProductsTable({ products, onUpdate, onRemove }: BilledProd
                     <Input
                       type="number"
                       value={p.discount}
-                      onChange={(e) => onUpdate(p.id, 'discount', e.target.value || '0')}
+                      onChange={(e) => onUpdate(p.id, 'discount', e.target.value)}
                       className="w-20"
                       min={0}
                       step="any"

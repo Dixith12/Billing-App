@@ -66,7 +66,7 @@ export default function CreateInvoicePage() {
             <h1 className="text-xl font-semibold">Create Invoice</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline">Save and Print</Button>
+            {/* <Button variant="outline">Save and Print</Button> */}
             <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSave}>
               Save
             </Button>

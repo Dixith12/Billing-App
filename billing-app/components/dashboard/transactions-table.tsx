@@ -37,34 +37,53 @@ import type { Invoice } from '@/lib/firebase/invoices'
 import type { SortOrder } from '@/app/dashboard/hooks/useDashboard'
 import { pdf } from '@react-pdf/renderer'
 import InvoicePDF from '@/components/dashboard/invoice-pdf'
+
+
 interface TransactionsTableProps {
   invoices: Invoice[]
   searchQuery: string
   setSearchQuery: (v: string) => void
+
   selectedInvoice: Invoice | null
   isPaymentDialogOpen: boolean
   setIsPaymentDialogOpen: (v: boolean) => void
+
+  // ── NEW: Payment dialog form state & actions ───────────────────────────
+  paymentAmount: string
+  setPaymentAmount: (v: string) => void
+  paymentDate: string
+  setPaymentDate: (v: string) => void
+  selectedPaymentMode: Invoice['mode']
+  setSelectedPaymentMode: (v: Invoice['mode']) => void
+  savePayment: () => Promise<{ success: boolean; result?: any; error?: string }>
+
+  // Existing filter-related props
   amountSort: SortOrder
   setAmountSort: (v: SortOrder) => void
   amountMin: string
   setAmountMin: (v: string) => void
   amountMax: string
   setAmountMax: (v: string) => void
+
   statusFilters: Invoice['status'][]
   setStatusFilters: (filters: Invoice['status'][]) => void
   modeFilters: Invoice['mode'][]
   setModeFilters: (filters: Invoice['mode'][]) => void
+
   filteredInvoices: Invoice[]
   uniqueModes: Invoice['mode'][]
   allStatuses: Invoice['status'][]
+
   formatCurrency: (amount: number) => string
   formatDate: (date: Date | undefined) => string
   getRelativeTime: (timestamp: Date | undefined) => string
   getStatusBadgeVariant: (status: Invoice['status']) => string
+
   handleRecordPayment: (invoice: Invoice) => void
   toggleStatusFilter: (status: Invoice['status']) => void
   toggleModeFilter: (mode: Invoice['mode']) => void
   clearAmountFilter: () => void
+
   datePreset: string | null
   setDatePreset: (preset: string | null) => void
   dateFrom: string
@@ -81,6 +100,15 @@ export function TransactionsTable(props: TransactionsTableProps) {
     selectedInvoice,
     isPaymentDialogOpen,
     setIsPaymentDialogOpen,
+
+    paymentAmount,
+    setPaymentAmount,
+    paymentDate,
+    setPaymentDate,
+    selectedPaymentMode,
+    setSelectedPaymentMode,
+    savePayment,
+
     amountSort,
     setAmountSort,
     amountMin,
@@ -99,6 +127,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
     getRelativeTime,
     getStatusBadgeVariant,
     handleRecordPayment,
+    
     toggleStatusFilter,
     toggleModeFilter,
     clearAmountFilter,
@@ -109,6 +138,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
     dateTo,
     setDateTo,
     clearDateFilter,
+
   } = props
 
   // PDF modal states
@@ -117,6 +147,10 @@ export function TransactionsTable(props: TransactionsTableProps) {
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [pendingDownloadInvoice, setPendingDownloadInvoice] = useState<Invoice | null>(null);
+
+  // NEW local states for UI feedback in dialog
+  const [isSavingPayment, setIsSavingPayment] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   // Cleanup blob URL when modal closes or component unmounts
   useEffect(() => {
@@ -143,7 +177,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
       {/* Search */}
       <div className="flex items-center">
         <Input
-          placeholder="Search by transaction, customers, invoice etc.."
+          placeholder="Search by phone number, customers, gst number etc.."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-md"
@@ -413,7 +447,14 @@ export function TransactionsTable(props: TransactionsTableProps) {
             {filteredInvoices.map((invoice) => (
               <TableRow key={invoice.id}>
                 <TableCell>
-                  <div className="font-medium">{formatCurrency(invoice.netAmount)}</div>
+                  <div className="flex flex-col">
+                    <div className="font-medium">{formatCurrency(invoice.netAmount)}</div>
+                    {invoice.status === 'partially paid' && (
+                      <div className="text-xs text-orange-700">
+                        pending: {formatCurrency(invoice.netAmount - (invoice.paidAmount || 0))}
+                      </div>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
@@ -421,8 +462,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       variant="outline"
                       className={cn('text-xs', getStatusBadgeVariant(invoice.status))}
                     >
-                      {invoice.status}
-                    </Badge>
+                      {invoice.status ? invoice.status === 'partially paid' ? 'Partially Paid' : invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1) : '—'}                    </Badge>
                     {(invoice.status === 'pending' || invoice.status === 'partially paid') && (
                       <span className="text-orange-500 text-lg">!</span>
                     )}
@@ -544,15 +584,6 @@ export function TransactionsTable(props: TransactionsTableProps) {
                         >
                           Thermal Print
                         </DropdownMenuItem>
-
-                        <DropdownMenuItem
-                          onClick={() => {
-                            alert("Edit functionality coming soon");
-                            // Future: open edit modal / form with invoice data
-                          }}
-                        >
-                          Edit
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -564,35 +595,199 @@ export function TransactionsTable(props: TransactionsTableProps) {
       </div>
 
       {/* Payment Dialog - unchanged */}
-      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent>
+      <Dialog open={isPaymentDialogOpen} onOpenChange={(open) => {
+        setIsPaymentDialogOpen(open)
+        if (!open) {
+          // Reset form/error when closing
+          setPaymentError(null)
+          // You can also reset form fields here if you want
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Record Payment</DialogTitle>
-            <DialogDescription>View invoice details and record payment</DialogDescription>
+            <DialogDescription>
+              Record a payment for {selectedInvoice?.customerName || 'this invoice'}
+            </DialogDescription>
           </DialogHeader>
+
           {selectedInvoice && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="space-y-6 py-2">
+              {/* Summary cards */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg text-sm">
                 <div>
-                  <span className="text-muted-foreground">Amount:</span>
-                  <p className="font-medium">{formatCurrency(selectedInvoice.netAmount)}</p>
+                  <div className="text-muted-foreground">Total Amount</div>
+                  <div className="text-lg font-semibold mt-0.5">
+                    {formatCurrency(selectedInvoice.netAmount)}
+                  </div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Customer:</span>
-                  <p className="font-medium">{selectedInvoice.customerName}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Status:</span>
-                  <Badge
-                    variant="outline"
-                    className={cn('text-xs ml-1', getStatusBadgeVariant(selectedInvoice.status))}
-                  >
-                    {selectedInvoice.status}
-                  </Badge>
+                  <div className="text-muted-foreground">Still Pending</div>
+                  <div className="text-lg font-semibold text-orange-600 mt-0.5">
+                    {formatCurrency(
+                      selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0)
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="flex justify-end">
-                <Button onClick={() => setIsPaymentDialogOpen(false)}>Close</Button>
+
+              {/* Amount Received */}
+              {/* Amount Received */}
+<div className="space-y-1.5">
+  <label className="text-sm font-medium flex items-center gap-1">
+    Amount Received
+    <span className="text-red-500 text-xs">*</span>
+  </label>
+
+  <Input
+    type="number"
+    value={paymentAmount}
+    onChange={(e) => {
+      const val = e.target.value;
+      setPaymentAmount(val);
+      setPaymentError(null);
+    }}
+    placeholder="0.00"
+    className="text-lg h-11"
+    min="0.01"
+    // ── NEW: Prevent entering more than remaining ────────────────────────
+    max={Math.max(
+      0,
+      selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0)
+    )}
+    step="0.01"
+    disabled={isSavingPayment}
+  />
+
+  {/* Real-time pending preview + overpayment warning */}
+  <div className="text-xs mt-1 flex flex-col gap-0.5">
+    <div className="flex items-center gap-1.5">
+      <span className="text-muted-foreground">Still pending after this payment:</span>
+      <span
+        className={cn(
+          "font-medium",
+          (() => {
+            const remaining = selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0);
+            const entered = Number(paymentAmount) || 0;
+            if (entered > remaining) return "text-red-600";
+            if (entered === remaining) return "text-emerald-600";
+            return "text-orange-600";
+          })()
+        )}
+      >
+        {formatCurrency(
+          Math.max(
+            0,
+            selectedInvoice.netAmount -
+              (selectedInvoice.paidAmount || 0) -
+              (Number(paymentAmount) || 0)
+          )
+        )}
+      </span>
+    </div>
+
+    {/* Overpayment warning */}
+    {Number(paymentAmount) > (selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0)) && (
+      <div className="text-xs text-red-600 font-medium">
+        Amount exceeds remaining balance — overpayment not allowed
+      </div>
+    )}
+  </div>
+</div>
+
+              {/* Payment Date */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Payment Date</label>
+                <Input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => {
+                    setPaymentDate(e.target.value)
+                    setPaymentError(null)
+                  }}
+                  disabled={isSavingPayment}
+                />
+              </div>
+
+              {/* Mode selection */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Payment Mode</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['cash', 'upi', 'card'] as const).map((mode) => (
+                    <Button
+                      key={mode}
+                      variant={selectedPaymentMode === mode ? 'default' : 'outline'}
+                      size="sm"
+                      className={cn(
+                        selectedPaymentMode === mode && mode === 'cash' && "bg-amber-600 hover:bg-amber-700",
+                        selectedPaymentMode === mode && mode === 'upi' && "bg-violet-600 hover:bg-violet-700",
+                        selectedPaymentMode === mode && mode === 'card' && "bg-blue-600 hover:bg-blue-700",
+                      )}
+                      onClick={() => {
+                        setSelectedPaymentMode(mode)
+                        setPaymentError(null)
+                      }}
+                      disabled={isSavingPayment}
+                    >
+                      {mode.toUpperCase()}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Error message */}
+              {paymentError && (
+                <div className="text-sm text-red-600 bg-red-50 p-2.5 rounded border border-red-200">
+                  {paymentError}
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex justify-end gap-3 pt-3 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsPaymentDialogOpen(false)}
+                  disabled={isSavingPayment}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    setIsSavingPayment(true)
+                    setPaymentError(null)
+
+                    const response = await savePayment()
+
+                    setIsSavingPayment(false)
+
+                    if (response.success) {
+                      // Optional: show success toast / message
+                      alert("Payment recorded successfully!")
+                      // The table should refresh automatically if you use onSnapshot or re-fetch
+                    } else {
+                      setPaymentError(response.error || "Something went wrong")
+                    }
+                  }}
+                  disabled={
+                    isSavingPayment ||
+                    !paymentAmount ||
+                    Number(paymentAmount) <= 0 ||
+                    !paymentDate ||
+                    !selectedPaymentMode ||
+                    // NEW: Prevent submit if overpaying
+                    Number(paymentAmount) > (selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0))
+                  }
+                  className="min-w-[140px]"
+                >
+                  {isSavingPayment ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Record Payment'
+                  )}
+                </Button>
               </div>
             </div>
           )}

@@ -5,6 +5,9 @@ import {
   orderBy,
   query,
   Timestamp,
+  doc,
+  updateDoc,
+  deleteDoc,
 } from "firebase/firestore"
 import { db } from "../firebase"
 
@@ -13,7 +16,8 @@ export interface Customer {
   name: string
   gstin?: string
   phone: string
-  address: string
+  address: string,
+  createdAt?:Timestamp
 }
 
 const customersRef = collection(db, "customers")
@@ -29,6 +33,7 @@ export const addCustomer = async (
   return {
     id: docRef.id,
     ...data,
+    createdAt:Timestamp.now(),
   }
 }
 
@@ -40,4 +45,19 @@ export const getCustomers = async (): Promise<Customer[]> => {
     id: doc.id,
     ...(doc.data() as Omit<Customer, "id">),
   }))
+}
+
+// NEW: Update customer
+export const updateCustomer = async (
+  id: string,
+  data: Partial<Omit<Customer, "id" | "createdAt">>
+): Promise<void> => {
+  const customerDoc = doc(db, "customers", id)
+  await updateDoc(customerDoc, data)
+}
+
+// NEW: Delete customer
+export const deleteCustomer = async (id: string): Promise<void> => {
+  const customerDoc = doc(db, "customers", id)
+  await deleteDoc(customerDoc)
 }

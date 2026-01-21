@@ -1,12 +1,15 @@
 // app/dashboard/hooks/useDashboard.ts
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import type { Invoice } from '@/lib/firebase/invoices'
+import { recordInvoicePayment } from '@/lib/firebase/invoices'
 
 export type SortOrder = 'asc' | 'desc' | null
 
-export function useDashboard(invoices: Invoice[]) {
+export function useDashboard(invoices: Invoice[],
+  onInvoicesChange?: (newInvoices: Invoice[]) => void
+) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
@@ -24,6 +27,16 @@ export function useDashboard(invoices: Invoice[]) {
   const [datePreset, setDatePreset] = useState<string | null>(null)
   const [dateFrom, setDateFrom] = useState<string>('')
   const [dateTo, setDateTo] = useState<string>('')
+
+  const [paymentAmount, setPaymentAmount] = useState<string>('')
+const [paymentDate, setPaymentDate] = useState<string>('')
+const [selectedPaymentMode, setSelectedPaymentMode] = useState<Invoice['mode']>('cash') // default
+
+type PaymentForm = {
+  amount: string
+  date: string
+  mode: Invoice['mode']
+}
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-IN', {
@@ -80,9 +93,14 @@ export function useDashboard(invoices: Invoice[]) {
   const filteredInvoices = useMemo(() => {
     let result = invoices.filter((invoice) => {
       const search = searchQuery.toLowerCase()
-      const matchesSearch =
-        invoice.customerName.toLowerCase().includes(search) ||
-        invoice.customerPhone.includes(search)
+      const matchesSearch = !search || (                     // empty search → show all
+      (invoice.customerName   ?? '').toLowerCase().includes(search) ||
+      (invoice.customerPhone  ?? '').includes(search) ||
+      (invoice.customerGstin  ?? '').toLowerCase().includes(search) ||
+      (invoice.invoiceNumber  != null 
+        ? invoice.invoiceNumber.toString().includes(search)
+        : false)
+    )
 
       const minAmount = amountMin ? parseFloat(amountMin) : null
       const maxAmount = amountMax ? parseFloat(amountMax) : null
@@ -177,9 +195,53 @@ export function useDashboard(invoices: Invoice[]) {
   }
 
   const handleRecordPayment = (invoice: Invoice) => {
-    setSelectedInvoice(invoice)
-    setIsPaymentDialogOpen(true)
-  }
+  const pending = invoice.netAmount - (invoice.paidAmount || 0)
+
+  setSelectedInvoice(invoice)
+  setPaymentAmount(pending.toFixed(2))           // pre-fill with what's left
+  setPaymentDate(new Date().toISOString().split('T')[0]) // today YYYY-MM-DD
+  setSelectedPaymentMode('cash')                 // or 'upi' — your preference
+  setIsPaymentDialogOpen(true)
+}
+
+
+const savePayment = useCallback(async () => {
+    if (!selectedInvoice) return { success: false, error: "No invoice selected" }
+
+    const amountNum = Number(paymentAmount)
+    if (isNaN(amountNum) || amountNum <= 0) {
+      return { success: false, error: "Invalid payment amount" }
+    }
+
+    if (!paymentDate || !selectedPaymentMode) {
+      return { success: false, error: "Missing date or mode" }
+    }
+
+    try {
+      const result = await recordInvoicePayment(selectedInvoice.id, {
+        amount: amountNum,
+        mode: selectedPaymentMode,
+        paymentDate: paymentDate,
+      })
+
+      // Optional: optimistic update (if you manage local state)
+      // or trigger full refresh
+      if (onInvoicesChange) {
+        // If parent passes refresh callback → use it
+        onInvoicesChange([]) // or better: trigger re-fetch
+      }
+
+      setIsPaymentDialogOpen(false)
+      setPaymentAmount('')
+      setPaymentDate('')
+      // setSelectedPaymentMode('cash') // optional reset
+
+      return { success: true, result }
+    } catch (err: any) {
+      console.error("Payment save failed:", err)
+      return { success: false, error: err.message || "Failed to save payment" }
+    }
+  }, [selectedInvoice, paymentAmount, paymentDate, selectedPaymentMode, onInvoicesChange])
 
   const toggleStatusFilter = (status: Invoice['status']) => {
     setStatusFilters((prev) =>
@@ -211,6 +273,17 @@ export function useDashboard(invoices: Invoice[]) {
     selectedInvoice,
     isPaymentDialogOpen,
     setIsPaymentDialogOpen,
+
+    // Payment form states – expose them
+    paymentAmount,
+    setPaymentAmount,
+    paymentDate,
+    setPaymentDate,
+    selectedPaymentMode,
+    setSelectedPaymentMode,
+
+    // Save function for the dialog button
+    savePayment,
 
     amountSort,
     setAmountSort,

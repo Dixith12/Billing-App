@@ -18,18 +18,21 @@ export default function DashboardPage() {
   // Use the new hook for table logic
   const dashboardHook = useDashboard(invoices)
 
-  const totals = useMemo(() => {
-    const totalSales = invoices.reduce((sum, inv) => sum + inv.netAmount, 0)
+const totals = useMemo(() => {
+  // Use filteredInvoices from the dashboard hook — this already has all filters applied
+  const filtered = dashboardHook.filteredInvoices
 
-    const totalPaid = invoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0)
+  const totalSales = filtered.reduce((sum, inv) => sum + inv.netAmount, 0)
 
-    const totalPending = invoices.reduce((sum, inv) => {
-      const remaining = inv.netAmount - (inv.paidAmount || 0)
-      return sum + (remaining > 0 ? remaining : 0)
-    }, 0)
+  const totalPaid = filtered.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0)
 
-    return { totalSales, totalPaid, totalPending }
-  }, [invoices])
+  const totalPending = filtered.reduce((sum, inv) => {
+    const remaining = inv.netAmount - (inv.paidAmount || 0)
+    return sum + (remaining > 0 ? remaining : 0)
+  }, 0)
+
+  return { totalSales, totalPaid, totalPending }
+}, [dashboardHook.filteredInvoices])  // ← Important: depend on filteredInvoices
 
   return (
     <div className="flex min-h-screen bg-muted/30">

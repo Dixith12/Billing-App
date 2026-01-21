@@ -97,10 +97,8 @@ type PaymentForm = {
       (invoice.customerName   ?? '').toLowerCase().includes(search) ||
       (invoice.customerPhone  ?? '').includes(search) ||
       (invoice.customerGstin  ?? '').toLowerCase().includes(search) ||
-      (invoice.invoiceNumber  != null 
-        ? invoice.invoiceNumber.toString().includes(search)
-        : false)
-    )
+      (invoice.invoiceNumber != null && (invoice.invoiceNumber.toString().includes(search) || String(invoice.invoiceNumber).includes(String(Number(search.trim()) || ''))))   
+     )
 
       const minAmount = amountMin ? parseFloat(amountMin) : null
       const maxAmount = amountMax ? parseFloat(amountMax) : null

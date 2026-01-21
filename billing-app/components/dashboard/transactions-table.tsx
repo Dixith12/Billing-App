@@ -356,6 +356,8 @@ export function TransactionsTable(props: TransactionsTableProps) {
 
               <TableHead className="font-medium">Customer</TableHead>
 
+              <TableHead className="font-medium">Customer</TableHead>
+
               <TableHead className="font-medium">
                 <Popover>
                   <PopoverTrigger asChild>
@@ -475,6 +477,11 @@ export function TransactionsTable(props: TransactionsTableProps) {
                     </Badge>
                   )}
                 </TableCell>
+
+                <TableCell className="text-center font-medium">
+                    #{invoice.invoiceNumber ? String(invoice.invoiceNumber).padStart(4, '0') : 'Draft'}
+                </TableCell>
+
                 <TableCell>
                   <div className="text-sm font-medium">{invoice.customerName}</div>
                   <div className="text-xs text-muted-foreground">{invoice.customerPhone}</div>
@@ -527,15 +534,6 @@ export function TransactionsTable(props: TransactionsTableProps) {
                     >
                       <Eye className="h-4 w-4" />
                       View
-                    </Button>
-
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="h-8 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      <Send className="h-4 w-4" />
-                      Send
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -631,33 +629,33 @@ export function TransactionsTable(props: TransactionsTableProps) {
                 </div>
               </div>
 
-              {/* Amount Received */}
-              {/* Amount Received */}
-<div className="space-y-1.5">
-  <label className="text-sm font-medium flex items-center gap-1">
-    Amount Received
-    <span className="text-red-500 text-xs">*</span>
-  </label>
 
-  <Input
-    type="number"
-    value={paymentAmount}
-    onChange={(e) => {
-      const val = e.target.value;
-      setPaymentAmount(val);
-      setPaymentError(null);
-    }}
-    placeholder="0.00"
-    className="text-lg h-11"
-    min="0.01"
-    // ── NEW: Prevent entering more than remaining ────────────────────────
-    max={Math.max(
-      0,
-      selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0)
-    )}
-    step="0.01"
-    disabled={isSavingPayment}
-  />
+              {/* Amount Received */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium flex items-center gap-1">
+                  Amount Received
+                  <span className="text-red-500 text-xs">*</span>
+                </label>
+
+                <Input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPaymentAmount(val);
+                    setPaymentError(null);
+                  }}
+                  placeholder="0.00"
+                  className="text-lg h-11"
+                  min="0.01"
+                  // ── NEW: Prevent entering more than remaining ────────────────────────
+                  max={Math.max(
+                    0,
+                    selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0)
+                  )}
+                  step="0.01"
+                  disabled={isSavingPayment}
+                />
 
   {/* Real-time pending preview + overpayment warning */}
   <div className="text-xs mt-1 flex flex-col gap-0.5">

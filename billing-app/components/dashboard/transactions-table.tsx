@@ -451,7 +451,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                     <div className="font-medium">{formatCurrency(invoice.netAmount)}</div>
                     {invoice.status === 'partially paid' && (
                       <div className="text-xs text-orange-700">
-                        pending: {formatCurrency(invoice.netAmount - (invoice.paidAmount || 0))}
+                        Pending: {formatCurrency(invoice.netAmount - (invoice.paidAmount || 0))}
                       </div>
                     )}
                   </div>

@@ -37,6 +37,7 @@ import type { Invoice } from '@/lib/firebase/invoices'
 import type { SortOrder } from '@/app/dashboard/hooks/useDashboard'
 import { pdf } from '@react-pdf/renderer'
 import InvoicePDF from '@/components/dashboard/invoice-pdf'
+import { useRouter } from 'next/navigation'
 
 
 interface TransactionsTableProps {
@@ -94,6 +95,8 @@ interface TransactionsTableProps {
 }
 
 export function TransactionsTable(props: TransactionsTableProps) {
+
+  const router = useRouter()
   const {
     searchQuery,
     setSearchQuery,
@@ -478,7 +481,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                   )}
                 </TableCell>
 
-                <TableCell className="text-center font-medium">
+                <TableCell className="text-sm font-medium">
                     #{invoice.invoiceNumber ? String(invoice.invoiceNumber).padStart(4, '0') : 'Draft'}
                 </TableCell>
 
@@ -542,6 +545,13 @@ export function TransactionsTable(props: TransactionsTableProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44 bg-white">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            router.push(`/invoice?edit=${invoice.id}`)
+                          }}
+                        >
+                          Edit
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={async () => {
                             if (isGeneratingPdf) return;

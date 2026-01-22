@@ -5,7 +5,7 @@ import {
 } from "firebase/firestore"
 import { db } from "../firebase"
 import { Timestamp } from "firebase/firestore"
-import { getDocs, query, orderBy } from "firebase/firestore"
+import { getDocs, getDoc,query, orderBy } from "firebase/firestore"
 import { doc, updateDoc, runTransaction } from "firebase/firestore"
 
 export interface InvoiceProduct {
@@ -157,3 +157,29 @@ export const getNextInvoiceNumber = async (): Promise<number> => {
 }
 
 
+// ── Fetch single invoice by ID ─────────────────────────────────────────────
+export const getInvoiceById = async (id: string): Promise<Invoice | null> => {
+  const docRef = doc(db, "invoices", id);
+  const snap = await getDoc(docRef);
+
+  if (!snap.exists()) {
+    return null;
+  }
+
+  return {
+    id: snap.id,
+    ...snap.data(),
+  } as Invoice;
+};
+
+export const updateInvoice = async (
+  id: string,
+  updates: Partial<Omit<Invoice, 'id' | 'createdAt' | 'paidAmount' | 'status' | 'mode'>>
+): Promise<void> => {
+  const docRef = doc(db, "invoices", id);
+
+  await updateDoc(docRef, {
+    ...updates,
+    updatedAt: serverTimestamp(),   // optional but recommended
+  });
+};

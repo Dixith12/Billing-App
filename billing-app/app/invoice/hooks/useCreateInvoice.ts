@@ -1,4 +1,3 @@
-// app/invoice/hooks/useCreateInvoice.ts
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
@@ -155,7 +154,6 @@ export function useCreateInvoice() {
           return sum + (p.total * disc) / 100
         } else {
           // ₹ discount — assuming PER UNIT (most common for materials)
-          // If it's total for the line → remove * p.quantity
           return sum + disc * p.quantity
         }
       }, 0),
@@ -232,6 +230,7 @@ export function useCreateInvoice() {
     addProductToBill,
     updateBilledProduct,
     removeBilledProduct,
+    setBilledProducts,            // ← NEW: exposed for edit mode
 
     subtotal,
     totalDiscount,

@@ -51,12 +51,12 @@ export function InvoiceSummary({
         </div>
 
         <div className="flex justify-between text-sm">
-          <span>CGST (9%)</span>
+          <span>CGST ({(cgst / taxableAmount * 100).toFixed(1)}%)</span>
           <span className="font-medium">₹{cgst.toFixed(2)}</span>
         </div>
 
         <div className="flex justify-between text-sm">
-          <span>SGST (9%)</span>
+          <span>SGST ({(sgst / taxableAmount * 100).toFixed(1)}%)</span>
           <span className="font-medium">₹{sgst.toFixed(2)}</span>
         </div>
 

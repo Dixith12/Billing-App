@@ -6,6 +6,7 @@ import { addInvoice } from '@/lib/firebase/invoices'
 import { addCustomer, getCustomers } from '@/lib/firebase/customers'
 import type { Customer } from '@/lib/firebase/customers'
 import type { InventoryItem } from '@/lib/types'
+import { useGst } from '@/app/gst/hooks/useGst'
 
 export interface BilledProduct {
   id: string
@@ -20,7 +21,7 @@ export interface BilledProduct {
 
 export function useCreateInvoice() {
   const { inventoryItems } = useApp()
-
+  const { cgst: gstCgst, sgst: gstSgst } = useGst()
   // ── Customers ──────────────────────────────────────────────
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loadingCustomers, setLoadingCustomers] = useState(false)
@@ -42,6 +43,16 @@ export function useCreateInvoice() {
   useEffect(() => {
     loadCustomers()
   }, [])
+
+  // ── Auto-fill billing address when customer is selected ─────────────────────
+useEffect(() => {
+  if (selectedCustomer?.address) {
+    setBillingAddress(selectedCustomer.address)
+  } else if (selectedCustomer === null) {
+    // optional: clear address when customer is removed
+    setBillingAddress('')
+  }
+}, [selectedCustomer])
 
   const loadCustomers = async () => {
     setLoadingCustomers(true)
@@ -139,10 +150,7 @@ export function useCreateInvoice() {
   }
 
   // ── Calculations ───────────────────────────────────────────
-  const subtotal = useMemo(
-    () => billedProducts.reduce((sum, p) => sum + p.total, 0),
-    [billedProducts]
-  )
+  const subtotal = useMemo(() => billedProducts.reduce((sum, p) => sum + p.total, 0), [billedProducts])
 
   const totalDiscount = useMemo(
     () =>
@@ -161,9 +169,9 @@ export function useCreateInvoice() {
   )
 
   const taxableAmount = subtotal - totalDiscount
-  const cgst = taxableAmount * 0.09
-  const sgst = taxableAmount * 0.09
-  const netAmount = taxableAmount + cgst + sgst
+  const cgstAmount = taxableAmount * (gstCgst / 100)     // ← dynamic
+  const sgstAmount = taxableAmount * (gstSgst / 100)
+  const netAmount = taxableAmount + cgstAmount + sgstAmount
 
   // ── Save to Firebase ───────────────────────────────────────
   const saveInvoice = async () => {
@@ -188,8 +196,8 @@ export function useCreateInvoice() {
         })),
         subtotal,
         discount: totalDiscount,
-        cgst,
-        sgst,
+        cgst: cgstAmount,     // ← now dynamic amount, not rate
+      sgst: sgstAmount,
         netAmount,
       })
       return { success: true }
@@ -234,8 +242,8 @@ export function useCreateInvoice() {
 
     subtotal,
     totalDiscount,
-    cgst,
-    sgst,
+    cgst: cgstAmount,      // renamed to avoid confusion with rate
+    sgst: sgstAmount,
     netAmount,
 
     saveInvoice,

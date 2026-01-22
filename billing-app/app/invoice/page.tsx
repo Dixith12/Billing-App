@@ -17,6 +17,8 @@ import { db } from '@/lib/firebase'
 import type { Invoice } from '@/lib/firebase/invoices'
 
 // ── Inner content component (uses client hooks) ─────────────────────────────
+
+
 function InvoiceContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -25,6 +27,9 @@ function InvoiceContent() {
 
   const [loading, setLoading] = useState(isEditMode)
   const [error, setError] = useState<string | null>(null)
+
+  // near the top of InvoiceContent
+const [isSaving, setIsSaving] = useState(false)
 
   const {
     customerSearch,
@@ -111,46 +116,43 @@ function InvoiceContent() {
   }, [isEditMode, editId, setSelectedCustomer, setBillingAddress, setBilledProducts])
 
   // Save / Update handler
-  const handleSave = async () => {
+ const handleSave = async () => {
+  if (isSaving) return                     // prevent double click
+
+  setIsSaving(true)
+
+  try {
     if (isEditMode) {
-      if (!editId) {
-        alert('Cannot update: missing invoice ID')
-        return
-      }
+      if (!editId) throw new Error('Missing invoice ID')
 
-      try {
-        const invoiceRef = doc(db, 'invoices', editId)
+      const invoiceRef = doc(db, 'invoices', editId)
 
-        await updateDoc(invoiceRef, {
-          customerId: selectedCustomer?.id,
-          customerName: selectedCustomer?.name,
-          customerPhone: selectedCustomer?.phone,
-          customerGstin: selectedCustomer?.gstin || null,
-          billingAddress,
-          products: billedProducts.map((p) => ({
-            name: p.name,
-            quantity: p.quantity,
-            height: p.height,
-            width: p.width,
-            discount: p.discount,
-            discountType: p.discountType,
-            total: p.total,
-          })),
-          subtotal,
-          discount: totalDiscount,
-          cgst,
-          sgst,
-          netAmount,
-          updatedAt: serverTimestamp(),
-        })
+      await updateDoc(invoiceRef, {
+        customerId: selectedCustomer?.id,
+        customerName: selectedCustomer?.name,
+        customerPhone: selectedCustomer?.phone,
+        customerGstin: selectedCustomer?.gstin || null,
+        billingAddress,
+        products: billedProducts.map((p) => ({
+          name: p.name,
+          quantity: p.quantity,
+          height: p.height,
+          width: p.width,
+          discount: p.discount,
+          discountType: p.discountType,
+          total: p.total,
+        })),
+        subtotal,
+        discount: totalDiscount,
+        cgst,
+        sgst,
+        netAmount,
+        updatedAt: serverTimestamp(),
+      })
 
-        alert('Invoice updated successfully')
-        resetForm()
-        router.push('/dashboard')
-      } catch (err: any) {
-        console.error('Update failed:', err)
-        alert('Failed to update invoice. Please try again.')
-      }
+      alert('Invoice updated successfully')
+      resetForm()
+      router.push('/dashboard')
     } else {
       const result = await saveInvoice()
       if (result.success) {
@@ -161,7 +163,13 @@ function InvoiceContent() {
         alert(result.message || 'Failed to save invoice')
       }
     }
+  } catch (err: any) {
+    console.error('Save failed:', err)
+    alert('Failed to save invoice. Please try again.')
+  } finally {
+    setIsSaving(false)
   }
+}
 
   const handleClose = () => router.back()
 
@@ -202,9 +210,18 @@ function InvoiceContent() {
             <Button
               className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={handleSave}
-              disabled={loading}
+              disabled={isSaving || loading}           // ← changed
             >
-              {isEditMode ? 'Update Invoice' : 'Save Invoice'}
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isEditMode ? 'Updating Invoice...' : 'Saving Invoice...'}
+                </>
+              ) : isEditMode ? (
+                'Update Invoice'
+              ) : (
+                'Save Invoice'
+              )}
             </Button>
           </div>
         </div>
@@ -259,6 +276,8 @@ function InvoiceContent() {
                 netAmount={netAmount}
                 onClose={handleClose}
                 onSave={handleSave}
+                isEditMode={isEditMode}
+                isSaving={isSaving}
               />
             </>
           )}

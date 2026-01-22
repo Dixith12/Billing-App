@@ -187,6 +187,8 @@ export function TransactionsTable(props: TransactionsTableProps) {
         />
       </div>
 
+
+
       {/* Table */}
       <div className="border rounded-lg overflow-hidden">
         <Table>

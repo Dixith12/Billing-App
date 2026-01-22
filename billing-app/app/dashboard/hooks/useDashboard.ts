@@ -90,15 +90,25 @@ type PaymentForm = {
 
   const allStatuses: Invoice['status'][] = ['paid', 'pending', 'partially paid', 'cancelled']
 
+  
+
+
   const filteredInvoices = useMemo(() => {
     let result = invoices.filter((invoice) => {
       const search = searchQuery.toLowerCase()
-      const matchesSearch = !search || (                     // empty search → show all
-      (invoice.customerName   ?? '').toLowerCase().includes(search) ||
-      (invoice.customerPhone  ?? '').includes(search) ||
-      (invoice.customerGstin  ?? '').toLowerCase().includes(search) ||
-      (invoice.invoiceNumber != null && (invoice.invoiceNumber.toString().includes(search) || String(invoice.invoiceNumber).includes(String(Number(search.trim()) || ''))))   
-     )
+      const isNumericSearch = !isNaN(Number(search))
+      const normalize = (v: string | number) =>
+  v.toString().replace(/^0+/, '')
+
+      const matchesSearch =
+  !search ||
+  (invoice.customerName ?? '').toLowerCase().includes(search) ||
+  (invoice.customerPhone ?? '').includes(search) ||
+  (invoice.customerGstin ?? '').toLowerCase().includes(search) ||
+  (isNumericSearch &&
+    invoice.invoiceNumber != null &&
+    normalize(invoice.invoiceNumber).includes(normalize(search)))
+
 
       const minAmount = amountMin ? parseFloat(amountMin) : null
       const maxAmount = amountMax ? parseFloat(amountMax) : null

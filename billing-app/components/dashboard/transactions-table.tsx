@@ -354,7 +354,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                 </Popover>
               </TableHead>
 
-              <TableHead className="font-medium">Customer</TableHead>
+              <TableHead className="font-medium">Invoice Number</TableHead>
 
               <TableHead className="font-medium">Customer</TableHead>
 

@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -8,29 +8,29 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover'
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 import {
   // ... existing imports
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,80 +40,91 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Eye, Send, MoreHorizontal, IndianRupee, Filter, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { deleteInvoice, type Invoice } from '@/lib/firebase/invoices'
-import type { SortOrder } from '@/app/dashboard/hooks/useDashboard'
-import { pdf } from '@react-pdf/renderer'
-import InvoicePDF from '@/components/dashboard/invoice-pdf'
-import { useRouter } from 'next/navigation'
-
+} from "@/components/ui/alert-dialog";
+import {
+  Eye,
+  Send,
+  MoreHorizontal,
+  IndianRupee,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { deleteInvoice, type Invoice } from "@/lib/firebase/invoices";
+import type { SortOrder } from "@/app/dashboard/hooks/useDashboard";
+import { pdf } from "@react-pdf/renderer";
+import InvoicePDF from "@/components/dashboard/invoice-pdf";
+import { useRouter } from "next/navigation";
 
 interface TransactionsTableProps {
-  invoices: Invoice[]
-  searchQuery: string
-  setSearchQuery: (v: string) => void
+  invoices: Invoice[];
+  searchQuery: string;
+  setSearchQuery: (v: string) => void;
 
-  selectedInvoice: Invoice | null
-  isPaymentDialogOpen: boolean
-  setIsPaymentDialogOpen: (v: boolean) => void
+  selectedInvoice: Invoice | null;
+  isPaymentDialogOpen: boolean;
+  setIsPaymentDialogOpen: (v: boolean) => void;
 
   // ── NEW: Payment dialog form state & actions ───────────────────────────
-  paymentAmount: string
-  setPaymentAmount: (v: string) => void
-  paymentDate: string
-  setPaymentDate: (v: string) => void
-  selectedPaymentMode: Invoice['mode']
-  setSelectedPaymentMode: (v: Invoice['mode']) => void
-  savePayment: () => Promise<{ success: boolean; result?: any; error?: string }>
+  paymentAmount: string;
+  setPaymentAmount: (v: string) => void;
+  paymentDate: string;
+  setPaymentDate: (v: string) => void;
+  selectedPaymentMode: Invoice["mode"];
+  setSelectedPaymentMode: (v: Invoice["mode"]) => void;
+  savePayment: () => Promise<{
+    success: boolean;
+    result?: any;
+    error?: string;
+  }>;
 
   // Existing filter-related props
-  amountSort: SortOrder
-  setAmountSort: (v: SortOrder) => void
-  amountMin: string
-  setAmountMin: (v: string) => void
-  amountMax: string
-  setAmountMax: (v: string) => void
+  amountSort: SortOrder;
+  setAmountSort: (v: SortOrder) => void;
+  amountMin: string;
+  setAmountMin: (v: string) => void;
+  amountMax: string;
+  setAmountMax: (v: string) => void;
 
-  statusFilters: Invoice['status'][]
-  setStatusFilters: (filters: Invoice['status'][]) => void
-  modeFilters: Invoice['mode'][]
-  setModeFilters: (filters: Invoice['mode'][]) => void
+  statusFilters: Invoice["status"][];
+  setStatusFilters: (filters: Invoice["status"][]) => void;
+  modeFilters: Invoice["mode"][];
+  setModeFilters: (filters: Invoice["mode"][]) => void;
 
-  filteredInvoices: Invoice[]
-  uniqueModes: Invoice['mode'][]
-  allStatuses: Invoice['status'][]
+  filteredInvoices: Invoice[];
+  uniqueModes: Invoice["mode"][];
+  allStatuses: Invoice["status"][];
 
-  formatCurrency: (amount: number) => string
-  formatDate: (date: Date | undefined) => string
-  getRelativeTime: (timestamp: Date | undefined) => string
-  getStatusBadgeVariant: (status: Invoice['status']) => string
+  formatCurrency: (amount: number) => string;
+  formatDate: (date: Date | undefined) => string;
+  getRelativeTime: (timestamp: Date | undefined) => string;
+  getStatusBadgeVariant: (status: Invoice["status"]) => string;
 
-  handleRecordPayment: (invoice: Invoice) => void
-  toggleStatusFilter: (status: Invoice['status']) => void
-  toggleModeFilter: (mode: Invoice['mode']) => void
-  clearAmountFilter: () => void
+  handleRecordPayment: (invoice: Invoice) => void;
+  toggleStatusFilter: (status: Invoice["status"]) => void;
+  toggleModeFilter: (mode: Invoice["mode"]) => void;
+  clearAmountFilter: () => void;
 
-  datePreset: string | null
-  setDatePreset: (preset: string | null) => void
-  dateFrom: string
-  setDateFrom: (v: string) => void
-  dateTo: string
-  setDateTo: (v: string) => void
-  clearDateFilter: () => void
+  datePreset: string | null;
+  setDatePreset: (preset: string | null) => void;
+  dateFrom: string;
+  setDateFrom: (v: string) => void;
+  dateTo: string;
+  setDateTo: (v: string) => void;
+  clearDateFilter: () => void;
 
-  deleteDialogOpen: boolean
-  setDeleteDialogOpen: (open: boolean) => void
-  invoiceToDelete: Invoice | null
-  isDeleting: boolean
-  openDeleteDialog: (invoice: Invoice) => void
-  handleDeleteInvoice: () => Promise<void>
+  deleteDialogOpen: boolean;
+  setDeleteDialogOpen: (open: boolean) => void;
+  invoiceToDelete: Invoice | null;
+  isDeleting: boolean;
+  openDeleteDialog: (invoice: Invoice) => void;
+  handleDeleteInvoice: () => Promise<void>;
 }
 
 export function TransactionsTable(props: TransactionsTableProps) {
-
-  const router = useRouter()
+  const router = useRouter();
   const {
     searchQuery,
     setSearchQuery,
@@ -147,7 +158,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
     getRelativeTime,
     getStatusBadgeVariant,
     handleRecordPayment,
-    
+
     toggleStatusFilter,
     toggleModeFilter,
     clearAmountFilter,
@@ -158,31 +169,32 @@ export function TransactionsTable(props: TransactionsTableProps) {
     dateTo,
     setDateTo,
     clearDateFilter,
-  } = props
+  } = props;
 
   // PDF modal states
-  const [pdfModalOpen, setPdfModalOpen] = useState(false)
-  const [selectedPdfInvoice, setSelectedPdfInvoice] = useState<Invoice | null>(null)
-  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
-  const [pendingDownloadInvoice, setPendingDownloadInvoice] = useState<Invoice | null>(null);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [selectedPdfInvoice, setSelectedPdfInvoice] = useState<Invoice | null>(
+    null,
+  );
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pendingDownloadInvoice, setPendingDownloadInvoice] =
+    useState<Invoice | null>(null);
 
   // NEW local states for UI feedback in dialog
-  const [isSavingPayment, setIsSavingPayment] = useState(false)
-  const [paymentError, setPaymentError] = useState<string | null>(null)
-
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // Cleanup blob URL when modal closes or component unmounts
   useEffect(() => {
     return () => {
       if (pdfBlobUrl) {
-        URL.revokeObjectURL(pdfBlobUrl)
-        setPdfBlobUrl(null)
+        URL.revokeObjectURL(pdfBlobUrl);
+        setPdfBlobUrl(null);
       }
-    }
-  }, [pdfBlobUrl])
+    };
+  }, [pdfBlobUrl]);
 
-  
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -205,8 +217,6 @@ export function TransactionsTable(props: TransactionsTableProps) {
         />
       </div>
 
-
-
       {/* Table */}
       <div className="border rounded-lg overflow-hidden">
         <Table>
@@ -219,36 +229,52 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       Amount
                       <Filter
                         className={cn(
-                          'h-3 w-3',
-                          amountMin || amountMax || amountSort ? 'text-primary' : 'text-muted-foreground'
+                          "h-3 w-3",
+                          amountMin || amountMax || amountSort
+                            ? "text-primary"
+                            : "text-muted-foreground",
                         )}
                       />
-                      {amountSort === 'asc' && <ChevronUp className="h-3 w-3" />}
-                      {amountSort === 'desc' && <ChevronDown className="h-3 w-3" />}
+                      {amountSort === "asc" && (
+                        <ChevronUp className="h-3 w-3" />
+                      )}
+                      {amountSort === "desc" && (
+                        <ChevronDown className="h-3 w-3" />
+                      )}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-72 p-3 bg-white" align="start">
                     <div className="space-y-3">
-                      <div className="font-medium text-sm">Filter by Amount</div>
+                      <div className="font-medium text-sm">
+                        Filter by Amount
+                      </div>
                       <div className="flex gap-2">
                         <Button
-                          variant={amountSort === 'asc' ? 'default' : 'outline'}
+                          variant={amountSort === "asc" ? "default" : "outline"}
                           size="sm"
-                          onClick={() => setAmountSort(amountSort === 'asc' ? null : 'asc')}
+                          onClick={() =>
+                            setAmountSort(amountSort === "asc" ? null : "asc")
+                          }
                         >
                           <ChevronUp className="h-3 w-3 mr-1" /> Low to High
                         </Button>
                         <Button
-                          variant={amountSort === 'desc' ? 'default' : 'outline'}
+                          variant={
+                            amountSort === "desc" ? "default" : "outline"
+                          }
                           size="sm"
-                          onClick={() => setAmountSort(amountSort === 'desc' ? null : 'desc')}
+                          onClick={() =>
+                            setAmountSort(amountSort === "desc" ? null : "desc")
+                          }
                         >
                           <ChevronDown className="h-3 w-3 mr-1" /> High to Low
                         </Button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-xs text-muted-foreground">Min</label>
+                          <label className="text-xs text-muted-foreground">
+                            Min
+                          </label>
                           <Input
                             type="number"
                             placeholder="0"
@@ -258,7 +284,9 @@ export function TransactionsTable(props: TransactionsTableProps) {
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground">Max</label>
+                          <label className="text-xs text-muted-foreground">
+                            Max
+                          </label>
                           <Input
                             type="number"
                             placeholder="Any"
@@ -288,15 +316,19 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       Status
                       <Filter
                         className={cn(
-                          'h-3 w-3',
-                          statusFilters.length > 0 ? 'text-primary' : 'text-muted-foreground'
+                          "h-3 w-3",
+                          statusFilters.length > 0
+                            ? "text-primary"
+                            : "text-muted-foreground",
                         )}
                       />
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-48 p-3 bg-white" align="start">
                     <div className="space-y-2">
-                      <div className="font-medium text-sm">Filter by Status</div>
+                      <div className="font-medium text-sm">
+                        Filter by Status
+                      </div>
                       {allStatuses.map((status) => (
                         <label
                           key={`status-${status}`}
@@ -310,7 +342,10 @@ export function TransactionsTable(props: TransactionsTableProps) {
                           />
                           <Badge
                             variant="outline"
-                            className={cn('text-xs capitalize', getStatusBadgeVariant(status))}
+                            className={cn(
+                              "text-xs capitalize",
+                              getStatusBadgeVariant(status),
+                            )}
                           >
                             {status}
                           </Badge>
@@ -336,8 +371,10 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       Mode
                       <Filter
                         className={cn(
-                          'h-3 w-3',
-                          modeFilters.length > 0 ? 'text-primary' : 'text-muted-foreground'
+                          "h-3 w-3",
+                          modeFilters.length > 0
+                            ? "text-primary"
+                            : "text-muted-foreground",
                         )}
                       />
                     </button>
@@ -347,7 +384,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       <div className="font-medium text-sm">Filter by Mode</div>
                       {uniqueModes.map((mode) => (
                         <label
-                          key={`mode-${mode ?? 'unknown'}`}
+                          key={`mode-${mode ?? "unknown"}`}
                           className="flex items-center gap-2 cursor-pointer"
                         >
                           <input
@@ -360,7 +397,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                             variant="outline"
                             className="bg-gray-100 text-gray-700 border-gray-200"
                           >
-                            {mode ?? '—'}
+                            {mode ?? "—"}
                           </Badge>
                         </label>
                       ))}
@@ -388,8 +425,10 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       Date
                       <Filter
                         className={cn(
-                          'h-3 w-3',
-                          datePreset || dateFrom || dateTo ? 'text-primary' : 'text-muted-foreground'
+                          "h-3 w-3",
+                          datePreset || dateFrom || dateTo
+                            ? "text-primary"
+                            : "text-muted-foreground",
                         )}
                       />
                     </button>
@@ -399,22 +438,24 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       <div className="font-medium text-sm">Filter by Date</div>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          { label: 'All', value: null },
-                          { label: 'Today', value: 'today' },
-                          { label: 'Yesterday', value: 'yesterday' },
-                          { label: 'This Month', value: 'thisMonth' },
-                          { label: 'Last 30 days', value: 'last30days' },
+                          { label: "All", value: null },
+                          { label: "Today", value: "today" },
+                          { label: "Yesterday", value: "yesterday" },
+                          { label: "This Month", value: "thisMonth" },
+                          { label: "Last 30 days", value: "last30days" },
                         ].map((item) => (
                           <Button
-                            key={item.value ?? 'all'}
-                            variant={datePreset === item.value ? 'default' : 'outline'}
+                            key={item.value ?? "all"}
+                            variant={
+                              datePreset === item.value ? "default" : "outline"
+                            }
                             size="sm"
                             className="transition-none"
                             onClick={() => {
-                              setDatePreset(item.value)
+                              setDatePreset(item.value);
                               if (item.value) {
-                                setDateFrom('')
-                                setDateTo('')
+                                setDateFrom("");
+                                setDateTo("");
                               }
                             }}
                           >
@@ -424,27 +465,33 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       </div>
 
                       <div className="space-y-2">
-                        <div className="text-xs text-muted-foreground">Custom range</div>
+                        <div className="text-xs text-muted-foreground">
+                          Custom range
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-foreground mb-1">From</label>
+                            <label className="block text-xs text-muted-foreground mb-1">
+                              From
+                            </label>
                             <Input
                               type="date"
                               value={dateFrom}
                               onChange={(e) => {
-                                setDateFrom(e.target.value)
-                                setDatePreset(null)
+                                setDateFrom(e.target.value);
+                                setDatePreset(null);
                               }}
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-foreground mb-1">To</label>
+                            <label className="block text-xs text-muted-foreground mb-1">
+                              To
+                            </label>
                             <Input
                               type="date"
                               value={dateTo}
                               onChange={(e) => {
-                                setDateTo(e.target.value)
-                                setDatePreset(null)
+                                setDateTo(e.target.value);
+                                setDatePreset(null);
                               }}
                             />
                           </div>
@@ -473,10 +520,15 @@ export function TransactionsTable(props: TransactionsTableProps) {
               <TableRow key={invoice.id}>
                 <TableCell>
                   <div className="flex flex-col">
-                    <div className="font-medium">{formatCurrency(invoice.netAmount)}</div>
-                    {invoice.status === 'partially paid' && (
+                    <div className="font-medium">
+                      {formatCurrency(invoice.netAmount)}
+                    </div>
+                    {invoice.status === "partially paid" && (
                       <div className="text-xs text-orange-700">
-                        Pending: {formatCurrency(invoice.netAmount - (invoice.paidAmount || 0))}
+                        Pending:{" "}
+                        {formatCurrency(
+                          invoice.netAmount - (invoice.paidAmount || 0),
+                        )}
                       </div>
                     )}
                   </div>
@@ -485,32 +537,54 @@ export function TransactionsTable(props: TransactionsTableProps) {
                   <div className="flex items-center gap-1">
                     <Badge
                       variant="outline"
-                      className={cn('text-xs', getStatusBadgeVariant(invoice.status))}
+                      className={cn(
+                        "text-xs",
+                        getStatusBadgeVariant(invoice.status),
+                      )}
                     >
-                      {invoice.status ? invoice.status === 'partially paid' ? 'Partially Paid' : invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1) : '—'}                    </Badge>
-                    {(invoice.status === 'pending' || invoice.status === 'partially paid') && (
+                      {invoice.status
+                        ? invoice.status === "partially paid"
+                          ? "Partially Paid"
+                          : invoice.status.charAt(0).toUpperCase() +
+                            invoice.status.slice(1)
+                        : "—"}{" "}
+                    </Badge>
+                    {(invoice.status === "pending" ||
+                      invoice.status === "partially paid") && (
                       <span className="text-orange-500 text-lg">!</span>
                     )}
                   </div>
                 </TableCell>
                 <TableCell>
                   {invoice.mode && (
-                    <Badge variant="outline" className="bg-gray-100 text-gray-700 border-gray-200">
+                    <Badge
+                      variant="outline"
+                      className="bg-gray-100 text-gray-700 border-gray-200"
+                    >
                       {invoice.mode}
                     </Badge>
                   )}
                 </TableCell>
 
                 <TableCell className="text-sm font-medium">
-                    #{invoice.invoiceNumber ? String(invoice.invoiceNumber).padStart(4, '0') : 'Draft'}
+                  #
+                  {invoice.invoiceNumber
+                    ? String(invoice.invoiceNumber).padStart(4, "0")
+                    : "Draft"}
                 </TableCell>
 
                 <TableCell>
-                  <div className="text-sm font-medium">{invoice.customerName}</div>
-                  <div className="text-xs text-muted-foreground">{invoice.customerPhone}</div>
+                  <div className="text-sm font-medium">
+                    {invoice.customerName}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {invoice.customerPhone}
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <div className="text-sm">{formatDate(invoice.createdAt?.toDate())}</div>
+                  <div className="text-sm">
+                    {formatDate(invoice.createdAt?.toDate())}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {getRelativeTime(invoice.createdAt?.toDate())}
                   </div>
@@ -532,8 +606,8 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       variant="outline"
                       size="sm"
                       onClick={async () => {
-                        if (isGeneratingPdf) return; 
-                        console.log("InvoicePDF:", InvoicePDF);           // ← should log a function
+                        if (isGeneratingPdf) return;
+                        console.log("InvoicePDF:", InvoicePDF); // ← should log a function
                         console.log("InvoicePDF type:", typeof InvoicePDF);
 
                         setIsGeneratingPdf(true);
@@ -542,7 +616,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
 
                         try {
                           const element = <InvoicePDF invoice={invoice} />;
-                          console.log("JSX element:", element);           // ← should be object with type = function
+                          console.log("JSX element:", element); // ← should be object with type = function
 
                           const blob = await pdf(element).toBlob();
                           const url = URL.createObjectURL(blob);
@@ -564,10 +638,13 @@ export function TransactionsTable(props: TransactionsTableProps) {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44 bg-white">
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-44 bg-white"
+                      >
                         <DropdownMenuItem
                           onClick={() => {
-                            router.push(`/invoice?edit=${invoice.id}`)
+                            router.push(`/invoice?edit=${invoice.id}`);
                           }}
                         >
                           Edit
@@ -583,9 +660,9 @@ export function TransactionsTable(props: TransactionsTableProps) {
 
                               // Trigger download
                               const url = URL.createObjectURL(blob);
-                              const link = document.createElement('a');
+                              const link = document.createElement("a");
                               link.href = url;
-                              link.download = `Invoice-${invoice.id || 'draft'}-${invoice.customerName || 'client'}.pdf`;
+                              link.download = `Invoice-${invoice.id || "draft"}-${invoice.customerName || "client"}.pdf`;
                               document.body.appendChild(link);
                               link.click();
 
@@ -616,11 +693,11 @@ export function TransactionsTable(props: TransactionsTableProps) {
                         <DropdownMenuItem
                           className="text-red-600 focus:bg-red-50 focus:text-red-700"
                           onClick={() => {
-                            props.openDeleteDialog(invoice)
+                            props.openDeleteDialog(invoice);
                           }}
                         >
                           Delete
-                       </DropdownMenuItem>
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -632,19 +709,23 @@ export function TransactionsTable(props: TransactionsTableProps) {
       </div>
 
       {/* Payment Dialog - unchanged */}
-      <Dialog open={isPaymentDialogOpen} onOpenChange={(open) => {
-        setIsPaymentDialogOpen(open)
-        if (!open) {
-          // Reset form/error when closing
-          setPaymentError(null)
-          // You can also reset form fields here if you want
-        }
-      }}>
+      <Dialog
+        open={isPaymentDialogOpen}
+        onOpenChange={(open) => {
+          setIsPaymentDialogOpen(open);
+          if (!open) {
+            // Reset form/error when closing
+            setPaymentError(null);
+            // You can also reset form fields here if you want
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Record Payment</DialogTitle>
             <DialogDescription>
-              Record a payment for {selectedInvoice?.customerName || 'this invoice'}
+              Record a payment for{" "}
+              {selectedInvoice?.customerName || "this invoice"}
             </DialogDescription>
           </DialogHeader>
 
@@ -662,12 +743,12 @@ export function TransactionsTable(props: TransactionsTableProps) {
                   <div className="text-muted-foreground">Still Pending</div>
                   <div className="text-lg font-semibold text-orange-600 mt-0.5">
                     {formatCurrency(
-                      selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0)
+                      selectedInvoice.netAmount -
+                        (selectedInvoice.paidAmount || 0),
                     )}
                   </div>
                 </div>
               </div>
-
 
               {/* Amount Received */}
               <div className="space-y-1.5">
@@ -690,47 +771,54 @@ export function TransactionsTable(props: TransactionsTableProps) {
                   // ── NEW: Prevent entering more than remaining ────────────────────────
                   max={Math.max(
                     0,
-                    selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0)
+                    selectedInvoice.netAmount -
+                      (selectedInvoice.paidAmount || 0),
                   )}
                   step="0.01"
                   disabled={isSavingPayment}
                 />
 
-  {/* Real-time pending preview + overpayment warning */}
-  <div className="text-xs mt-1 flex flex-col gap-0.5">
-    <div className="flex items-center gap-1.5">
-      <span className="text-muted-foreground">Still pending after this payment:</span>
-      <span
-        className={cn(
-          "font-medium",
-          (() => {
-            const remaining = selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0);
-            const entered = Number(paymentAmount) || 0;
-            if (entered > remaining) return "text-red-600";
-            if (entered === remaining) return "text-emerald-600";
-            return "text-orange-600";
-          })()
-        )}
-      >
-        {formatCurrency(
-          Math.max(
-            0,
-            selectedInvoice.netAmount -
-              (selectedInvoice.paidAmount || 0) -
-              (Number(paymentAmount) || 0)
-          )
-        )}
-      </span>
-    </div>
+                {/* Real-time pending preview + overpayment warning */}
+                <div className="text-xs mt-1 flex flex-col gap-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">
+                      Still pending after this payment:
+                    </span>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        (() => {
+                          const remaining =
+                            selectedInvoice.netAmount -
+                            (selectedInvoice.paidAmount || 0);
+                          const entered = Number(paymentAmount) || 0;
+                          if (entered > remaining) return "text-red-600";
+                          if (entered === remaining) return "text-emerald-600";
+                          return "text-orange-600";
+                        })(),
+                      )}
+                    >
+                      {formatCurrency(
+                        Math.max(
+                          0,
+                          selectedInvoice.netAmount -
+                            (selectedInvoice.paidAmount || 0) -
+                            (Number(paymentAmount) || 0),
+                        ),
+                      )}
+                    </span>
+                  </div>
 
-    {/* Overpayment warning */}
-    {Number(paymentAmount) > (selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0)) && (
-      <div className="text-xs text-red-600 font-medium">
-        Amount exceeds remaining balance — overpayment not allowed
-      </div>
-    )}
-  </div>
-</div>
+                  {/* Overpayment warning */}
+                  {Number(paymentAmount) >
+                    selectedInvoice.netAmount -
+                      (selectedInvoice.paidAmount || 0) && (
+                    <div className="text-xs text-red-600 font-medium">
+                      Amount exceeds remaining balance — overpayment not allowed
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Payment Date */}
               <div className="space-y-1.5">
@@ -739,8 +827,8 @@ export function TransactionsTable(props: TransactionsTableProps) {
                   type="date"
                   value={paymentDate}
                   onChange={(e) => {
-                    setPaymentDate(e.target.value)
-                    setPaymentError(null)
+                    setPaymentDate(e.target.value);
+                    setPaymentError(null);
                   }}
                   disabled={isSavingPayment}
                 />
@@ -750,19 +838,27 @@ export function TransactionsTable(props: TransactionsTableProps) {
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Payment Mode</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['cash', 'upi', 'card'] as const).map((mode) => (
+                  {(["cash", "upi", "card"] as const).map((mode) => (
                     <Button
                       key={mode}
-                      variant={selectedPaymentMode === mode ? 'default' : 'outline'}
+                      variant={
+                        selectedPaymentMode === mode ? "default" : "outline"
+                      }
                       size="sm"
                       className={cn(
-                        selectedPaymentMode === mode && mode === 'cash' && "bg-amber-600 hover:bg-amber-700",
-                        selectedPaymentMode === mode && mode === 'upi' && "bg-violet-600 hover:bg-violet-700",
-                        selectedPaymentMode === mode && mode === 'card' && "bg-blue-600 hover:bg-blue-700",
+                        selectedPaymentMode === mode &&
+                          mode === "cash" &&
+                          "bg-amber-600 hover:bg-amber-700",
+                        selectedPaymentMode === mode &&
+                          mode === "upi" &&
+                          "bg-violet-600 hover:bg-violet-700",
+                        selectedPaymentMode === mode &&
+                          mode === "card" &&
+                          "bg-blue-600 hover:bg-blue-700",
                       )}
                       onClick={() => {
-                        setSelectedPaymentMode(mode)
-                        setPaymentError(null)
+                        setSelectedPaymentMode(mode);
+                        setPaymentError(null);
                       }}
                       disabled={isSavingPayment}
                     >
@@ -790,19 +886,19 @@ export function TransactionsTable(props: TransactionsTableProps) {
                 </Button>
                 <Button
                   onClick={async () => {
-                    setIsSavingPayment(true)
-                    setPaymentError(null)
+                    setIsSavingPayment(true);
+                    setPaymentError(null);
 
-                    const response = await savePayment()
+                    const response = await savePayment();
 
-                    setIsSavingPayment(false)
+                    setIsSavingPayment(false);
 
                     if (response.success) {
                       // Optional: show success toast / message
-                      alert("Payment recorded successfully!")
+                      alert("Payment recorded successfully!");
                       // The table should refresh automatically if you use onSnapshot or re-fetch
                     } else {
-                      setPaymentError(response.error || "Something went wrong")
+                      setPaymentError(response.error || "Something went wrong");
                     }
                   }}
                   disabled={
@@ -812,7 +908,9 @@ export function TransactionsTable(props: TransactionsTableProps) {
                     !paymentDate ||
                     !selectedPaymentMode ||
                     // NEW: Prevent submit if overpaying
-                    Number(paymentAmount) > (selectedInvoice.netAmount - (selectedInvoice.paidAmount || 0))
+                    Number(paymentAmount) >
+                      selectedInvoice.netAmount -
+                        (selectedInvoice.paidAmount || 0)
                   }
                   className="min-w-[140px]"
                 >
@@ -822,7 +920,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       Saving...
                     </>
                   ) : (
-                    'Record Payment'
+                    "Record Payment"
                   )}
                 </Button>
               </div>
@@ -835,33 +933,34 @@ export function TransactionsTable(props: TransactionsTableProps) {
       <Dialog
         open={pdfModalOpen}
         onOpenChange={(open) => {
-          setPdfModalOpen(open)
+          setPdfModalOpen(open);
           if (!open) {
             // Cleanup when closing
             if (pdfBlobUrl) {
-              URL.revokeObjectURL(pdfBlobUrl)
-              setPdfBlobUrl(null)
+              URL.revokeObjectURL(pdfBlobUrl);
+              setPdfBlobUrl(null);
             }
-            setSelectedPdfInvoice(null)
+            setSelectedPdfInvoice(null);
           }
-        }}>
+        }}
+      >
         <DialogContent className="max-w-6xl h-[90vh] p-0 flex flex-col">
           <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle className="flex items-center justify-between">
               <span>
-                Invoice 
+                Invoice
                 {/* {selectedPdfInvoice?.id || '—'}{' '} */}
-                {selectedPdfInvoice?.customerName ? ` - ${selectedPdfInvoice.customerName}` : ''}
+                {selectedPdfInvoice?.customerName
+                  ? ` - ${selectedPdfInvoice.customerName}`
+                  : ""}
               </span>
-
-      
             </DialogTitle>
             <DialogDescription>
               {selectedPdfInvoice
                 ? `Created: ${formatDate(selectedPdfInvoice.createdAt?.toDate())} • ${getRelativeTime(
-                    selectedPdfInvoice.createdAt?.toDate()
+                    selectedPdfInvoice.createdAt?.toDate(),
                   )}`
-                : 'Loading invoice...'}
+                : "Loading invoice..."}
             </DialogDescription>
           </DialogHeader>
 
@@ -869,13 +968,15 @@ export function TransactionsTable(props: TransactionsTableProps) {
             {isGeneratingPdf ? (
               <div className="h-full flex flex-col items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                <p className="text-sm text-muted-foreground">Generating invoice PDF...</p>
+                <p className="text-sm text-muted-foreground">
+                  Generating invoice PDF...
+                </p>
               </div>
             ) : pdfBlobUrl ? (
               <iframe
                 src={`${pdfBlobUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                 className="w-full h-full border-0"
-                title={`Invoice ${selectedPdfInvoice?.id || 'preview'}`}
+                title={`Invoice ${selectedPdfInvoice?.id || "preview"}`}
               />
             ) : (
               <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -892,21 +993,27 @@ export function TransactionsTable(props: TransactionsTableProps) {
         </DialogContent>
       </Dialog>
 
-
-      <AlertDialog open={props.deleteDialogOpen} onOpenChange={props.setDeleteDialogOpen}>
+      <AlertDialog
+        open={props.deleteDialogOpen}
+        onOpenChange={props.setDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete invoice #
-              {props.invoiceToDelete?.invoiceNumber ? String(props.invoiceToDelete.invoiceNumber).padStart(4, '0') : 'draft'}
-              {' '}for {props.invoiceToDelete?.customerName || 'this customer'}.
+              {props.invoiceToDelete?.invoiceNumber
+                ? String(props.invoiceToDelete.invoiceNumber).padStart(4, "0")
+                : "draft"}{" "}
+              for {props.invoiceToDelete?.customerName || "this customer"}.
               <br />
               This action <strong>cannot be undone</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={props.isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={props.isDeleting}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={props.handleDeleteInvoice}
               disabled={props.isDeleting}
@@ -918,12 +1025,12 @@ export function TransactionsTable(props: TransactionsTableProps) {
                   Deleting...
                 </>
               ) : (
-                'Delete Invoice'
+                "Delete Invoice"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Package, FileText, X, PersonStanding, Calculator, BellElectricIcon, DropletIcon } from 'lucide-react'
+import { Package, FileText, X, PersonStanding, Calculator, BellElectricIcon, DropletIcon, NotebookPenIcon } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -35,6 +35,11 @@ const navItems = [
     label:'Expenses',
     href:'/expenses',
     icon: DropletIcon
+  },
+  {
+    label:'Quotation',
+    href:'/quotation',
+    icon:NotebookPenIcon
   }
   
 ]

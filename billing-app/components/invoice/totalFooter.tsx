@@ -1,16 +1,18 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'   // ← make sure you import Loader2 if using it
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react"; // ← make sure you import Loader2 if using it
 
 interface TotalsFooterProps {
-  itemCount: number
-  totalQty: number
-  netAmount: number
-  onClose: () => void
-  onSave: () => void
-  isEditMode?:boolean,
-  isSaving?: boolean   // optional, good
+  itemCount: number;
+  totalQty: number;
+  netAmount: number;
+  onClose: () => void;
+  onSave: () => void;
+  isEditMode?: boolean;
+  isSaving?: boolean;
+  isQuotationMode?: boolean;
+  disabled?: boolean; // optional, good
 }
 
 export function TotalsFooter({
@@ -20,8 +22,18 @@ export function TotalsFooter({
   onClose,
   onSave,
   isEditMode = false,
-  isSaving = false,    // ← default to false so it's safe even if not passed
+  isSaving = false,
+  isQuotationMode = false, // ← default to false so it's safe even if not passed
+  disabled = false
 }: TotalsFooterProps) {
+  // Decide label based on mode
+  const actionLabel = isEditMode ? "Update" : "Save";
+  const documentType = isQuotationMode ? "Quotation" : "Invoice";
+
+  const buttonText = isSaving
+    ? `${actionLabel}ing ${documentType}...`
+    : `${actionLabel} ${documentType}`;
+
   return (
     <div className="border-t bg-muted/30 p-4">
       <div className="flex items-center justify-between">
@@ -40,22 +52,20 @@ export function TotalsFooter({
             <Button
               className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={onSave}
-              disabled={isSaving}
+              disabled={isSaving||disabled}
             >
               {isSaving ? (
-                  <div className="flex items-center gap-2 justify-center">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {isEditMode ? 'Updating Invoice...' : 'Saving Invoice...'}
-                  </div>
-                ) : isEditMode ? (
-                  'Update Invoice'
-                ) : (
-                  'Save Invoice'
-                )}
+                <div className="flex items-center gap-2 justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {buttonText}
+                </div>
+              ) : (
+                buttonText
+              )}
             </Button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

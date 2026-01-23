@@ -145,6 +145,8 @@ interface InvoicePDFProps {
 }
 
 export default function InvoicePDF({ invoice }: InvoicePDFProps) {
+
+  const incoiveNumber = invoice.invoiceNumber
   const createdDate = invoice.createdAt?.toDate()
     ? new Intl.DateTimeFormat('en-GB', {
         day: '2-digit',
@@ -215,8 +217,8 @@ export default function InvoicePDF({ invoice }: InvoicePDFProps) {
 
           <View style={styles.billToRight}>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Invoice #</Text>
-              <Text style={styles.detailValue}>{invoice.id || '—'}</Text>
+              <Text style={styles.detailLabel}>Invoice id</Text>
+              <Text style={styles.detailValue}>#{invoice.invoiceNumber ? String(invoice.invoiceNumber).padStart(4, '0') : 'Draft'}</Text>   
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Invoice date</Text>

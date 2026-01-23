@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import type { Invoice } from '@/lib/firebase/invoices'
-import { recordInvoicePayment } from '@/lib/firebase/invoices'
+import { recordInvoicePayment,deleteInvoice } from '@/lib/firebase/invoices'
 
 export type SortOrder = 'asc' | 'desc' | null
 
@@ -31,12 +31,45 @@ export function useDashboard(invoices: Invoice[],
   const [paymentAmount, setPaymentAmount] = useState<string>('')
 const [paymentDate, setPaymentDate] = useState<string>('')
 const [selectedPaymentMode, setSelectedPaymentMode] = useState<Invoice['mode']>('cash') // default
+ 
+  // ── NEW delete-related states ────────────────────────────
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
 type PaymentForm = {
   amount: string
   date: string
   mode: Invoice['mode']
 }
+
+  const openDeleteDialog = useCallback((invoice: Invoice) => {
+    setInvoiceToDelete(invoice)
+    setDeleteDialogOpen(true)
+  }, [])
+
+  const handleDeleteInvoice = useCallback(async () => {
+    if (!invoiceToDelete) return
+
+    setIsDeleting(true)
+    try {
+      await deleteInvoice(invoiceToDelete.id)
+      // Success feedback (replace alert with toast later)
+      alert("Invoice deleted successfully")
+
+      // Trigger refresh if parent provided callback
+      if (onInvoicesChange) {
+        onInvoicesChange([]) // or better: force parent re-fetch
+      }
+    } catch (err) {
+      console.error("Delete failed:", err)
+      alert("Failed to delete invoice")
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+      setInvoiceToDelete(null)
+    }
+  }, [invoiceToDelete, onInvoicesChange])
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-IN', {
@@ -54,6 +87,7 @@ type PaymentForm = {
         }).format(date)
       : '-'
 
+  
   // Real relative time calculation
   const getRelativeTime = (timestamp: Date | undefined): string => {
     if (!timestamp) return '—'
@@ -97,8 +131,7 @@ type PaymentForm = {
     let result = invoices.filter((invoice) => {
       const search = searchQuery.toLowerCase()
       const isNumericSearch = !isNaN(Number(search))
-      const normalize = (v: string | number) =>
-  v.toString().replace(/^0+/, '')
+      const normalize = (v: string | number) =>v.toString().replace(/^0+/, '')
 
       const matchesSearch =
   !search ||
@@ -211,6 +244,9 @@ type PaymentForm = {
   setSelectedPaymentMode('cash')                 // or 'upi' — your preference
   setIsPaymentDialogOpen(true)
 }
+
+
+
 
 
 const savePayment = useCallback(async () => {
@@ -326,5 +362,12 @@ const savePayment = useCallback(async () => {
     toggleStatusFilter,
     toggleModeFilter,
     clearAmountFilter,
+
+    deleteDialogOpen,
+    setDeleteDialogOpen,
+    invoiceToDelete,
+    isDeleting,
+    openDeleteDialog,           // ← table calls this when user clicks Delete
+    handleDeleteInvoice,
   }
 }

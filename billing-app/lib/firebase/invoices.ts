@@ -5,9 +5,7 @@ import {
 } from "firebase/firestore"
 import { db } from "../firebase"
 import { Timestamp } from "firebase/firestore"
-import { getDocs, getDoc,query, orderBy } from "firebase/firestore"
-import { doc, updateDoc, runTransaction } from "firebase/firestore"
-
+import { getDocs, getDoc,query, orderBy , doc, updateDoc, runTransaction, deleteDoc} from "firebase/firestore"
 export interface InvoiceProduct {
   name: string
   quantity: number
@@ -182,4 +180,15 @@ export const updateInvoice = async (
     ...updates,
     updatedAt: serverTimestamp(),   // optional but recommended
   });
+};
+
+
+// ── Add this new function ────────────────────────────────────────────────
+export const deleteInvoice = async (invoiceId: string): Promise<void> => {
+  const invoiceDocRef = doc(db, "invoices", invoiceId);
+  
+  // Optional: you can add extra safety checks
+  // e.g. check if status === "pending" only, or never delete "paid" invoices, etc.
+  
+  await deleteDoc(invoiceDocRef);
 };

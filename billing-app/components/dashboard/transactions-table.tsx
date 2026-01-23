@@ -31,9 +31,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Eye, Send, MoreHorizontal, IndianRupee, Filter, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Invoice } from '@/lib/firebase/invoices'
+import { deleteInvoice, type Invoice } from '@/lib/firebase/invoices'
 import type { SortOrder } from '@/app/dashboard/hooks/useDashboard'
 import { pdf } from '@react-pdf/renderer'
 import InvoicePDF from '@/components/dashboard/invoice-pdf'
@@ -92,6 +102,13 @@ interface TransactionsTableProps {
   dateTo: string
   setDateTo: (v: string) => void
   clearDateFilter: () => void
+
+  deleteDialogOpen: boolean
+  setDeleteDialogOpen: (open: boolean) => void
+  invoiceToDelete: Invoice | null
+  isDeleting: boolean
+  openDeleteDialog: (invoice: Invoice) => void
+  handleDeleteInvoice: () => Promise<void>
 }
 
 export function TransactionsTable(props: TransactionsTableProps) {
@@ -141,7 +158,6 @@ export function TransactionsTable(props: TransactionsTableProps) {
     dateTo,
     setDateTo,
     clearDateFilter,
-
   } = props
 
   // PDF modal states
@@ -155,6 +171,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
   const [isSavingPayment, setIsSavingPayment] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
 
+
   // Cleanup blob URL when modal closes or component unmounts
   useEffect(() => {
     return () => {
@@ -165,6 +182,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
     }
   }, [pdfBlobUrl])
 
+  
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -594,6 +612,15 @@ export function TransactionsTable(props: TransactionsTableProps) {
                         >
                           Thermal Print
                         </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          className="text-red-600 focus:bg-red-50 focus:text-red-700"
+                          onClick={() => {
+                            props.openDeleteDialog(invoice)
+                          }}
+                        >
+                          Delete
+                       </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -817,8 +844,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
             }
             setSelectedPdfInvoice(null)
           }
-        }}
-      >
+        }}>
         <DialogContent className="max-w-6xl h-[90vh] p-0 flex flex-col">
           <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle className="flex items-center justify-between">
@@ -865,6 +891,39 @@ export function TransactionsTable(props: TransactionsTableProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+
+      <AlertDialog open={props.deleteDialogOpen} onOpenChange={props.setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete invoice #
+              {props.invoiceToDelete?.invoiceNumber ? String(props.invoiceToDelete.invoiceNumber).padStart(4, '0') : 'draft'}
+              {' '}for {props.invoiceToDelete?.customerName || 'this customer'}.
+              <br />
+              This action <strong>cannot be undone</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={props.isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={props.handleDeleteInvoice}
+              disabled={props.isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {props.isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Invoice'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

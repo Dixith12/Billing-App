@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Package, FileText, X, PersonStanding, Calculator } from 'lucide-react'
+import { Package, FileText, X, PersonStanding, Calculator, BellElectricIcon, DropletIcon } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -30,6 +30,11 @@ const navItems = [
     label:'GST',
     href:'/gst',
     icon:Calculator
+  },
+  {
+    label:'Expenses',
+    href:'/expenses',
+    icon: DropletIcon
   }
   
 ]

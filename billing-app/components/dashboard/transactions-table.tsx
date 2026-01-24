@@ -50,6 +50,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { deleteInvoice, type Invoice } from "@/lib/firebase/invoices";
@@ -57,8 +58,8 @@ import type { SortOrder } from "@/app/dashboard/hooks/useDashboard";
 import { pdf } from "@react-pdf/renderer";
 import InvoicePDF from "@/components/dashboard/invoice-pdf";
 import { useRouter } from "next/navigation";
-import Link from 'next/link';
-import { exportTransactionsToExcel } from '@/lib/utils/exportToExcel' // Adjust path to your new utility file
+import Link from "next/link";
+import { exportTransactionsToExcel } from "@/lib/utils/exportToExcel"; // Adjust path to your new utility file
 
 interface TransactionsTableProps {
   invoices: Invoice[];
@@ -201,25 +202,37 @@ export function TransactionsTable(props: TransactionsTableProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-6 border-b pb-3">
-  {/* Left side: Transactions + count + attached underline */}
-  <div className="relative">
-    <div className="text-sm font-medium text-foreground border-b-2 border-primary pb-3">
-      Transactions
-      <span className="ml-2 bg-red-600 text-white px-2 py-0.5 rounded-full text-xs">
-        {filteredInvoices.length}
-      </span>
-    </div>
-  </div>
+        {/* Left side: Transactions + count + attached underline */}
+        <div className="relative">
+          <div className="text-sm font-medium text-foreground border-b-2 border-primary pb-3">
+            Transactions
+            <span className="ml-2 bg-red-600 text-white px-2 py-0.5 rounded-full text-xs">
+              {filteredInvoices.length}
+            </span>
+          </div>
+        </div>
 
-  {/* Right side: POS Billing button */}
-  <Button
-    variant="default"
-    className="bg-purple-600 hover:bg-purple-700 text-white"
-    onClick={() => exportTransactionsToExcel(filteredInvoices)}
-  >
-    POS Billing
-  </Button>
-</div>
+        {/* Right side: POS Billing button */}
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={() => exportTransactionsToExcel(filteredInvoices)}
+          >
+            POS Billing
+          </Button>
+          <Link href="/invoice">
+            <Button
+              size="sm"
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <Plus className="h-4 w-4" />
+              Create Invoice
+            </Button>
+          </Link>
+        </div>
+      </div>
 
       {/* Search */}
       <div className="flex items-center">

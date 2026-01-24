@@ -54,15 +54,6 @@ const totals = useMemo(() => {
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-semibold">Sales Overview</h1>
             </div>
-            <Link href="/invoice">
-              <Button
-                size="sm"
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                <Plus className="h-4 w-4" />
-                Create Invoice
-              </Button>
-            </Link>
           </div>
 
           {/* Summary Cards – now with all 3 values */}

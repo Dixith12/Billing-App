@@ -279,7 +279,7 @@ export function QuotationTable({
               {amountSort === "desc" && <ChevronDown className="h-3 w-3" />}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-72 p-3">
+          <PopoverContent className="w-72 p-3 bg-white">
             <div className="space-y-3">
               <div className="font-medium text-sm">Filter by Amount</div>
               <div className="flex gap-2">
@@ -351,7 +351,7 @@ export function QuotationTable({
               />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-4">
+          <PopoverContent className="w-80 p-4 bg-white">
             <div className="space-y-4">
               <div className="font-medium text-sm">Filter by Date</div>
               <div className="grid grid-cols-2 gap-2">

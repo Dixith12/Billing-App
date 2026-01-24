@@ -1,4 +1,4 @@
-// components/quotation-pdf.tsx  (or wherever you want to place it)
+// components/quotation-pdf.tsx  
 'use client'
 
 import {
@@ -210,7 +210,7 @@ export default function QuotationPDF({ quotation }: QuotationPDFProps) {
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Date</Text>
+              <Text style={styles.detailLabel}>Quotation Date</Text>
               <Text style={styles.detailValue} wrap={false}>
                 {createdDate}
               </Text>

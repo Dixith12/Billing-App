@@ -57,6 +57,8 @@ import type { SortOrder } from "@/app/dashboard/hooks/useDashboard";
 import { pdf } from "@react-pdf/renderer";
 import InvoicePDF from "@/components/dashboard/invoice-pdf";
 import { useRouter } from "next/navigation";
+import Link from 'next/link';
+import { exportTransactionsToExcel } from '@/lib/utils/exportToExcel' // Adjust path to your new utility file
 
 interface TransactionsTableProps {
   invoices: Invoice[];
@@ -198,14 +200,26 @@ export function TransactionsTable(props: TransactionsTableProps) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-6 border-b">
-        <div className="pb-3 text-sm font-medium border-b-2 border-primary text-foreground">
-          Transactions
-          <span className="ml-2 bg-muted px-2 py-0.5 rounded text-xs">
-            {filteredInvoices.length}
-          </span>
-        </div>
-      </div>
+      <div className="flex items-center justify-between gap-6 border-b pb-3">
+  {/* Left side: Transactions + count + attached underline */}
+  <div className="relative">
+    <div className="text-sm font-medium text-foreground border-b-2 border-primary pb-3">
+      Transactions
+      <span className="ml-2 bg-red-600 text-white px-2 py-0.5 rounded-full text-xs">
+        {filteredInvoices.length}
+      </span>
+    </div>
+  </div>
+
+  {/* Right side: POS Billing button */}
+  <Button
+    variant="default"
+    className="bg-purple-600 hover:bg-purple-700 text-white"
+    onClick={() => exportTransactionsToExcel(filteredInvoices)}
+  >
+    POS Billing
+  </Button>
+</div>
 
       {/* Search */}
       <div className="flex items-center">

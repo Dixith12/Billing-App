@@ -1,4 +1,3 @@
-// components/invoice-pdf.tsx
 'use client'
 
 import {
@@ -17,62 +16,58 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     lineHeight: 1.4,
   },
-  headerSection: {
+
+  /* ───────── HEADER ───────── */
+  headerBg: {
+    backgroundColor: '#0b3c78',
+    padding: 32,
+    margin: -40,
+    marginBottom: 28,
+  },
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    alignItems: 'flex-start',
   },
-  companyInfo: {
-    width: '50%',
-  },
-  companyName: {
-    fontSize: 16,
+  invoiceText: {
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 10,
+    color: 'white',
   },
-  companyAddress: {
-    fontSize: 10,
-    color: '#444',
+  companyRight: {
+    textAlign: 'right',
   },
-  invoiceTitle: {
-    fontSize: 28,
+  companyBrand: {
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#c2410c',
-    marginBottom: 25,
-    textAlign: 'center',
+    color: 'white',
+    letterSpacing: 1,
   },
-  billToSection: {
+
+  /* ───────── BILLING ───────── */
+  billSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 24,
   },
-  billToLeft: {
-    width: '50%',
+  leftCol: {
+    width: '48%',
   },
-  billToRight: {
-    flex:1,
-    paddingLeft:20
+  rightCol: {
+    width: '48%',
+    marginTop:12,
+    marginLeft:250,
   },
-  sectionTitle: {
-    fontSize: 12,
+  label: {
+    fontSize: 10,
     fontWeight: 'bold',
-    color: '#c2410c',
     marginBottom: 6,
   },
-  detailRow: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  detailLabel: {
-    fontWeight: 'bold',
-    width: 80,
-  },
-  detailValue: {
-    flex: 1,
-  },
+
+  /* ───────── TABLE ───────── */
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#c2410c',
+    backgroundColor: '#0b3c78',
     color: 'white',
     padding: 8,
     fontWeight: 'bold',
@@ -86,55 +81,43 @@ const styles = StyleSheet.create({
     borderBottomColor: '#d1d5db',
   },
   colProduct: { width: '30%' },
-  colWidth:    { width: '15%', textAlign: 'right' },
-  colHeight:   { width: '15%', textAlign: 'right' },
-  colQty:      { width: '15%', textAlign: 'center' },
-  colTotal:    { width: '25%', textAlign: 'right' },
-  summarySection: {
-    alignItems: 'flex-end',
-    marginTop: 28,
-    marginRight:8
+  colWidth: { width: '15%', textAlign: 'right' },
+  colHeight: { width: '15%', textAlign: 'right' },
+  colQty: { width: '15%', textAlign: 'center' },
+  colTotal: { width: '25%', textAlign: 'right' },
+
+  /* ───────── TOTAL BOX ───────── */
+  totalBox: {
+    marginTop: 24,
+    borderWidth: 1,
+    borderColor: '#0b3c78',
+    width: 280,
+    alignSelf: 'flex-end',
   },
-  summaryRow: {
-    flexDirection: 'row',
-    width: 260,
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
-  summaryLabel: {
-    fontWeight: 'bold',
-  },
-  summaryValue: {
-    textAlign: 'right',
-    width:110,
-    minWidth: 100,
-  },
-  grandTotalRow: {
+  totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: 260,
-    marginTop: 14,
-    paddingTop: 10,
-    borderTopWidth: 2,
-    borderTopColor: '#c2410c',
+    padding: 6,
   },
-  grandTotalLabel: {
-    fontSize: 13,
-    fontWeight: 'bold',
+  totalHighlight: {
+    backgroundColor: '#0b3c78',
+    padding: 10,
   },
-  grandTotalValue: {
-    fontSize: 13,
+  totalHighlightText: {
+    color: 'white',
     fontWeight: 'bold',
+    fontSize: 12,
     textAlign: 'right',
-    width: 110,
   },
+
+  /* ───────── TERMS ───────── */
   termsSection: {
-    marginTop: 40,
-    fontSize: 10,
+    marginTop: 32,
+    fontSize: 9,
     color: '#444',
   },
   termsTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
     marginBottom: 6,
   },
@@ -145,8 +128,6 @@ interface InvoicePDFProps {
 }
 
 export default function InvoicePDF({ invoice }: InvoicePDFProps) {
-
-  const incoiveNumber = invoice.invoiceNumber
   const createdDate = invoice.createdAt?.toDate()
     ? new Intl.DateTimeFormat('en-GB', {
         day: '2-digit',
@@ -169,143 +150,110 @@ export default function InvoicePDF({ invoice }: InvoicePDFProps) {
 
   const products = invoice.products || []
 
-  // Use pre-calculated values from Firestore
   const subtotal = invoice.subtotal || 0
   const discount = invoice.discount || 0
   const sgst = invoice.sgst || 0
   const cgst = invoice.cgst || 0
   const grandTotal = invoice.netAmount || 0
 
+  const taxable = subtotal - discount
+
+
   const formatINR = (num: number) =>
     new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
     }).format(num)
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Company Header */}
-        <View style={styles.headerSection}>
-          <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>BigBot Co.</Text>
-            <Text style={styles.companyAddress}>
-              AIc, Nitee{'\n'}
-              PIN: 576443{'\n'}
-              Karnataka, India
-            </Text>
-          </View>
-        </View>
 
-        {/* INVOICE Title */}
-        <Text style={styles.invoiceTitle}>INVOICE</Text>
-
-        {/* Bill To + Details */}
-        <View style={styles.billToSection}>
-          <View style={styles.billToLeft}>
-            <Text style={styles.sectionTitle}>Bill To</Text>
-            <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>
-              {invoice.customerName || '—'}
-            </Text>
-            <Text>
-              {invoice.billingAddress || '—'}{'\n'}
-              Phone: {invoice.customerPhone || '—'}
-            </Text>
-          </View>
-
-          <View style={styles.billToRight}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Invoice id</Text>
-              <Text style={styles.detailValue}>#{invoice.invoiceNumber ? String(invoice.invoiceNumber).padStart(4, '0') : 'Draft'}</Text>   
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Invoice date</Text>
-              <Text style={styles.detailValue} wrap={false}>{createdDate}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Due date</Text>
-              <Text style={styles.detailValue} wrap={false}>{dueDate}</Text>
+        {/* HEADER */}
+        <View style={styles.headerBg}>
+          <View style={styles.headerRow}>
+            <Text style={styles.invoiceText}>INVOICE</Text>
+            <View style={styles.companyRight}>
+              <Text style={styles.companyBrand}>HANOVER</Text>
+              <Text style={styles.companyBrand}>& TYKE</Text>
             </View>
           </View>
         </View>
 
-        {/* Products Table */}
+        {/* BILL TO */}
+        <View style={styles.billSection}>
+          <View style={styles.leftCol}>
+            <Text style={styles.label}>BILL TO:</Text>
+            <Text>{invoice.customerName || '—'}</Text>
+            <Text>{invoice.billingAddress || '—'}</Text>
+            <Text>Phone: {invoice.customerPhone || '—'}</Text>
+          </View>
+
+          <View style={styles.rightCol}>
+            <Text style={{ marginBottom: 2 }}>
+  Invoice Number: INV-{invoice.invoiceNumber}
+</Text>
+            <Text>Date: {createdDate}</Text>
+            <Text>Due Date: {dueDate}</Text>
+          </View>
+        </View>
+
+        {/* TABLE */}
         <View>
           <View style={styles.tableHeader}>
-            <Text style={styles.colProduct}>Product</Text>
+            <Text style={styles.colProduct}>Item Description</Text>
             <Text style={styles.colWidth}>Width</Text>
             <Text style={styles.colHeight}>Height</Text>
             <Text style={styles.colQty}>Qty</Text>
-            <Text style={styles.colTotal}>Total</Text>
+            <Text style={styles.colTotal}>Amount</Text>
           </View>
 
           {products.map((product: any, index: number) => (
             <View style={styles.tableRow} key={index}>
-              <Text style={styles.colProduct}>
-                {product.name || '—'}
-              </Text>
-              <Text style={styles.colWidth}>
-                {product.width ? `${product.width}` : '—'}
-              </Text>
-              <Text style={styles.colHeight}>
-                {product.height ? `${product.height}` : '—'}
-              </Text>
-              <Text style={styles.colQty}>
-                {product.quantity ?? 1}
-              </Text>
-              <Text style={styles.colTotal}>
-                {formatINR(product.total || 0)}
-              </Text>
+              <Text style={styles.colProduct}>{product.name || '—'}</Text>
+              <Text style={styles.colWidth}>{product.width || '—'}</Text>
+              <Text style={styles.colHeight}>{product.height || '—'}</Text>
+              <Text style={styles.colQty}>{product.quantity ?? 1}</Text>
+              <Text style={styles.colTotal}>{formatINR(product.total || 0)}</Text>
             </View>
           ))}
-
-          {products.length === 0 && (
-            <View style={styles.tableRow}>
-              <Text style={{ ...styles.colProduct, textAlign: 'center' }}>
-                No products
-              </Text>
-            </View>
-          )}
         </View>
 
-        {/* Summary */}
-        <View style={styles.summarySection}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>{formatINR(subtotal)}</Text>
+        {/* TOTAL BOX */}
+        <View style={styles.totalBox}>
+          <View style={styles.totalRow}>
+            <Text>Sub Total</Text>
+            <Text>{formatINR(subtotal)}</Text>
           </View>
-
           {discount > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Discount</Text>
-              <Text style={styles.summaryValue}>{formatINR(discount)}</Text>
+            <View style={styles.totalRow}>
+              <Text>Discount</Text>
+              <Text>{formatINR(discount)}</Text>
             </View>
           )}
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>SGST</Text>
-            <Text style={styles.summaryValue}>{formatINR(sgst)}</Text>
+          <View style={styles.totalRow}>
+            <Text>CGST ({(cgst / taxable * 100).toFixed(1)}%)</Text>
+            <Text>{formatINR(cgst)}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text>SGST ({(cgst / taxable * 100).toFixed(1)}%)</Text>
+            <Text>{formatINR(sgst)}</Text>
           </View>
 
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>CGST</Text>
-            <Text style={styles.summaryValue}>{formatINR(cgst)}</Text>
-          </View>
-
-          <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>Grand Total (Rupees)</Text>
-            <Text style={styles.grandTotalValue}>{formatINR(grandTotal)}</Text>
+          <View style={styles.totalHighlight}>
+            <Text style={styles.totalHighlightText}>
+              TOTAL: {formatINR(grandTotal)}
+            </Text>
           </View>
         </View>
 
-        {/* Terms */}
+        {/* TERMS */}
         <View style={styles.termsSection}>
-          <Text style={styles.termsTitle}>Terms and Conditions</Text>
-          <Text>Payment is due within 14 days</Text>
-          <Text>Please make payments to: BigBot Co.</Text>
+          <Text style={styles.termsTitle}>TERMS AND CONDITIONS</Text>
+          <Text>Payment is due within 30 days from invoice date.</Text>
         </View>
+
       </Page>
     </Document>
   )

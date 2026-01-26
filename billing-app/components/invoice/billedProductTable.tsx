@@ -154,7 +154,7 @@ data-[state=unchecked]:border-gray-300
 
                 {/* Waste row - conditional inside fragment, no extra whitespace */}
                 {p.wasteEnabled && (
-                  <tr className="bg-muted/20 border-t-0">
+                  <tr className="bg-muted/20 border-b border-border">
                     <td
                       className="px-4 py-3 font-medium text-muted-foreground"
                       colSpan={2}
@@ -167,11 +167,7 @@ data-[state=unchecked]:border-gray-300
                     <td className="px-4 py-3" colSpan={4} />
                   </tr>
                   )}
-                  <tr>
-<td colSpan={7} className="px-4 py-0">
-  <div className="h-px bg-border mx-6 my-2" />
-</td>
-</tr>
+
               </React.Fragment>
             ))}
           </tbody>

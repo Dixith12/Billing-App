@@ -78,19 +78,27 @@ export function QuotationModal({ isOpen, onClose, initialData, onSave }: Quotati
 
   // Placeholder for adding products (expand with real product selector)
   const addProduct = () => {
-    setProducts([
-      ...products,
-      {
-        name: 'New Product',
-        quantity: 1,
-        height: '0',
-        width: '0',
-        discount: '0',
-        discountType: '%',
-        total: 0,
-      },
-    ])
-  }
+  setProducts([
+    ...products,
+    {
+      name: 'New Product',
+      quantity: 1,
+
+      // REQUIRED by InvoiceProduct
+      measurementType: 'height_width',
+      height: '0',
+      width: '0',
+
+      wasteEnabled: false,
+
+      discount: '0',
+      discountType: '%',
+
+      total: 0,
+      grossTotal: 0,
+    },
+  ])
+}
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

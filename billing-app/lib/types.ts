@@ -14,13 +14,18 @@ export interface Invoice {
 }
 
 export interface InventoryItem {
-  id: string
-  name: string
-  height: number
-  width: number
-  pricePerHeight: number
-  pricePerWidth: number
-  createdAt: Date
+  id: string;
+  name: string;
+  measurementType: 'height_width' | 'kg' | 'unit';
+  height?: number;
+  width?: number;
+  pricePerHeight?: number;
+  pricePerWidth?: number;
+  pricePerKg?: number;
+  pricePerUnit?: number;
+  createdAt: Date;
 }
 
+// Optional: helper type for form data (if you want stricter typing later)
+export type InventoryFormData = Omit<InventoryItem, 'id' | 'createdAt'>;
 export type StatusFilter = 'all' | 'paid' | 'pending' | 'partially paid' | 'cancelled' | 'draft'

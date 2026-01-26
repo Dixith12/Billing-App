@@ -56,7 +56,7 @@ export function useExpenses() {
     }
   }
 
-  const totals = useMemo(() => {
+const totals = useMemo(() => {
     const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
     return { totalExpenses }
   }, [expenses])

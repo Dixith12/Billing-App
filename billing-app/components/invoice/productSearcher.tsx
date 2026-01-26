@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, Plus } from 'lucide-react'
 import type { InventoryItem } from '@/lib/types'
+import { formatINR } from '@/lib/utils/inventory'   // ← import this (you already have it)
 
 interface ProductSearcherProps {
   productSearch: string
@@ -18,6 +19,25 @@ export function ProductSearcher({
   filteredInventory,
   onAddProduct,
 }: ProductSearcherProps) {
+  // Helper to show the right price info in the dropdown
+  const getPriceDisplay = (item: InventoryItem) => {
+    switch (item.measurementType) {
+      case 'height_width':
+        const ph = item.pricePerHeight ?? 0
+        const pw = item.pricePerWidth ?? 0
+        return `Height: ${formatINR(ph)} / Width: ${formatINR(pw)}`
+
+      case 'kg':
+        return `${formatINR(item.pricePerKg ?? 0)} / kg`
+
+      case 'unit':
+        return `${formatINR(item.pricePerUnit ?? 0)} per unit`
+
+      default:
+        return '—'
+    }
+  }
+
   return (
     <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
       <div className="relative flex-1">
@@ -37,9 +57,9 @@ export function ProductSearcher({
                 className="w-full px-4 py-2 text-left hover:bg-muted flex justify-between items-center"
                 onClick={() => onAddProduct(item)}
               >
-                <span>{item.name}</span>
+                <span className="font-medium">{item.name}</span>
                 <span className="text-sm text-muted-foreground">
-                  height: ₹{item.pricePerHeight} / width: ₹{item.pricePerWidth}
+                  {getPriceDisplay(item)}
                 </span>
               </button>
             ))}

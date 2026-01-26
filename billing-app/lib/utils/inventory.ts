@@ -2,7 +2,19 @@
 import { InventoryItem } from '@/lib/types'
 
 export function calculateTotalPrice(item: InventoryItem): number {
-  return item.height * item.pricePerHeight + item.width * item.pricePerWidth
+  switch (item.measurementType) {
+    case 'height_width':
+      return (item.height ?? 1) * (item.pricePerHeight ?? 0) + (item.width ?? 1) * (item.pricePerWidth ?? 0)
+
+    case 'kg':
+      return item.pricePerKg ?? 0
+
+    case 'unit':
+      return item.pricePerUnit ?? 0
+
+    default:
+      return 0
+  }
 }
 
 export function formatINR(amount: number): string {

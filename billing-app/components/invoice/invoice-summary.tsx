@@ -11,6 +11,7 @@ interface InvoiceSummaryProps {
   discount: number
   cgst: number
   sgst: number
+  netAmount:number
 }
 
 

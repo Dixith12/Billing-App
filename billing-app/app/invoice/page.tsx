@@ -15,7 +15,7 @@ import { TotalsFooter } from "@/components/invoice/totalFooter";
 
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Invoice } from "@/lib/firebase/invoices";
+import type { Invoice, InvoiceProduct } from "@/lib/firebase/invoices";
 import { addQuotation } from "@/lib/firebase/quotations"; 
 
 
@@ -59,6 +59,7 @@ function InvoiceContent() {
     cgst,
     sgst,
     netAmount,
+    totalGross,
 
     saveInvoice,
     resetForm,
@@ -99,15 +100,25 @@ function InvoiceContent() {
 
         setBillingAddress(data.billingAddress || "");
 
-        const formProducts = data.products.map((p) => ({
+        // Map products with defaults for missing fields
+        const formProducts = data.products.map((p: InvoiceProduct) => ({
           id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
           name: p.name,
           quantity: p.quantity,
-          height: p.height,
-          width: p.width,
-          discount: p.discount,
-          discountType: p.discountType,
-          total: p.total,
+          measurementType: p.measurementType ?? "height_width", // fallback
+          height: p.height ?? undefined,
+          width: p.width ?? undefined,
+          kg: p.kg ?? undefined,
+          units: p.units ?? undefined,
+          wasteEnabled: p.wasteEnabled ?? false,
+          wasteHeight: p.wasteHeight ?? undefined,
+          wasteWidth: p.wasteWidth ?? undefined,
+          wasteKg: p.wasteKg ?? undefined,
+          wasteUnits: p.wasteUnits ?? undefined,
+          discount: p.discount ?? "0",
+          discountType: p.discountType ?? "%",
+          grossTotal: p.grossTotal ?? p.total ?? 0, // use gross if exists, else total
+          netTotal: p.total ?? 0,                   // net is total in old data
         }));
 
         setBilledProducts(formProducts);
@@ -135,30 +146,45 @@ function InvoiceContent() {
   ]);
 
   // ── Save / Update handler ────────────────────────────────────────────────
-  const handleSave = async () => {
+const handleSave = async () => {
     if (isSaving) return;
     setIsSaving(true);
 
     try {
-      if (isQuotationMode) {
-        if (!selectedCustomer) {
-          toast.error("Customer Required", {
-            description: "Please select a customer before saving the quotation.",
-          });
-          setIsSaving(false);
-          return;
-        }
-
-        if (billedProducts.length === 0) {
-          toast.error("No Products", {
-            description: "Please add at least one product to the quotation.",
-          });
-          setIsSaving(false);
-          return;
-        }
+      if (isQuotationMode && !selectedCustomer) {
+        toast.error("Customer Required", {
+          description: "Please select a customer before saving the quotation.",
+        });
+        return;
       }
+
+      if (billedProducts.length === 0) {
+        toast.error("No Products", {
+          description: "Please add at least one product.",
+        });
+        return;
+      }
+
+      const productsToSave = billedProducts.map((p) => ({
+        name: p.name,
+        quantity: p.quantity,
+        measurementType: p.measurementType,
+        height: p.height,
+        width: p.width,
+        kg: p.kg,
+        units: p.units,
+        wasteEnabled: p.wasteEnabled,
+        wasteHeight: p.wasteHeight,
+        wasteWidth: p.wasteWidth,
+        wasteKg: p.wasteKg,
+        wasteUnits: p.wasteUnits,
+        discount: p.discount,
+        discountType: p.discountType,
+        total: p.netTotal,          // ← send netTotal as total (for compatibility)
+        grossTotal: p.grossTotal,   // ← optional but good to save
+      }));
+
       if (isEditMode) {
-        // Edit mode (invoice or quotation)
         if (!editId) throw new Error("Missing ID");
 
         const collectionName = isQuotationMode ? "quotations" : "invoices";
@@ -168,19 +194,9 @@ function InvoiceContent() {
           customerId: selectedCustomer?.id,
           customerName: selectedCustomer?.name,
           customerPhone: selectedCustomer?.phone,
-          ...(selectedCustomer?.gstin
-            ? { customerGstin: selectedCustomer.gstin }
-            : {}),
+          ...(selectedCustomer?.gstin ? { customerGstin: selectedCustomer.gstin } : {}),
           billingAddress,
-          products: billedProducts.map((p) => ({
-            name: p.name,
-            quantity: p.quantity,
-            height: p.height,
-            width: p.width,
-            discount: p.discount,
-            discountType: p.discountType,
-            total: p.total,
-          })),
+          products: productsToSave,
           subtotal,
           discount: totalDiscount,
           cgst,
@@ -189,33 +205,18 @@ function InvoiceContent() {
           updatedAt: serverTimestamp(),
         });
 
-        toast.success(
-          `${isQuotationMode ? "Quotation" : "Invoice"} Updated`,
-          { description: "Changes saved successfully." }
-        );
+        toast.success(`${isQuotationMode ? "Quotation" : "Invoice"} Updated`);
         resetForm();
         router.push(isQuotationMode ? "/quotation" : "/dashboard");
       } else {
-        // Create mode
         if (isQuotationMode) {
-          // Save as Quotation
           await addQuotation({
             customerId: selectedCustomer?.id || "",
             customerName: selectedCustomer?.name || "",
             customerPhone: selectedCustomer?.phone || "",
-            ...(selectedCustomer?.gstin
-              ? { customerGstin: selectedCustomer.gstin }
-              : {}),
+            ...(selectedCustomer?.gstin ? { customerGstin: selectedCustomer.gstin } : {}),
             billingAddress,
-            products: billedProducts.map((p) => ({
-              name: p.name,
-              quantity: p.quantity,
-              height: p.height,
-              width: p.width,
-              discount: p.discount,
-              discountType: p.discountType,
-              total: p.total,
-            })),
+            products: productsToSave,
             subtotal,
             discount: totalDiscount,
             cgst,
@@ -223,31 +224,23 @@ function InvoiceContent() {
             netAmount,
           });
 
-toast.success("Quotation Created", {
-            description: "New quotation saved successfully!",
-          });          resetForm();
+          toast.success("Quotation Created");
+          resetForm();
           router.push("/quotation");
         } else {
-          // Normal invoice save
           const result = await saveInvoice();
           if (result.success) {
-            toast.success("Invoice Saved", {
-              description: "Invoice created successfully ✅",
-            });
+            toast.success("Invoice Saved");
             resetForm();
             router.push("/dashboard");
           } else {
-            toast.error("Save Failed", {
-              description: result.message || "Failed to save invoice",
-            });
+            toast.error("Save Failed", { description: result.message });
           }
         }
       }
     } catch (err: any) {
       console.error("Save failed:", err);
-      toast.error("Error", {
-        description: "Failed to save. Please try again.",
-      });
+      toast.error("Error", { description: "Failed to save. Please try again." });
     } finally {
       setIsSaving(false);
     }
@@ -361,13 +354,14 @@ toast.success("Quotation Created", {
             <>
               <div className="border-t bg-muted/30 p-4">
                 <InvoiceSummary
-                  address={billingAddress}
-                  onAddressChange={setBillingAddress}
-                  grandTotal={subtotal}
-                  discount={totalDiscount}
-                  cgst={cgst}
-                  sgst={sgst}
-                />
+  address={billingAddress}
+  onAddressChange={setBillingAddress}
+  grandTotal={totalGross}  // ← changed from subtotal
+  discount={totalDiscount}
+  cgst={cgst}
+  sgst={sgst}
+  netAmount={netAmount}
+/>
               </div>
 
               <TotalsFooter

@@ -1,4 +1,3 @@
-// app/inventory/hooks/useEditInventoryForm.ts
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -13,23 +12,28 @@ export function useEditInventoryForm(
 
   const [form, setForm] = useState({
     name: '',
+    measurementType: '' as InventoryItem['measurementType'],
     height: 1,
     width: 1,
     pricePerHeight: '',
     pricePerWidth: '',
+    pricePerKg: '',
+    pricePerUnit: '',
   })
 
   const [error, setError] = useState<string | null>(null)
 
-  // Sync form when the item to edit changes
   useEffect(() => {
     if (item) {
       setForm({
         name: item.name,
-        height: item.height,
-        width: item.width,
-        pricePerHeight: item.pricePerHeight.toString(),
-        pricePerWidth: item.pricePerWidth.toString(),
+        measurementType: item.measurementType,
+        height: item.height ?? 1,
+        width: item.width ?? 1,
+        pricePerHeight: item.pricePerHeight?.toString() ?? '',
+        pricePerWidth: item.pricePerWidth?.toString() ?? '',
+        pricePerKg: item.pricePerKg?.toString() ?? '',
+        pricePerUnit: item.pricePerUnit?.toString() ?? '',
       })
       setError(null)
     }
@@ -42,36 +46,49 @@ export function useEditInventoryForm(
 
   const submit = () => {
     if (!item) return false
-
     if (!form.name.trim()) {
       setError('Inventory name is required')
       return false
     }
-    if (!form.pricePerHeight.trim()) {
-      setError('Price per height is required')
-      return false
-    }
-    if (!form.pricePerWidth.trim()) {
-      setError('Price per width is required')
-      return false
-    }
 
-    updateItem(item.id, {
+    const type = form.measurementType
+
+    const dataToSave: Partial<Omit<InventoryItem, 'id' | 'createdAt'>> = {
       name: form.name.trim(),
-      height: form.height,
-      width: form.width,
-      pricePerHeight: Number(form.pricePerHeight),
-      pricePerWidth: Number(form.pricePerWidth),
-    })
+      measurementType: type,
+    }
 
+    if (type === 'height_width') {
+      if (!form.pricePerHeight.trim()) {
+        setError('Price per height is required')
+        return false
+      }
+      if (!form.pricePerWidth.trim()) {
+        setError('Price per width is required')
+        return false
+      }
+      dataToSave.height = Number(form.height)
+      dataToSave.width = Number(form.width)
+      dataToSave.pricePerHeight = Number(form.pricePerHeight)
+      dataToSave.pricePerWidth = Number(form.pricePerWidth)
+    } else if (type === 'kg') {
+      if (!form.pricePerKg.trim()) {
+        setError('Price per kg is required')
+        return false
+      }
+      dataToSave.pricePerKg = Number(form.pricePerKg)
+    } else if (type === 'unit') {
+      if (!form.pricePerUnit.trim()) {
+        setError('Price per unit is required')
+        return false
+      }
+      dataToSave.pricePerUnit = Number(form.pricePerUnit)
+    }
+
+    updateItem(item.id, dataToSave)
     onSuccess?.()
     return true
   }
 
-  return {
-    form,
-    updateField,
-    submit,
-    error,
-  }
+  return { form, updateField, submit, error }
 }

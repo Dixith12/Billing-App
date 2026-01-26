@@ -34,6 +34,9 @@ export function CustomerSelector(props: CustomerSelectorProps) {
     addNewCustomer,
   } = props
 
+
+  
+
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-4">

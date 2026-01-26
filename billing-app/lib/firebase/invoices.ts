@@ -9,11 +9,27 @@ import { getDocs, getDoc,query, orderBy , doc, updateDoc, runTransaction, delete
 export interface InvoiceProduct {
   name: string
   quantity: number
-  height: string
-  width: string
+
+  // ── Main measurement ──────────────────────────────────────
+  measurementType: 'height_width' | 'kg' | 'unit'
+  height?: string          // only for height_width
+  width?: string           // only for height_width
+  kg?: string              // only for kg
+  units?: string           // only for unit
+
+  // ── Waste (optional) ──────────────────────────────────────
+  wasteEnabled: boolean
+  wasteHeight?: string
+  wasteWidth?: string
+  wasteKg?: string
+  wasteUnits?: string
+  wasteAmount?: number     // ← NEW: calculated/edited waste total
+
   discount: string
   discountType: "%" | "₹"
-  total: number
+  total: number  
+  
+  grossTotal?: number// net total after discount (main product only)
 }
 
 export interface Invoice {

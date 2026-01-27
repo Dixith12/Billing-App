@@ -6,6 +6,8 @@ import {
 import { db } from "../firebase"
 import { Timestamp } from "firebase/firestore"
 import { getDocs, getDoc,query, orderBy , doc, updateDoc, runTransaction, deleteDoc} from "firebase/firestore"
+
+
 export interface InvoiceProduct {
   name: string
   quantity: number

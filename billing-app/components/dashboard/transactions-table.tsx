@@ -222,7 +222,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
           >
             POS Billing
           </Button>
-          <Link href="/invoice">
+          <Link href="/dashboard/invoice">
             <Button
               size="sm"
               className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -671,7 +671,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       >
                         <DropdownMenuItem
                           onClick={() => {
-                            router.push(`/invoice?edit=${invoice.id}`);
+                            router.push(`/dashboard/invoice?edit=${invoice.id}`);
                           }}
                         >
                           Edit

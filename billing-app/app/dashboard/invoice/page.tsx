@@ -16,8 +16,7 @@ import { TotalsFooter } from "@/components/invoice/totalFooter";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Invoice, InvoiceProduct } from "@/lib/firebase/invoices";
-import { addQuotation } from "@/lib/firebase/quotations"; 
-
+import { addQuotation } from "@/lib/firebase/quotations";
 
 // ── Inner content component ────────────────────────────────────────────────
 function InvoiceContent() {
@@ -66,7 +65,7 @@ function InvoiceContent() {
   } = useCreateInvoice();
 
   const isValidForSave = isQuotationMode
-    ? !!selectedCustomer && billedProducts.length > 0   // must have customer + at least 1 product
+    ? !!selectedCustomer && billedProducts.length > 0 // must have customer + at least 1 product
     : billedProducts.length > 0;
 
   // Load data in edit mode (for both invoice & quotation)
@@ -118,7 +117,7 @@ function InvoiceContent() {
           discount: p.discount ?? "0",
           discountType: p.discountType ?? "%",
           grossTotal: p.grossTotal ?? p.total ?? 0, // use gross if exists, else total
-          netTotal: p.total ?? 0,                   // net is total in old data
+          netTotal: p.total ?? 0, // net is total in old data
         }));
 
         setBilledProducts(formProducts);
@@ -146,7 +145,7 @@ function InvoiceContent() {
   ]);
 
   // ── Save / Update handler ────────────────────────────────────────────────
-const handleSave = async () => {
+  const handleSave = async () => {
     if (isSaving) return;
     setIsSaving(true);
 
@@ -180,8 +179,8 @@ const handleSave = async () => {
         wasteUnits: p.wasteUnits,
         discount: p.discount,
         discountType: p.discountType,
-        total: p.netTotal,          // ← send netTotal as total (for compatibility)
-        grossTotal: p.grossTotal,   // ← optional but good to save
+        total: p.netTotal, // ← send netTotal as total (for compatibility)
+        grossTotal: p.grossTotal, // ← optional but good to save
       }));
 
       if (isEditMode) {
@@ -194,7 +193,9 @@ const handleSave = async () => {
           customerId: selectedCustomer?.id,
           customerName: selectedCustomer?.name,
           customerPhone: selectedCustomer?.phone,
-          ...(selectedCustomer?.gstin ? { customerGstin: selectedCustomer.gstin } : {}),
+          ...(selectedCustomer?.gstin
+            ? { customerGstin: selectedCustomer.gstin }
+            : {}),
           billingAddress,
           products: productsToSave,
           subtotal,
@@ -214,7 +215,9 @@ const handleSave = async () => {
             customerId: selectedCustomer?.id || "",
             customerName: selectedCustomer?.name || "",
             customerPhone: selectedCustomer?.phone || "",
-            ...(selectedCustomer?.gstin ? { customerGstin: selectedCustomer.gstin } : {}),
+            ...(selectedCustomer?.gstin
+              ? { customerGstin: selectedCustomer.gstin }
+              : {}),
             billingAddress,
             products: productsToSave,
             subtotal,
@@ -240,7 +243,9 @@ const handleSave = async () => {
       }
     } catch (err: any) {
       console.error("Save failed:", err);
-      toast.error("Error", { description: "Failed to save. Please try again." });
+      toast.error("Error", {
+        description: "Failed to save. Please try again.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -354,14 +359,14 @@ const handleSave = async () => {
             <>
               <div className="border-t bg-muted/30 p-4">
                 <InvoiceSummary
-  address={billingAddress}
-  onAddressChange={setBillingAddress}
-  grandTotal={totalGross}  // ← changed from subtotal
-  discount={totalDiscount}
-  cgst={cgst}
-  sgst={sgst}
-  netAmount={netAmount}
-/>
+                  address={billingAddress}
+                  onAddressChange={setBillingAddress}
+                  grandTotal={totalGross} // ← changed from subtotal
+                  discount={totalDiscount}
+                  cgst={cgst}
+                  sgst={sgst}
+                  netAmount={netAmount}
+                />
               </div>
 
               <TotalsFooter

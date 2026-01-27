@@ -36,9 +36,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InventoryItem } from "@/lib/types";
-import { useInventory } from "@/app/inventory/hooks/useInventory";
+import { useInventory} from "@/app/dashboard/inventory/hooks/useInventory";
 import { calculateTotalPrice, formatINR } from "@/lib/utils/inventory";
-import { useEditInventoryForm } from "@/app/inventory/hooks/useEditInventoryForm";
+import { useEditInventoryForm } from "@/app/dashboard/inventory/hooks/useEditInventoryForm";
 
 interface InventoryListProps {
   items: InventoryItem[];

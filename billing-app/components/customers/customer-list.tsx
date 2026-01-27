@@ -23,8 +23,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Pencil, Trash2 } from 'lucide-react'
 import type { Customer } from '@/lib/firebase/customers'
-import { useCustomers } from '@/app/customer/hooks/useCustomers'
-import { useEditCustomerForm } from '@/app/customer/hooks/useCustomers'
+import { useCustomers, useEditCustomerForm} from '@/app/dashboard/customer/hooks/useCustomers'
 
 interface CustomerListProps {
   items: Customer[]

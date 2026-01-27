@@ -6,7 +6,7 @@ import { addInvoice } from "@/lib/firebase/invoices";
 import { addCustomer, getCustomers } from "@/lib/firebase/customers";
 import type { Customer } from "@/lib/firebase/customers";
 import type { InventoryItem } from "@/lib/types";
-import { useGst } from "@/app/gst/hooks/useGst";
+import { useGst } from "@/app/dashboard/gst/hooks/useGst";
 
 export interface BilledProduct {
   id: string;

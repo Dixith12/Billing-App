@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Trash2 } from "lucide-react";
-import type { BilledProduct } from "@/app/invoice/hooks/useCreateInvoice";
+import type { BilledProduct } from "@/app/dashboard/invoice/hooks/useCreateInvoice";
 
 interface BilledProductsTableProps {
   products: BilledProduct[];

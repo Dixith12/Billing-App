@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useAddInventoryForm } from '@/app/inventory/hooks/useAddInventoryForm'
+import { useAddInventoryForm } from '@/app/dashboard/inventory/hooks/useAddInventoryForm'
 import { 
   Package, 
   Ruler, 

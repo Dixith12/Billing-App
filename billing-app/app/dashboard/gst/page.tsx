@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Pencil } from 'lucide-react'
 import { GstEditModal } from '@/components/gst/gst-modal'
-import { useGst } from '@/app/gst/hooks/useGst'
+import { useGst } from '@/app/dashboard/gst/hooks/useGst'
 
 export default function GstPage() {
   const { cgst, sgst, updateGst } = useGst()

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Plus } from 'lucide-react'
 import { QuotationTable } from '@/components/quotation/quotation-table'
-import { useQuotation } from '@/app/quotation/hooks/useQuotation'
+import { useQuotation } from '@/app/dashboard/quotation/hooks/useQuotation'
 import { Quotation } from '@/lib/firebase/quotations'
 
 export default function QuotationPage() {
@@ -13,11 +13,11 @@ export default function QuotationPage() {
   const router = useRouter()
 
   const handleCreateQuotation = () => {
-    router.push('/invoice?type=quotation')  // ← Opens full invoice page in quotation mode
+    router.push('/dashboard/invoice?type=quotation')  // ← Opens full invoice page in quotation mode
   }
 
   const handleEditQuotation = (quotation: Quotation) => {
-    router.push(`/invoice?type=quotation&edit=${quotation.id}`)  // ← Edit mode
+    router.push(`/dashboard/invoice?type=quotation&edit=${quotation.id}`)  // ← Edit mode
   }
 
   return (

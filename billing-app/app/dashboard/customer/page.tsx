@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { AddCustomerModal } from '@/components/customers/add-customer-modal'
 import { CustomerList } from '@/components/customers/customer-list'
-import { useCustomers } from '@/app/customer/hooks/useCustomers'
+import { useCustomers } from '@/app/dashboard/customer/hooks/useCustomers'
 import { ArrowLeft, Plus } from 'lucide-react'
 
 export default function CustomersPage() {

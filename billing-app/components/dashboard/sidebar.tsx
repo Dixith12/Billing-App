@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Package, FileText, X, PersonStanding, Calculator, BellElectricIcon, DropletIcon, NotebookPenIcon } from 'lucide-react'
+import { Package, FileText, X, PersonStanding, Calculator, BellElectricIcon, DropletIcon, NotebookPenIcon, FilePlus2, ReceiptText, Users } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -18,28 +18,28 @@ const navItems = [
   },
   {
     label: 'Inventory',
-    href: '/inventory',
+    href: '/dashboard/inventory',
     icon: Package,
   },
   {
     label:'Customers',
-    href:'/customer',
-    icon: PersonStanding,
+    href:'/dashboard/customer',
+    icon: Users,
   },
   {
     label:'GST',
-    href:'/gst',
+    href:'/dashboard/gst',
     icon:Calculator
   },
   {
     label:'Expenses',
-    href:'/expenses',
-    icon: DropletIcon
+    href:'/dashboard/expenses',
+    icon: ReceiptText
   },
   {
     label:'Quotation',
-    href:'/quotation',
-    icon:NotebookPenIcon
+    href:'/dashboard/quotation',
+    icon:FilePlus2
   }
   
 ]

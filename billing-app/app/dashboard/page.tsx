@@ -36,7 +36,6 @@ const totals = useMemo(() => {
 
   return (
     <div className="flex min-h-screen bg-muted/30">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="flex-1 overflow-auto">
         <header className="sticky top-0 z-30 flex items-center h-16 px-4 bg-background border-b lg:hidden">

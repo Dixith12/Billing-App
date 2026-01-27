@@ -38,7 +38,7 @@ export function SummaryCards({ totalSales, totalPaid, totalPending }: SummaryCar
             </div>
           </div>
 
-          <div className="text-3xl md:text-4xl font-bold text-slate-800 mb-1">
+          <div className="text-3xl md:text-4xl font-bold text-slate-800 mb-1 group-hover:scale-105 transition-transform duration-300">
             {formatCurrency(totalSales)}
           </div>
 
@@ -71,7 +71,7 @@ export function SummaryCards({ totalSales, totalPaid, totalPending }: SummaryCar
             </div>
           </div>
 
-          <div className="text-3xl md:text-4xl font-bold text-emerald-700 mb-1">
+          <div className="text-3xl md:text-4xl font-bold text-emerald-700 mb-1 group-hover:scale-103 transition-transform duration-300">
             {formatCurrency(totalPaid)}
           </div>
 
@@ -127,7 +127,7 @@ export function SummaryCards({ totalSales, totalPaid, totalPending }: SummaryCar
           </div>
 
           <div className={cn(
-            "text-3xl md:text-4xl font-bold mb-1",
+            "text-3xl md:text-4xl font-bold mb-1 group-hover:scale-103 transition-transform duration-300",
             totalPending === 0 ? "text-emerald-700" : "text-orange-700"
           )}>
             {formatCurrency(totalPending)}

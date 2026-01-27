@@ -6,6 +6,7 @@ import {
 import { db } from "../firebase"
 import { Timestamp } from "firebase/firestore"
 import { getDocs, getDoc,query, orderBy , doc, updateDoc, runTransaction, deleteDoc} from "firebase/firestore"
+import { cleanUndefined } from "../utils/invoiceUtil"
 
 
 export interface InvoiceProduct {
@@ -63,19 +64,31 @@ export const addInvoice = async (
 ) => {
   const nextNumber = await getNextInvoiceNumber()
 
-  const docRef = await addDoc(invoiceRef, {
+  const safeInvoice = cleanUndefined({
     ...invoice,
+    products: invoice.products.map(product => ({
+      ...product,
+      // OPTIONAL: force wasteAmount default
+      ...(product.wasteEnabled
+        ? { wasteAmount: product.wasteAmount ?? 0 }
+        : {}
+      )
+    }))
+  })
+
+  const docRef = await addDoc(invoiceRef, {
+    ...safeInvoice,
     invoiceNumber: nextNumber,
     status: "pending",
-    mode: "cash",               // default – will be overwritten on first payment
-    paidAmount: 0,              // ← important
+    mode: "cash",
+    paidAmount: 0,
     createdAt: serverTimestamp(),
   })
 
   return {
     id: docRef.id,
     invoiceNumber: nextNumber,
-    ...invoice,
+    ...safeInvoice,
     paidAmount: 0,
   }
 }
@@ -84,10 +97,15 @@ export const getInvoices = async (): Promise<Invoice[]> => {
   const q = query(invoiceRef, orderBy("createdAt", "desc"))
   const snapshot = await getDocs(q)
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...(doc.data() as Omit<Invoice, "id">),
-  }))
+  return snapshot.docs.map((snap) => {
+    const data = snap.data() as Omit<Invoice, 'id'>
+
+    return {
+      ...data,
+      id: snap.id, // ✅ guaranteed final value
+      products: data.products.map(normalizeInvoiceProduct),
+    }
+  })
 }
 
 export const recordInvoicePayment = async (
@@ -175,18 +193,18 @@ export const getNextInvoiceNumber = async (): Promise<number> => {
 
 // ── Fetch single invoice by ID ─────────────────────────────────────────────
 export const getInvoiceById = async (id: string): Promise<Invoice | null> => {
-  const docRef = doc(db, "invoices", id);
-  const snap = await getDoc(docRef);
+  const snap = await getDoc(doc(db, "invoices", id))
 
-  if (!snap.exists()) {
-    return null;
-  }
+  if (!snap.exists()) return null
+
+  const data = snap.data() as Omit<Invoice, 'id'>
 
   return {
+    ...data,
     id: snap.id,
-    ...snap.data(),
-  } as Invoice;
-};
+    products: data.products.map(normalizeInvoiceProduct),
+  }
+}
 
 export const updateInvoice = async (
   id: string,
@@ -194,9 +212,18 @@ export const updateInvoice = async (
 ): Promise<void> => {
   const docRef = doc(db, "invoices", id);
 
-  await updateDoc(docRef, {
+  // 🔥 CRITICAL LINE
+  const safeUpdates = cleanUndefined({
     ...updates,
-    updatedAt: serverTimestamp(),   // optional but recommended
+    products: updates.products?.map(p => ({
+      ...p,
+      wasteAmount: p.wasteEnabled ? (p.wasteAmount ?? 0) : undefined,
+    })),
+  })
+
+  await updateDoc(docRef, {
+    ...safeUpdates,
+    updatedAt: serverTimestamp(),
   });
 };
 
@@ -210,3 +237,33 @@ export const deleteInvoice = async (invoiceId: string): Promise<void> => {
   
   await deleteDoc(invoiceDocRef);
 };
+
+
+
+function normalizeInvoiceProduct(p: InvoiceProduct): InvoiceProduct {
+return {
+...p,
+
+
+// measurement defaults
+height: p.height ?? '',
+width: p.width ?? '',
+kg: p.kg ?? '',
+units: p.units ?? '',
+
+
+// waste defaults
+wasteEnabled: p.wasteEnabled ?? false,
+wasteHeight: p.wasteHeight ?? '',
+wasteWidth: p.wasteWidth ?? '',
+wasteKg: p.wasteKg ?? '',
+wasteUnits: p.wasteUnits ?? '',
+wasteAmount: p.wasteAmount ?? 0,
+
+
+discount: p.discount ?? '',
+discountType: p.discountType ?? '%',
+total: p.total ?? 0,
+grossTotal: p.grossTotal ?? 0,
+}
+}

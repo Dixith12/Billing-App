@@ -17,6 +17,7 @@ import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Invoice, InvoiceProduct } from "@/lib/firebase/invoices";
 import { addQuotation } from "@/lib/firebase/quotations";
+import { cleanUndefined } from "@/lib/utils/invoiceUtil";
 
 // ── Inner content component ────────────────────────────────────────────────
 function InvoiceContent() {
@@ -164,24 +165,40 @@ function InvoiceContent() {
         return;
       }
 
-      const productsToSave = billedProducts.map((p) => ({
-        name: p.name,
-        quantity: p.quantity,
-        measurementType: p.measurementType,
-        height: p.height,
-        width: p.width,
-        kg: p.kg,
-        units: p.units,
-        wasteEnabled: p.wasteEnabled,
-        wasteHeight: p.wasteHeight,
-        wasteWidth: p.wasteWidth,
-        wasteKg: p.wasteKg,
-        wasteUnits: p.wasteUnits,
-        discount: p.discount,
-        discountType: p.discountType,
-        total: p.netTotal, // ← send netTotal as total (for compatibility)
-        grossTotal: p.grossTotal, // ← optional but good to save
-      }));
+      const productsToSave = billedProducts.map((p) =>
+        cleanUndefined({
+          name: p.name,
+          quantity: p.quantity,
+          measurementType: p.measurementType,
+
+          ...(p.measurementType === "height_width" && {
+            height: p.height,
+            width: p.width,
+          }),
+
+          ...(p.measurementType === "kg" && {
+            kg: p.kg,
+          }),
+
+          ...(p.measurementType === "unit" && {
+            units: p.units,
+          }),
+
+          wasteEnabled: p.wasteEnabled,
+
+          ...(p.wasteEnabled && {
+            wasteHeight: p.wasteHeight,
+            wasteWidth: p.wasteWidth,
+            wasteKg: p.wasteKg,
+            wasteUnits: p.wasteUnits,
+          }),
+
+          discount: p.discount,
+          discountType: p.discountType,
+          total: p.netTotal,
+          grossTotal: p.grossTotal ?? p.netTotal,
+        }),
+      );
 
       if (isEditMode) {
         if (!editId) throw new Error("Missing ID");
@@ -189,13 +206,11 @@ function InvoiceContent() {
         const collectionName = isQuotationMode ? "quotations" : "invoices";
         const ref = doc(db, collectionName, editId);
 
-        await updateDoc(ref, {
+        const updatePayload = cleanUndefined({
           customerId: selectedCustomer?.id,
           customerName: selectedCustomer?.name,
           customerPhone: selectedCustomer?.phone,
-          ...(selectedCustomer?.gstin
-            ? { customerGstin: selectedCustomer.gstin }
-            : {}),
+          customerGstin: selectedCustomer?.gstin || null,
           billingAddress,
           products: productsToSave,
           subtotal,
@@ -205,6 +220,8 @@ function InvoiceContent() {
           netAmount,
           updatedAt: serverTimestamp(),
         });
+
+        await updateDoc(ref, updatePayload);
 
         toast.success(`${isQuotationMode ? "Quotation" : "Invoice"} Updated`);
         resetForm();

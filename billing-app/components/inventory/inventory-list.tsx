@@ -74,7 +74,7 @@ export function InventoryList({ items }: InventoryListProps) {
       case "height_width":
         return (
           <div className="space-y-1">
-            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 px-2.5 py-0.5 text-xs">
+            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 px-2.5 py-0.5 mr-1 text-xs">
               {formatINR(item.pricePerHeight ?? 0)} / ft height
             </Badge>
             <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 px-2.5 py-0.5 text-xs">

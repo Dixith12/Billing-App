@@ -146,12 +146,12 @@ interface QuotationPDFProps {
 
 export default function QuotationPDF({ quotation }: QuotationPDFProps) {
   const quotationNumber = quotation.quotationNumber
-  const createdDate = quotation.createdAt?.toDate()
+  const createdDate = quotation.createdAt
     ? new Intl.DateTimeFormat('en-GB', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
-      }).format(quotation.createdAt.toDate())
+      }).format(quotation.createdAt)
     : '—'
 
   const products = quotation.products || []

@@ -225,7 +225,7 @@ function InvoiceContent() {
 
         toast.success(`${isQuotationMode ? "Quotation" : "Invoice"} Updated`);
         resetForm();
-        router.push(isQuotationMode ? "/quotation" : "/dashboard");
+        router.push(isQuotationMode ? "/dashboard/quotation" : "/dashboard");
       } else {
         if (isQuotationMode) {
           await addQuotation({
@@ -246,7 +246,7 @@ function InvoiceContent() {
 
           toast.success("Quotation Created");
           resetForm();
-          router.push("/quotation");
+          router.push("/dashboard/quotation");
         } else {
           const result = await saveInvoice();
           if (result.success) {

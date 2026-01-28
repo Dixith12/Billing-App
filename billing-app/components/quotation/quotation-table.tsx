@@ -174,44 +174,52 @@ export function QuotationTable({
 
       let matchesDate = true;
 
-      if (q.createdAt) {
-        const qDate = q.createdAt.toDate();
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+if (q.createdAt) {
+  const qDate = q.createdAt;
 
-        if (datePreset) {
-          switch (datePreset) {
-            case "today":
-              matchesDate = qDate.toDateString() === today.toDateString();
-              break;
-            case "yesterday":
-              const yesterday = new Date(today);
-              yesterday.setDate(yesterday.getDate() - 1);
-              matchesDate = qDate.toDateString() === yesterday.toDateString();
-              break;
-            case "thisMonth":
-              matchesDate =
-                qDate.getMonth() === today.getMonth() &&
-                qDate.getFullYear() === today.getFullYear();
-              break;
-            case "last30days":
-              const last30 = new Date(today);
-              last30.setDate(last30.getDate() - 30);
-              matchesDate = qDate >= last30;
-              break;
-            default:
-              matchesDate = true;
-          }
-        } else if (dateFrom || dateTo) {
-          const from = dateFrom ? new Date(dateFrom) : null;
-          const to = dateTo ? new Date(dateTo) : null;
+  // ⬅ IMPORTANT: if date is invalid, DO NOT FILTER IT OUT
+  if (!qDate) {
+    matchesDate = true;
+  } else {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-          if (from) from.setHours(0, 0, 0, 0);
-          if (to) to.setHours(23, 59, 59, 999);
-
-          matchesDate = (!from || qDate >= from) && (!to || qDate <= to);
+    if (datePreset) {
+      switch (datePreset) {
+        case "today":
+          matchesDate = qDate.toDateString() === today.toDateString();
+          break;
+        case "yesterday": {
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          matchesDate = qDate.toDateString() === yesterday.toDateString();
+          break;
         }
+        case "thisMonth":
+          matchesDate =
+            qDate.getMonth() === today.getMonth() &&
+            qDate.getFullYear() === today.getFullYear();
+          break;
+        case "last30days": {
+          const last30 = new Date(today);
+          last30.setDate(last30.getDate() - 30);
+          matchesDate = qDate >= last30;
+          break;
+        }
+        default:
+          matchesDate = true;
       }
+    } else if (dateFrom || dateTo) {
+      const from = dateFrom ? new Date(dateFrom) : null;
+      const to = dateTo ? new Date(dateTo) : null;
+
+      if (from) from.setHours(0, 0, 0, 0);
+      if (to) to.setHours(23, 59, 59, 999);
+
+      matchesDate = (!from || qDate >= from) && (!to || qDate <= to);
+    }
+  }
+}
 
       return matchesSearch && matchesAmount && matchesDate;
     });
@@ -461,10 +469,10 @@ export function QuotationTable({
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">
-                    {formatDate(quotation.createdAt?.toDate())}
+                    {formatDate(quotation.createdAt)}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {getRelativeTime(quotation.createdAt?.toDate())}
+                    {getRelativeTime(quotation.createdAt)}
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
@@ -576,9 +584,9 @@ export function QuotationTable({
             <DialogDescription>
               {selectedPdfQuotation
                 ? `Created: ${formatDate(
-                    selectedPdfQuotation.createdAt?.toDate(),
+                    selectedPdfQuotation.createdAt,
                   )} • ${getRelativeTime(
-                    selectedPdfQuotation.createdAt?.toDate(),
+                    selectedPdfQuotation.createdAt,
                   )}`
                 : "Loading quotation..."}
             </DialogDescription>

@@ -1,7 +1,7 @@
-//component/quotation/quotation-table
-"use client";
+// components/quotation/quotation-table.tsx
+'use client'
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from 'react'
 import {
   Table,
   TableBody,
@@ -9,50 +9,57 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import type { Quotation } from "@/lib/firebase/quotations";
+} from '@/components/ui/popover'
 import {
-  Filter,
-  ChevronUp,
-  ChevronDown,
-  Eye,
-  MoreHorizontal,
-  Download,
-  Loader2,
-  X,
-} from "lucide-react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"; // shadcn dialog for preview modal
-import { pdf, PDFViewer } from "@react-pdf/renderer";
-import QuotationPDF from "@/components/quotation/quotation-pdf";
+  Eye,
+  MoreHorizontal,
+  Download,
+  Loader2,
+  Search,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  CalendarDays,
+  IndianRupee,
+  CheckCircle2,
+  AlertCircle,
+  Trash2,
+  Pencil,
+  ReceiptIndianRupee,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import type { Quotation } from '@/lib/firebase/quotations'
+import { pdf } from '@react-pdf/renderer'
+import QuotationPDF from '@/components/quotation/quotation-pdf'
 
-type SortOrder = "asc" | "desc" | null;
+type SortOrder = 'asc' | 'desc' | null
 
 interface QuotationTableProps {
-  quotations: Quotation[];
-  onEdit: (quotation: Quotation) => void;
-  onDelete: (id: string) => void;
-  onConvertToInvoice: (id: string) => void;
+  quotations: Quotation[]
+  onEdit: (quotation: Quotation) => void
+  onDelete: (id: string) => void
+  onConvertToInvoice: (id: string) => void
 }
 
 export function QuotationTable({
@@ -61,541 +68,489 @@ export function QuotationTable({
   onDelete,
   onConvertToInvoice,
 }: QuotationTableProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [amountSort, setAmountSort] = useState<SortOrder>(null);
-  const [amountMin, setAmountMin] = useState("");
-  const [amountMax, setAmountMax] = useState("");
-  const [datePreset, setDatePreset] = useState<string | null>(null);
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState('')
+  const [amountSort, setAmountSort] = useState<SortOrder>(null)
+  const [amountMin, setAmountMin] = useState('')
+  const [amountMax, setAmountMax] = useState('')
+  const [datePreset, setDatePreset] = useState<string | null>(null)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
-  const [pdfModalOpen, setPdfModalOpen] = useState(false);
-  const [selectedPdfQuotation, setSelectedPdfQuotation] =
-    useState<Quotation | null>(null);
-  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false)
+  const [selectedPdfQuotation, setSelectedPdfQuotation] = useState<Quotation | null>(null)
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
 
-  const [isGenerating, setIsGenerating] = useState(false);
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl)
+        setPdfBlobUrl(null)
+      }
+    }
+  }, [pdfBlobUrl])
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
+    new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
       minimumFractionDigits: 2,
-    }).format(amount);
+    }).format(amount)
 
   const formatDate = (date: Date | undefined) =>
     date
-      ? new Intl.DateTimeFormat("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
+      ? new Intl.DateTimeFormat('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
         }).format(date)
-      : "-";
+      : '—'
 
   const getRelativeTime = (timestamp: Date | undefined): string => {
-    if (!timestamp) return "—";
+    if (!timestamp) return '—'
+    const now = new Date()
+    const diffMs = now.getTime() - timestamp.getTime()
+    if (diffMs < 0) return 'just now'
 
-    const now = new Date();
-    const diffMs = now.getTime() - timestamp.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000)
+    const diffMinutes = Math.floor(diffSeconds / 60)
+    const diffHours = Math.floor(diffMinutes / 60)
+    const diffDays = Math.floor(diffHours / 24)
 
-    if (diffMs < 0) return "just now"; // future dates (unlikely but safe)
-
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    const diffWeeks = Math.floor(diffDays / 7);
-    const diffMonths = Math.floor(diffDays / 30);
-    const diffYears = Math.floor(diffDays / 365);
-
-    if (diffSeconds < 45) return "just now";
-    if (diffSeconds < 90) return "1 minute ago";
-    if (diffMinutes < 45) return `${diffMinutes} minutes ago`;
-    if (diffMinutes < 90) return "1 hour ago";
-    if (diffHours < 22) return `${diffHours} hours ago`;
-    if (diffHours < 36) return "1 day ago";
-    if (diffDays < 6) return `${diffDays} days ago`;
-    if (diffDays < 10) return "1 week ago";
-    if (diffWeeks < 4) return `${diffWeeks} weeks ago`;
-    if (diffMonths < 12) return `${diffMonths} months ago`;
-    if (diffYears === 1) return "1 year ago";
-
-    return `${diffYears} years ago`;
-  };
+    if (diffSeconds < 45) return 'just now'
+    if (diffSeconds < 90) return '1 minute ago'
+    if (diffMinutes < 45) return `${diffMinutes} minutes ago`
+    if (diffMinutes < 90) return '1 hour ago'
+    if (diffHours < 22) return `${diffHours} hours ago`
+    if (diffHours < 36) return '1 day ago'
+    if (diffDays < 6) return `${diffDays} days ago`
+    if (diffDays < 10) return '1 week ago'
+    return `${diffDays} days ago`
+  }
 
   const formatQuotationNumber = (num: number | undefined): string => {
-    if (num == null) return "#Draft";
-    return `#${String(num).padStart(4, "0")}`;
-  };
+    if (num == null) return 'Draft'
+    return `#${String(num).padStart(4, '0')}`
+  }
 
-  // ── Download handler (native browser - no file-saver needed) ────────────────────────
   const handleDownloadPDF = async (quotation: Quotation) => {
-    if (isGenerating) return;
-    setIsGenerating(true);
-
+    if (isGenerating) return
+    setIsGenerating(true)
     try {
-      const blob = await pdf(<QuotationPDF quotation={quotation} />).toBlob();
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `Quotation-${formatQuotationNumber(quotation.quotationNumber)}.pdf`;
-
-      document.body.appendChild(link);
-      link.click();
-
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const blob = await pdf(<QuotationPDF quotation={quotation} />).toBlob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Quotation-${formatQuotationNumber(quotation.quotationNumber)}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
     } catch (err) {
-      console.error("PDF download failed:", err);
-      alert("Failed to generate or download PDF. Please try again.");
+      console.error('PDF download failed:', err)
+      alert('Failed to generate or download PDF.')
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(false)
     }
-  };
+  }
 
   const filteredQuotations = useMemo(() => {
     let result = quotations.filter((q) => {
-      const search = searchQuery.toLowerCase().trim();
+      const search = searchQuery.toLowerCase().trim()
       const matchesSearch =
         !search ||
-        (q.customerName ?? "").toLowerCase().includes(search) ||
-        (q.customerPhone ?? "").includes(search) ||
-        (q.customerGstin ?? "").toLowerCase().includes(search) ||
-        (q.quotationNumber != null &&
-          (q.quotationNumber.toString().includes(search) ||
-            String(q.quotationNumber).includes(String(Number(search) || ""))));
+        q.customerName?.toLowerCase().includes(search) ||
+        q.customerPhone?.includes(search) ||
+        q.customerGstin?.toLowerCase().includes(search) ||
+        (q.quotationNumber != null && String(q.quotationNumber).includes(search))
 
-      const minAmount = amountMin ? parseFloat(amountMin) : null;
-      const maxAmount = amountMax ? parseFloat(amountMax) : null;
+      const minAmount = amountMin ? parseFloat(amountMin) : null
+      const maxAmount = amountMax ? parseFloat(amountMax) : null
       const matchesAmount =
         (minAmount === null || q.netAmount >= minAmount) &&
-        (maxAmount === null || q.netAmount <= maxAmount);
+        (maxAmount === null || q.netAmount <= maxAmount)
 
-      let matchesDate = true;
+      let matchesDate = true
+      if (q.createdAt) {
+        const qDate = q.createdAt
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
 
-if (q.createdAt) {
-  const qDate = q.createdAt;
-
-  // ⬅ IMPORTANT: if date is invalid, DO NOT FILTER IT OUT
-  if (!qDate) {
-    matchesDate = true;
-  } else {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (datePreset) {
-      switch (datePreset) {
-        case "today":
-          matchesDate = qDate.toDateString() === today.toDateString();
-          break;
-        case "yesterday": {
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          matchesDate = qDate.toDateString() === yesterday.toDateString();
-          break;
+        if (datePreset) {
+          switch (datePreset) {
+            case 'today':
+              matchesDate = qDate.toDateString() === today.toDateString()
+              break
+            case 'yesterday': {
+              const yesterday = new Date(today)
+              yesterday.setDate(yesterday.getDate() - 1)
+              matchesDate = qDate.toDateString() === yesterday.toDateString()
+              break
+            }
+            case 'thisMonth':
+              matchesDate = qDate.getMonth() === today.getMonth() && qDate.getFullYear() === today.getFullYear()
+              break
+            case 'last30days': {
+              const last30 = new Date(today)
+              last30.setDate(last30.getDate() - 30)
+              matchesDate = qDate >= last30
+              break
+            }
+          }
+        } else if (dateFrom || dateTo) {
+          const from = dateFrom ? new Date(dateFrom) : null
+          const to = dateTo ? new Date(dateTo) : null
+          if (from) from.setHours(0, 0, 0, 0)
+          if (to) to.setHours(23, 59, 59, 999)
+          matchesDate = (!from || qDate >= from) && (!to || qDate <= to)
         }
-        case "thisMonth":
-          matchesDate =
-            qDate.getMonth() === today.getMonth() &&
-            qDate.getFullYear() === today.getFullYear();
-          break;
-        case "last30days": {
-          const last30 = new Date(today);
-          last30.setDate(last30.getDate() - 30);
-          matchesDate = qDate >= last30;
-          break;
-        }
-        default:
-          matchesDate = true;
       }
-    } else if (dateFrom || dateTo) {
-      const from = dateFrom ? new Date(dateFrom) : null;
-      const to = dateTo ? new Date(dateTo) : null;
 
-      if (from) from.setHours(0, 0, 0, 0);
-      if (to) to.setHours(23, 59, 59, 999);
-
-      matchesDate = (!from || qDate >= from) && (!to || qDate <= to);
-    }
-  }
-}
-
-      return matchesSearch && matchesAmount && matchesDate;
-    });
+      return matchesSearch && matchesAmount && matchesDate
+    })
 
     if (amountSort) {
       result = [...result].sort((a, b) =>
-        amountSort === "asc"
-          ? a.netAmount - b.netAmount
-          : b.netAmount - a.netAmount,
-      );
+        amountSort === 'asc' ? a.netAmount - b.netAmount : b.netAmount - a.netAmount
+      )
     }
 
-    return result;
-  }, [
-    quotations,
-    searchQuery,
-    amountMin,
-    amountMax,
-    datePreset,
-    dateFrom,
-    dateTo,
-    amountSort,
-  ]);
+    return result
+  }, [quotations, searchQuery, amountMin, amountMax, datePreset, dateFrom, dateTo, amountSort])
 
   const clearAmountFilter = () => {
-    setAmountMin("");
-    setAmountMax("");
-    setAmountSort(null);
-  };
+    setAmountMin('')
+    setAmountMax('')
+    setAmountSort(null)
+  }
 
   const clearDateFilter = () => {
-    setDatePreset(null);
-    setDateFrom("");
-    setDateTo("");
-  };
+    setDatePreset(null)
+    setDateFrom('')
+    setDateTo('')
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Search Bar */}
-      <div className="flex items-center">
-        <Input
-          placeholder="Search by phone number, customer, GSTIN, quotation number..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md"
-        />
-      </div>
+    <div className="space-y-6 ml-3 mr-3 mt-3 mb-3">
+      {/* Search + Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="relative max-w-md w-full">
+          <Input
+            placeholder="Search by customer, phone, GSTIN or quotation #..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+        </div>
 
-      {/* Filters Row */}
-      <div className="flex items-center gap-4">
-        {/* Amount Filter */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              Amount
-              <Filter
-                className={cn(
-                  "h-3 w-3",
-                  amountMin || amountMax || amountSort
-                    ? "text-primary"
-                    : "text-muted-foreground",
-                )}
-              />
-              {amountSort === "asc" && <ChevronUp className="h-3 w-3" />}
-              {amountSort === "desc" && <ChevronDown className="h-3 w-3" />}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72 p-3 bg-white">
-            <div className="space-y-3">
-              <div className="font-medium text-sm">Filter by Amount</div>
-              <div className="flex gap-2">
-                <Button
-                  variant={amountSort === "asc" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    setAmountSort(amountSort === "asc" ? null : "asc")
-                  }
-                >
-                  <ChevronUp className="h-3 w-3 mr-1" /> Low to High
-                </Button>
-                <Button
-                  variant={amountSort === "desc" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    setAmountSort(amountSort === "desc" ? null : "desc")
-                  }
-                >
-                  <ChevronDown className="h-3 w-3 mr-1" /> High to Low
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-muted-foreground">Min</label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={amountMin}
-                    onChange={(e) => setAmountMin(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Max</label>
-                  <Input
-                    type="number"
-                    placeholder="Any"
-                    value={amountMax}
-                    onChange={(e) => setAmountMax(e.target.value)}
-                    className="h-8"
-                  />
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAmountFilter}
-                className="w-full"
-              >
-                Clear Filter
+        <div className="flex gap-3">
+          {/* Amount Filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <IndianRupee className="h-4 w-4" />
+                Amount
+                <Filter
+                  className={cn(
+                    'h-4 w-4',
+                    amountMin || amountMax || amountSort ? 'text-indigo-600' : 'text-slate-400'
+                  )}
+                />
+                {amountSort === 'asc' && <ChevronUp className="h-4 w-4 text-indigo-600" />}
+                {amountSort === 'desc' && <ChevronDown className="h-4 w-4 text-indigo-600" />}
               </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Date Filter */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              Date
-              <Filter
-                className={cn(
-                  "h-3 w-3",
-                  datePreset || dateFrom || dateTo
-                    ? "text-primary"
-                    : "text-muted-foreground",
-                )}
-              />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-4 bg-white">
-            <div className="space-y-4">
-              <div className="font-medium text-sm">Filter by Date</div>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { label: "All", value: null },
-                  { label: "Today", value: "today" },
-                  { label: "Yesterday", value: "yesterday" },
-                  { label: "This Month", value: "thisMonth" },
-                  { label: "Last 30 days", value: "last30days" },
-                ].map((item) => (
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-4 bg-white border-slate-200 shadow-xl" align="end">
+              <div className="space-y-4">
+                <div className="font-semibold text-sm">Filter & Sort by Amount</div>
+                <div className="flex gap-2">
                   <Button
-                    key={item.value ?? "all"}
-                    variant={datePreset === item.value ? "default" : "outline"}
+                    variant={amountSort === 'asc' ? 'default' : 'outline'}
                     size="sm"
-                    className="transition-none"
-                    onClick={() => {
-                      setDatePreset(item.value);
-                      if (item.value) {
-                        setDateFrom("");
-                        setDateTo("");
-                      }
-                    }}
+                    onClick={() => setAmountSort(amountSort === 'asc' ? null : 'asc')}
                   >
-                    {item.label}
+                    <ChevronUp className="h-3.5 w-3.5 mr-1" /> Low to High
                   </Button>
-                ))}
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">
-                  Custom range
+                  <Button
+                    variant={amountSort === 'desc' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setAmountSort(amountSort === 'desc' ? null : 'desc')}
+                  >
+                    <ChevronDown className="h-3.5 w-3.5 mr-1" /> High to Low
+                  </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">
-                      From
-                    </label>
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={amountMin}
+                    onChange={(e) => setAmountMin(e.target.value)}
+                    className="h-9"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={amountMax}
+                    onChange={(e) => setAmountMax(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <Button variant="ghost" size="sm" onClick={clearAmountFilter} className="w-full">
+                  Clear Amount Filter
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Date Filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <CalendarDays className="h-4 w-4" />
+                Date
+                <Filter
+                  className={cn(
+                    'h-4 w-4',
+                    datePreset || dateFrom || dateTo ? 'text-indigo-600' : 'text-slate-400'
+                  )}
+                />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4 bg-white border-slate-200 shadow-xl" align="end">
+              <div className="space-y-4">
+                <div className="font-semibold text-sm">Filter by Date</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: 'All', value: null },
+                    { label: 'Today', value: 'today' },
+                    { label: 'Yesterday', value: 'yesterday' },
+                    { label: 'This Month', value: 'thisMonth' },
+                    { label: 'Last 30 days', value: 'last30days' },
+                  ].map((item) => (
+                    <Button
+                      key={item.value ?? 'all'}
+                      variant={datePreset === item.value ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setDatePreset(item.value)
+                        if (item.value) {
+                          setDateFrom('')
+                          setDateTo('')
+                        }
+                      }}
+                    >
+                      {item.label}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="space-y-2 pt-2 border-t">
+                  <div className="text-xs font-medium text-slate-600">Custom range</div>
+                  <div className="grid grid-cols-2 gap-3">
                     <Input
                       type="date"
                       value={dateFrom}
                       onChange={(e) => {
-                        setDateFrom(e.target.value);
-                        setDatePreset(null);
+                        setDateFrom(e.target.value)
+                        setDatePreset(null)
                       }}
                     />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">
-                      To
-                    </label>
                     <Input
                       type="date"
                       value={dateTo}
                       onChange={(e) => {
-                        setDateTo(e.target.value);
-                        setDatePreset(null);
+                        setDateTo(e.target.value)
+                        setDatePreset(null)
                       }}
                     />
                   </div>
                 </div>
+
+                <Button variant="ghost" size="sm" onClick={clearDateFilter} className="w-full">
+                  Clear Date Filter
+                </Button>
               </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearDateFilter}
-                className="w-full"
-              >
-                Clear Date Filter
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="font-medium">Amount</TableHead>
-              <TableHead className="font-medium text-center">
-                #Quotation
-              </TableHead>
-              <TableHead className="font-medium">Customer</TableHead>
-              <TableHead className="font-medium">Date</TableHead>
-              <TableHead className="font-medium text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {filteredQuotations.map((quotation) => (
-              <TableRow key={quotation.id}>
-                <TableCell className="font-medium">
-                  {formatCurrency(quotation.netAmount)}
-                </TableCell>
-                <TableCell className="text-center font-medium">
-                  {formatQuotationNumber(quotation.quotationNumber)}
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm font-medium">
-                    {quotation.customerName}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {quotation.customerPhone}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm">
-                    {formatDate(quotation.createdAt)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {getRelativeTime(quotation.createdAt)}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1 flex-wrap">
-                    {/* View PDF in Modal */}
-                    {/* View PDF in Modal - with heading + relative time, no download */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isGenerating}
-                      onClick={async () => {
-                        if (isGenerating) return;
-
-                        setIsGenerating(true);
-                        setSelectedPdfQuotation(quotation);
-                        setPdfModalOpen(true);
-
-                        try {
-                          const blob = await pdf(
-                            <QuotationPDF quotation={quotation} />,
-                          ).toBlob();
-
-                          const url = URL.createObjectURL(blob);
-                          setPdfBlobUrl(url);
-                        } catch (err) {
-                          console.error("PDF error:", err);
-                          alert("Failed to generate PDF");
-                        } finally {
-                          setIsGenerating(false);
-                        }
-                      }}
-                    >
-                      {isGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Eye className="h-4 w-4 mr-1" />
-                      )}
-                      View
-                    </Button>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="w-44 bg-white"
-                      >
-                        <DropdownMenuItem onClick={() => onEdit(quotation)}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => onConvertToInvoice(quotation.id)}
-                        >
-                          Add to Invoice
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDownloadPDF(quotation)}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download PDF
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => alert("Thermal Print - coming soon")}
-                        >
-                          Thermal Print
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => onDelete(quotation.id)}
-                          className="text-destructive focus:bg-red-50"
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </TableCell>
+      {/* Empty State */}
+      {filteredQuotations.length === 0 ? (
+        <div className="text-center py-16 bg-slate-50/70 rounded-xl border border-slate-200">
+          <ReceiptIndianRupee className="mx-auto h-12 w-12 text-slate-400 mb-4" />
+          <p className="text-lg font-medium text-slate-700">No quotations found</p>
+          <p className="text-sm text-slate-500 mt-2">
+            {searchQuery || amountMin || amountMax || datePreset || dateFrom || dateTo
+              ? 'Try adjusting your filters'
+              : 'Create your first quotation to get started'}
+          </p>
+        </div>
+      ) : (
+        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50/80 border-b border-slate-200">
+                <TableHead className="font-semibold text-slate-700">Amount</TableHead>
+                <TableHead className="font-semibold text-slate-700 text-center">#Quotation</TableHead>
+                <TableHead className="font-semibold text-slate-700">Customer</TableHead>
+                <TableHead className="font-semibold text-slate-700">Date</TableHead>
+                <TableHead className="font-semibold text-slate-700 text-right pr-6">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
 
-      <Dialog
-        open={pdfModalOpen}
-        onOpenChange={(open) => {
-          setPdfModalOpen(open);
-          if (!open) {
-            if (pdfBlobUrl) {
-              URL.revokeObjectURL(pdfBlobUrl);
-              setPdfBlobUrl(null);
-            }
-            setSelectedPdfQuotation(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-6xl h-[90vh] p-0 flex flex-col">
-          <DialogHeader className="px-6 py-4 border-b">
-            <DialogTitle>
-              <span className="text-lg font-semibold">
-                Quotation{" "}
-                {selectedPdfQuotation?.quotationNumber
-                  ? ` - ${String(selectedPdfQuotation.customerName)}`
-                  : ""}
-              </span>
+            <TableBody>
+              {filteredQuotations.map((quotation, index) => (
+                <TableRow
+                  key={quotation.id}
+                  className={cn(
+                    'hover:bg-slate-50/70 transition-colors',
+                    index % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'
+                  )}
+                >
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-50 text-emerald-700 border-emerald-200 px-2.5 py-0.5 font-medium"
+                    >
+                      {formatCurrency(quotation.netAmount)}
+                    </Badge>
+                  </TableCell>
+
+                  <TableCell className="text-center font-semibold text-slate-700">
+                    {formatQuotationNumber(quotation.quotationNumber)}
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="font-medium text-slate-900">
+                      {quotation.customerName || '—'}
+                    </div>
+                    <div className="text-xs text-slate-500 flex items-center gap-1">
+                      {quotation.customerPhone && <span>{quotation.customerPhone}</span>}
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="text-sm font-medium text-slate-700">
+                      {formatDate(quotation.createdAt)}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {getRelativeTime(quotation.createdAt)}
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="text-right pr-6">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 gap-2 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-all duration-200 group"
+                        disabled={isGenerating}
+                        onClick={async () => {
+                          if (isGenerating) return
+                          setIsGenerating(true)
+                          setSelectedPdfQuotation(quotation)
+                          setPdfModalOpen(true)
+                          try {
+                            const blob = await pdf(<QuotationPDF quotation={quotation} />).toBlob()
+                            const url = URL.createObjectURL(blob)
+                            setPdfBlobUrl(url)
+                          } catch (err) {
+                            console.error('PDF error:', err)
+                            alert('Failed to generate PDF preview')
+                          } finally {
+                            setIsGenerating(false)
+                          }
+                        }}
+                      >
+                        <Eye className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                        View
+                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 hover:bg-slate-100 transition-all duration-200 group"
+                          >
+                            <MoreHorizontal className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 bg-white border-slate-200 shadow-xl">
+                          <DropdownMenuItem
+                            onClick={() => onEdit(quotation)}
+                            className="cursor-pointer group hover:bg-indigo-50 transition-colors"
+                          >
+                            <Pencil className="h-4 w-4 mr-2 text-indigo-600 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Edit</span>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={() => onConvertToInvoice(quotation.id)}
+                            className="cursor-pointer group hover:bg-emerald-50 transition-colors"
+                          >
+                            <IndianRupee className="h-4 w-4 mr-2 text-emerald-600 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Convert to Invoice</span>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={() => handleDownloadPDF(quotation)}
+                            disabled={isGenerating}
+                            className="cursor-pointer group hover:bg-blue-50 transition-colors"
+                          >
+                            <Download className="h-4 w-4 mr-2 text-blue-600 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Download PDF</span>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            className="cursor-pointer text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors group"
+                            onClick={() => onDelete(quotation.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Delete</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* PDF Preview Modal */}
+      <Dialog open={pdfModalOpen} onOpenChange={setPdfModalOpen}>
+        <DialogContent className="max-w-6xl h-[90vh] p-0 flex flex-col bg-white border-slate-200">
+          <DialogHeader className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+              Quotation Preview
+              {selectedPdfQuotation?.customerName && ` – ${selectedPdfQuotation.customerName}`}
             </DialogTitle>
-            <DialogDescription>
-              {selectedPdfQuotation
-                ? `Created: ${formatDate(
-                    selectedPdfQuotation.createdAt,
-                  )} • ${getRelativeTime(
-                    selectedPdfQuotation.createdAt,
-                  )}`
-                : "Loading quotation..."}
+            <DialogDescription className="flex items-center gap-2 text-slate-600 mt-1">
+              {selectedPdfQuotation ? (
+                <>
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  Created: {formatDate(selectedPdfQuotation.createdAt)} • {getRelativeTime(selectedPdfQuotation.createdAt)}
+                </>
+              ) : (
+                'Loading quotation...'
+              )}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 bg-gray-50 overflow-hidden">
+          <div className="flex-1 bg-slate-100 overflow-hidden">
             {isGenerating ? (
-              <div className="h-full flex items-center justify-center">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <div className="h-full flex flex-col items-center justify-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-indigo-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                  <Loader2 className="relative h-16 w-16 animate-spin text-indigo-600" />
+                </div>
+                <p className="text-lg font-semibold text-slate-900">Generating Quotation PDF</p>
+                <p className="text-sm text-slate-500">Please wait...</p>
               </div>
             ) : pdfBlobUrl ? (
               <iframe
@@ -604,13 +559,14 @@ if (q.createdAt) {
                 title="Quotation PDF Preview"
               />
             ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                Failed to load PDF
+              <div className="h-full flex flex-col items-center justify-center gap-3">
+                <AlertCircle className="h-12 w-12 text-red-500" />
+                <p className="text-slate-600 font-medium">Failed to load PDF preview</p>
               </div>
             )}
           </div>
 
-          <div className="px-6 py-4 border-t flex justify-end">
+          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end">
             <Button variant="outline" onClick={() => setPdfModalOpen(false)}>
               Close
             </Button>
@@ -618,5 +574,5 @@ if (q.createdAt) {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

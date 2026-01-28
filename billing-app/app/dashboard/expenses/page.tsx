@@ -1,24 +1,28 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Plus, ArrowLeft, Filter } from 'lucide-react'
 import { ExpenseModal } from '@/components/expenses/expense-modal'
 import { ExpenseList } from '@/components/expenses/expense-list'
 import { SummaryCard } from '@/components/expenses/summary-card'
 import { useExpenses } from '@/app/dashboard/expenses/hooks/useExpenses'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
-import { Input } from '@/components/ui/input'
+import {
+  Plus,
+  Filter,
+  Wallet,
+  Sparkles,
+  CheckCircle2,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Expense } from '@/lib/firebase/expenses'
+import { Input } from '@/components/ui/input'
 
 export default function ExpensesPage() {
-  const { expenses, addExpense, updateExpense, deleteExpense, totals } = useExpenses()
+  const { expenses, addExpense, updateExpense, deleteExpense } = useExpenses()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
 
-  // NEW: Date filter states (same as dashboard)
   const [datePreset, setDatePreset] = useState<string | null>(null)
   const [dateFrom, setDateFrom] = useState<string>('')
   const [dateTo, setDateTo] = useState<string>('')
@@ -34,7 +38,6 @@ export default function ExpensesPage() {
     setDateTo('')
   }
 
-  // NEW: Filtered expenses based on date
   const filteredExpenses = useMemo(() => {
     let result = expenses
 
@@ -80,131 +83,205 @@ export default function ExpensesPage() {
     return result
   }, [expenses, datePreset, dateFrom, dateTo])
 
-  // Use filtered total for summary card
   const filteredTotal = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0)
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center h-16 px-4 bg-background border-b">
-        <Link href="/dashboard">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-        </Link>
-      </header>
-
-      {/* Content */}
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
-        {/* Page Title */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Expense Tracker</h1>
-          <Button
-            onClick={() => handleOpenModal()}
-            className="gap-3 bg-black text-white"
-          >
-            <Plus className="h-4 w-4" />
-            Add Expense
-          </Button>
-        </div>
-
-        {/* Summary Card – uses filtered total */}
-        <SummaryCard totalExpenses={filteredTotal} />
-
-        {/* NEW: Date Filter (in header area or above list) */}
-        <div className="flex justify-end">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                Date
-                <Filter
-                  className={cn(
-                    'h-3 w-3',
-                    datePreset || dateFrom || dateTo ? 'text-primary' : 'text-muted-foreground'
-                  )}
-                />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-4 bg-white" align="end">
-              <div className="space-y-4">
-                <div className="font-medium text-sm">Filter by Date</div>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { label: 'All', value: null },
-                    { label: 'Today', value: 'today' },
-                    { label: 'Yesterday', value: 'yesterday' },
-                    { label: 'This Month', value: 'thisMonth' },
-                    { label: 'Last 30 days', value: 'last30days' },
-                  ].map((item) => (
-                    <Button
-                      key={item.value ?? 'all'}
-                      variant={datePreset === item.value ? 'default' : 'outline'}
-                      size="sm"
-                      className="transition-none"
-                      onClick={() => {
-                        setDatePreset(item.value)
-                        if (item.value) {
-                          setDateFrom('')
-                          setDateTo('')
-                        }
-                      }}
-                    >
-                      {item.label}
-                    </Button>
-                  ))}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-xs text-muted-foreground">Custom range</div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-muted-foreground mb-1">From</label>
-                      <Input
-                        type="date"
-                        value={dateFrom}
-                        onChange={(e) => {
-                          setDateFrom(e.target.value)
-                          setDatePreset(null)
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-muted-foreground mb-1">To</label>
-                      <Input
-                        type="date"
-                        value={dateTo}
-                        onChange={(e) => {
-                          setDateTo(e.target.value)
-                          setDatePreset(null)
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full"
-                  onClick={clearDateFilter}
-                >
-                  Clear Date Filter
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        {/* Expense List – pass filteredExpenses if you want list to filter too */}
-        <ExpenseList 
-          expenses={filteredExpenses}  // ← you can change to filteredExpenses if you want list to filter
-          onEdit={handleOpenModal} 
-          onDelete={deleteExpense} 
-        />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      {/* Decorative background blobs – violet/purple/indigo theme */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 -left-40 w-80 h-80 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 right-1/3 w-80 h-80 bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-full blur-3xl"></div>
       </div>
 
-      {/* Expense Modal */}
+      <div className="relative p-6 lg:p-8 space-y-10 max-w-[1400px] mx-auto">
+        {/* Floating Hero Card – same premium style as GST / Customers / Inventory */}
+        <div className="relative">
+          {/* Glow background */}
+          <div className="absolute -inset-4 bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-indigo-500/10 rounded-2xl blur-2xl"></div>
+
+          <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 p-6 lg:p-8 bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-xl">
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl blur-lg opacity-40"></div>
+                  <div className="relative p-3 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl shadow-lg">
+                    <Wallet className="h-7 w-7 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-violet-700 via-purple-700 to-indigo-700 bg-clip-text text-transparent tracking-tight">
+                    Expense Tracker
+                  </h1>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Track and manage your business expenses
+                  </p>
+                </div>
+              </div>
+
+              {/* Status indicator */}
+              <div className="flex items-center gap-2 text-sm pl-1">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span className="text-slate-600">
+                  System configured and active
+                </span>
+              </div>
+            </div>
+
+            {/* Add Expense Button */}
+            <Button
+              onClick={() => handleOpenModal()}
+              size="lg"
+              className="group relative overflow-hidden bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 px-8"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
+              <span className="font-semibold">Add Expense</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Date Filter & Summary */}
+        <div className="relative space-y-6">
+          {/* Date Filter */}
+          <div className="flex justify-end">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  Date Filter
+                  <Filter
+                    className={cn(
+                      'h-4 w-4',
+                      datePreset || dateFrom || dateTo ? 'text-violet-600' : 'text-slate-500'
+                    )}
+                  />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4 bg-white" align="end">
+                <div className="space-y-4">
+                  <div className="font-medium text-sm text-slate-900">Filter by Date</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'All', value: null },
+                      { label: 'Today', value: 'today' },
+                      { label: 'Yesterday', value: 'yesterday' },
+                      { label: 'This Month', value: 'thisMonth' },
+                      { label: 'Last 30 days', value: 'last30days' },
+                    ].map((item) => (
+                      <Button
+                        key={item.value ?? 'all'}
+                        variant={datePreset === item.value ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => {
+                          setDatePreset(item.value)
+                          if (item.value) {
+                            setDateFrom('')
+                            setDateTo('')
+                          }
+                        }}
+                      >
+                        {item.label}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-slate-200">
+                    <div className="text-xs font-medium text-slate-700">Custom range</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-600 mb-1">From</label>
+                        <Input
+                          type="date"
+                          value={dateFrom}
+                          onChange={(e) => {
+                            setDateFrom(e.target.value)
+                            setDatePreset(null)
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-600 mb-1">To</label>
+                        <Input
+                          type="date"
+                          value={dateTo}
+                          onChange={(e) => {
+                            setDateTo(e.target.value)
+                            setDatePreset(null)
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {(datePreset || dateFrom || dateTo) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs"
+                      onClick={clearDateFilter}
+                    >
+                      Clear Filter
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Summary Card */}
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-indigo-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="relative">
+              <SummaryCard totalExpenses={filteredTotal} />
+            </div>
+          </div>
+        </div>
+
+        {/* Expense List Section */}
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-1 w-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full"></div>
+            <h2 className="text-lg font-semibold text-slate-700">
+              Transaction History
+            </h2>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            {filteredExpenses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                <div className="p-4 bg-violet-100 rounded-full">
+                  <Wallet className="h-8 w-8 text-violet-600" />
+                </div>
+                <div className="text-center space-y-2">
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    No expenses found
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    {datePreset || dateFrom || dateTo
+                      ? 'Try adjusting your date filter'
+                      : 'Start tracking expenses by adding your first one'}
+                  </p>
+                </div>
+                <Button
+                  onClick={() => handleOpenModal()}
+                  className="mt-4 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Expense
+                </Button>
+              </div>
+            ) : (
+              <ExpenseList
+                expenses={filteredExpenses}
+                onEdit={handleOpenModal}
+                onDelete={deleteExpense}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Modal */}
       <ExpenseModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

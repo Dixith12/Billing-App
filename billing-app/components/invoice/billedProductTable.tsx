@@ -189,7 +189,8 @@ function renderMeasurementInputs(
   switch (p.measurementType) {
     case "height_width":
       return (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">H:</span>
           <Input
             type="number"
             placeholder="Height"
@@ -197,6 +198,8 @@ function renderMeasurementInputs(
             onChange={(e) => onUpdate(p.id, "height", e.target.value)}
             className="w-24"
           />
+
+          <span className="text-xs text-muted-foreground">W:</span>
           <Input
             type="number"
             placeholder="Width"
@@ -206,26 +209,35 @@ function renderMeasurementInputs(
           />
         </div>
       );
+
     case "kg":
       return (
-        <Input
-          type="number"
-          placeholder="Kg"
-          value={p.kg ?? ""}
-          onChange={(e) => onUpdate(p.id, "kg", e.target.value)}
-          className="w-24"
-        />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Kg:</span>
+          <Input
+            type="number"
+            placeholder="Kg"
+            value={p.kg ??""}
+            onChange={(e) => onUpdate(p.id, "kg", e.target.value)}
+            className="w-24"
+          />
+        </div>
       );
+
     case "unit":
       return (
-        <Input
-          type="number"
-          placeholder="Units"
-          value={p.units ?? ""}
-          onChange={(e) => onUpdate(p.id, "units", e.target.value)}
-          className="w-24"
-        />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Unit:</span>
+          <Input
+            type="number"
+            placeholder="Units"
+            value={p.units ?? ""}
+            onChange={(e) => onUpdate(p.id, "units", e.target.value)}
+            className="w-24"
+          />
+        </div>
       );
+
     default:
       return <span>—</span>;
   }
@@ -240,16 +252,20 @@ function renderWasteInputs(
   ) => void,
 ) {
   let measurements;
+
   switch (p.measurementType) {
     case "height_width":
       measurements = (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">H:</span>
           <Input
             placeholder="Waste Height"
             value={p.wasteHeight ?? ""}
             onChange={(e) => onUpdate(p.id, "wasteHeight", e.target.value)}
             className="w-24"
           />
+
+          <span className="text-xs text-muted-foreground">W:</span>
           <Input
             placeholder="Waste Width"
             value={p.wasteWidth ?? ""}
@@ -259,26 +275,35 @@ function renderWasteInputs(
         </div>
       );
       break;
+
     case "kg":
       measurements = (
-        <Input
-          placeholder="Waste Kg"
-          value={p.wasteKg ?? ""}
-          onChange={(e) => onUpdate(p.id, "wasteKg", e.target.value)}
-          className="w-24"
-        />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Kg:</span>
+          <Input
+            placeholder="Waste Kg"
+            value={p.wasteKg ?? ""}
+            onChange={(e) => onUpdate(p.id, "wasteKg", e.target.value)}
+            className="w-24"
+          />
+        </div>
       );
       break;
+
     case "unit":
       measurements = (
-        <Input
-          placeholder="Waste Unit"
-          value={p.wasteUnits ?? ""}
-          onChange={(e) => onUpdate(p.id, "wasteUnits", e.target.value)}
-          className="w-24"
-        />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Unit:</span>
+          <Input
+            placeholder="Waste Unit"
+            value={p.wasteUnits ?? ""}
+            onChange={(e) => onUpdate(p.id, "wasteUnits", e.target.value)}
+            className="w-24"
+          />
+        </div>
       );
       break;
+
     default:
       measurements = <span>—</span>;
   }

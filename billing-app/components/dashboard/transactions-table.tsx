@@ -61,6 +61,7 @@ import {
   Search,
   Calendar,
   Edit,
+  BellRing,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { deleteInvoice, type Invoice } from "@/lib/firebase/invoices";
@@ -657,10 +658,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                   </Badge>
                   {(invoice.status === "pending" ||
                     invoice.status === "partially paid") && (
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                    </span>
+                    <BellRing className="h-4 w-4 text-orange-600" />
                   )}
                 </div>
               </TableCell>

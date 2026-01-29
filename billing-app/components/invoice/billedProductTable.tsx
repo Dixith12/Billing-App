@@ -144,12 +144,12 @@ export function BilledProductsTable({
 
                 {/* Waste row (inside the same product block) */}
                 {p.wasteEnabled && (
-                  <tr className="bg-slate-50/50 border-t border-slate-100">
+                  <tr className="bg-slate-100 border-t border-slate-100">
                     <td
                       className="px-6 py-4 font-medium text-slate-600"
                       colSpan={2}
                     >
-                      Waste for {p.name}
+                      Waste for {p.name} :
                     </td>
                     <td className="px-6 py-4">
                       {renderWasteInputs(p, onUpdate)}
@@ -160,10 +160,11 @@ export function BilledProductsTable({
 
                 {/* Separator border after each product (except the last one) */}
                 {index < products.length - 1 && (
+
+                  // {!p.wasteEnabled && index < products.length - 1 && (      this one is for no border good looking
                   <tr>
                     <td colSpan={7}>
-                      <div className="h-px bg-slate-200 mx-6" />
-                    </td>
+<div className="h-0.5 bg-slate-400" />                   </td>
                   </tr>
                 )}
               </React.Fragment>
@@ -265,7 +266,7 @@ function renderWasteInputs(
               placeholder="Waste Height"
               value={p.wasteHeight ?? ''}
               onChange={(e) => onUpdate(p.id, 'wasteHeight', e.target.value)}
-              className="w-24 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
+              className="w-30 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
             />
           </div>
           <div className="flex items-center gap-1.5">
@@ -274,7 +275,7 @@ function renderWasteInputs(
               placeholder="Waste Width"
               value={p.wasteWidth ?? ''}
               onChange={(e) => onUpdate(p.id, 'wasteWidth', e.target.value)}
-              className="w-24 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
+              className="w-30 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
             />
           </div>
         </div>
@@ -303,7 +304,7 @@ function renderWasteInputs(
             placeholder="Waste Units"
             value={p.wasteUnits ?? ''}
             onChange={(e) => onUpdate(p.id, 'wasteUnits', e.target.value)}
-            className="w-24 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
+            className="w-25.5 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
           />
         </div>
       )

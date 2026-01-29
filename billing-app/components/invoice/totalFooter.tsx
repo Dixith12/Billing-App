@@ -43,7 +43,6 @@ export function TotalsFooter({
             </div>
             <div>
               <span className="text-slate-600">Items</span>
-              <span className="ml-1 font-medium text-slate-900">{itemCount}</span>
             </div>
           </div>
 
@@ -53,7 +52,6 @@ export function TotalsFooter({
             </div>
             <div>
               <span className="text-slate-600">Total Qty</span>
-              <span className="ml-1 font-medium text-slate-900">{totalQty}</span>
             </div>
           </div>
         </div>

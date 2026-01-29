@@ -146,7 +146,7 @@ export function CustomerSelector(props: CustomerSelectorProps) {
             </div>
           </SheetHeader>
 
-          <div className="space-y-6 py-6">
+          <div className="space-y-6 py-6 mx-3">
             <div className="space-y-2">
               <Label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
                 <UserPlus className="h-4 w-4 text-indigo-600" />

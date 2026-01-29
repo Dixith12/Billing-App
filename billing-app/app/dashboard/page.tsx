@@ -13,18 +13,27 @@ export default function DashboardPage() {
   const { invoices } = useApp()
   const dashboardHook = useDashboard(invoices)
 
-  const totals = useMemo(() => {
-    const filtered = dashboardHook.filteredInvoices
+const totals = useMemo(() => {
+  const filtered = dashboardHook.filteredInvoices
 
-    const totalSales = filtered.reduce((sum, inv) => sum + inv.netAmount, 0)
-    const totalPaid = filtered.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0)
-    const totalPending = filtered.reduce((sum, inv) => {
-      const remaining = inv.netAmount - (inv.paidAmount || 0)
-      return sum + (remaining > 0 ? remaining : 0)
-    }, 0)
+  const totalSales = filtered.reduce((sum, inv) => sum + inv.netAmount, 0)
 
-    return { totalSales, totalPaid, totalPending }
-  }, [dashboardHook.filteredInvoices])
+  // ── This is the important change ────────────────────────────────
+  const totalPaid = filtered.reduce((sum, inv) => {
+    const effectivePaid = Math.min(
+      inv.paidAmount || 0,           // what was actually paid/recorded
+      inv.netAmount                  // but never show more than current invoice total
+    )
+    return sum + effectivePaid
+  }, 0)
+
+  const totalPending = filtered.reduce((sum, inv) => {
+    const remaining = inv.netAmount - (inv.paidAmount || 0)
+    return sum + (remaining > 0 ? remaining : 0)
+  }, 0)
+
+  return { totalSales, totalPaid, totalPending }
+}, [dashboardHook.filteredInvoices])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">

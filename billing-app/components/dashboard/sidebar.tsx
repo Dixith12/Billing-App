@@ -9,6 +9,7 @@ import {
   ReceiptText,
   FilePlus2,
   X,
+  User2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -26,6 +27,7 @@ const navItems = [
   { label: 'GST',         href: '/dashboard/gst',       icon: Calculator },
   { label: 'Expenses',    href: '/dashboard/expenses',  icon: ReceiptText},
   { label: 'Quotation',   href: '/dashboard/quotation', icon: FilePlus2  },
+  { label: 'Vendors',     href: '/dashboard/vendor',  icon:User2}
 ]
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {

@@ -390,145 +390,165 @@ export function TransactionsTable(props: TransactionsTableProps) {
 
               {/* 2. Status Filter – Premium */}
               {/* Status Filter – Premium & Compact */}
-<TableHead className="font-semibold text-slate-700">
-  <Popover>
-    <PopoverTrigger asChild>
-      <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors group">
-        <CheckCircle2 className="h-4 w-4" />
-        Status
-        <Filter
-          className={cn(
-            "h-3.5 w-3.5 transition-all duration-300",
-            statusFilters.length > 0 ? "text-indigo-600 scale-110" : "text-slate-400 group-hover:scale-110",
-          )}
-        />
-      </button>
-    </PopoverTrigger>
-    <PopoverContent className="w-72 p-5 bg-white border border-slate-200 shadow-2xl rounded-xl" align="start">
-      <div className="space-y-4">
-        {/* Compact Header */}
-        <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
-            <CheckCircle2 className="h-4 w-4 text-white" />
-          </div>
-          <h3 className="font-semibold text-base bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
-            Status Filter
-          </h3>
-        </div>
+              <TableHead className="font-semibold text-slate-700">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors group">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Status
+                      <Filter
+                        className={cn(
+                          "h-3.5 w-3.5 transition-all duration-300",
+                          statusFilters.length > 0
+                            ? "text-indigo-600 scale-110"
+                            : "text-slate-400 group-hover:scale-110",
+                        )}
+                      />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-72 p-5 bg-white border border-slate-200 shadow-2xl rounded-xl"
+                    align="start"
+                  >
+                    <div className="space-y-4">
+                      {/* Compact Header */}
+                      <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+                          <CheckCircle2 className="h-4 w-4 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-base bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                          Status Filter
+                        </h3>
+                      </div>
 
-        {/* Status Options */}
-        {allStatuses.map((status) => (
-          <label
-            key={status}
-            className="flex items-center gap-3 cursor-pointer hover:bg-gradient-to-r hover:from-indigo-50/70 hover:to-purple-50/70 p-2.5 rounded-lg transition-all duration-300 group"
-          >
-            <input
-              type="checkbox"
-              checked={statusFilters.includes(status)}
-              onChange={() => toggleStatusFilter(status)}
-              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
-            />
-            <Badge
-              variant="outline"
-              className={cn(
-                "flex-1 text-xs font-medium py-1 px-3 transition-all duration-300 group-hover:scale-105",
-                status === "paid" && "bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-800 border-emerald-200",
-                status === "partially paid" && "bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border-amber-200",
-                status === "pending" && "bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-800 border-indigo-200",
-                // status === "overdue" && "bg-gradient-to-r from-rose-50 to-rose-100 text-rose-800 border-rose-200",
-                // status === "draft" && "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-700 border-slate-300"
-              )}
-            >
-              {status === "partially paid" ? "Partially Paid" : status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-          </label>
-        ))}
+                      {/* Status Options */}
+                      {allStatuses.map((status) => (
+                        <label
+                          key={status}
+                          className="flex items-center gap-3 cursor-pointer hover:bg-gradient-to-r hover:from-indigo-50/70 hover:to-purple-50/70 p-2.5 rounded-lg transition-all duration-300 group"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={statusFilters.includes(status)}
+                            onChange={() => toggleStatusFilter(status)}
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                          />
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "flex-1 text-xs font-medium py-1 px-3 transition-all duration-300 group-hover:scale-105",
+                              status === "paid" &&
+                                "bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-800 border-emerald-200",
+                              status === "partially paid" &&
+                                "bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border-amber-200",
+                              status === "pending" &&
+                                "bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-800 border-indigo-200",
+                              // status === "overdue" && "bg-gradient-to-r from-rose-50 to-rose-100 text-rose-800 border-rose-200",
+                              // status === "draft" && "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-700 border-slate-300"
+                            )}
+                          >
+                            {status === "partially paid"
+                              ? "Partially Paid"
+                              : status.charAt(0).toUpperCase() +
+                                status.slice(1)}
+                          </Badge>
+                        </label>
+                      ))}
 
-        {/* Clear Button */}
-        {statusFilters.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setStatusFilters([])}
-            className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors mt-1 text-xs"
-          >
-            Clear Status Filters
-          </Button>
-        )}
-      </div>
-    </PopoverContent>
-  </Popover>
-</TableHead>
+                      {/* Clear Button */}
+                      {statusFilters.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setStatusFilters([])}
+                          className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors mt-1 text-xs"
+                        >
+                          Clear Status Filters
+                        </Button>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </TableHead>
 
-{/* Mode Filter – Premium & Compact */}
-<TableHead className="font-semibold text-slate-700">
-  <Popover>
-    <PopoverTrigger asChild>
-      <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors group">
-        <CreditCard className="h-4 w-4" />
-        Mode
-        <Filter
-          className={cn(
-            "h-3.5 w-3.5 transition-all duration-300",
-            modeFilters.length > 0 ? "text-indigo-600 scale-110" : "text-slate-400 group-hover:scale-110",
-          )}
-        />
-      </button>
-    </PopoverTrigger>
-    <PopoverContent className="w-64 p-5 bg-white border border-slate-200 shadow-2xl rounded-xl" align="start">
-      <div className="space-y-4">
-        {/* Compact Header */}
-        <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
-            <CreditCard className="h-4 w-4 text-white" />
-          </div>
-          <h3 className="font-semibold text-base bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
-            Payment Mode
-          </h3>
-        </div>
+              {/* Mode Filter – Premium & Compact */}
+              <TableHead className="font-semibold text-slate-700">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-2 hover:text-indigo-600 transition-colors group">
+                      <CreditCard className="h-4 w-4" />
+                      Mode
+                      <Filter
+                        className={cn(
+                          "h-3.5 w-3.5 transition-all duration-300",
+                          modeFilters.length > 0
+                            ? "text-indigo-600 scale-110"
+                            : "text-slate-400 group-hover:scale-110",
+                        )}
+                      />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-64 p-5 bg-white border border-slate-200 shadow-2xl rounded-xl"
+                    align="start"
+                  >
+                    <div className="space-y-4">
+                      {/* Compact Header */}
+                      <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+                          <CreditCard className="h-4 w-4 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-base bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                          Payment Mode
+                        </h3>
+                      </div>
 
-        {/* Mode Options */}
-        {uniqueModes.map((mode) => (
-          <label
-            key={mode ?? "unknown"}
-            className="flex items-center gap-3 cursor-pointer hover:bg-gradient-to-r hover:from-indigo-50/70 hover:to-purple-50/70 p-2.5 rounded-lg transition-all duration-300 group"
-          >
-            <input
-              type="checkbox"
-              checked={modeFilters.includes(mode)}
-              onChange={() => toggleModeFilter(mode)}
-              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
-            />
-            <Badge
-              variant="outline"
-              className={cn(
-                "flex-1 text-xs font-medium py-1 px-3 transition-all duration-300 group-hover:scale-105",
-                mode === "cash" && "bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border-amber-200",
-                mode === "upi" && "bg-gradient-to-r from-violet-50 to-purple-50 text-violet-800 border-violet-200",
-                mode === "card" && "bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-800 border-indigo-200",
-                !mode && "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-700 border-slate-300"
-              )}
-            >
-              {mode ? mode.toUpperCase() : "—"}
-            </Badge>
-          </label>
-        ))}
+                      {/* Mode Options */}
+                      {uniqueModes.map((mode) => (
+                        <label
+                          key={mode ?? "unknown"}
+                          className="flex items-center gap-3 cursor-pointer hover:bg-gradient-to-r hover:from-indigo-50/70 hover:to-purple-50/70 p-2.5 rounded-lg transition-all duration-300 group"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={modeFilters.includes(mode)}
+                            onChange={() => toggleModeFilter(mode)}
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                          />
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "flex-1 text-xs font-medium py-1 px-3 transition-all duration-300 group-hover:scale-105",
+                              mode === "cash" &&
+                                "bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 border-amber-200",
+                              mode === "upi" &&
+                                "bg-gradient-to-r from-violet-50 to-purple-50 text-violet-800 border-violet-200",
+                              mode === "card" &&
+                                "bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-800 border-indigo-200",
+                              !mode &&
+                                "bg-gradient-to-r from-slate-100 to-gray-100 text-slate-700 border-slate-300",
+                            )}
+                          >
+                            {mode ? mode.toUpperCase() : "—"}
+                          </Badge>
+                        </label>
+                      ))}
 
-        {/* Clear Button */}
-        {modeFilters.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setModeFilters([])}
-            className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors mt-1 text-xs"
-          >
-            Clear Mode Filters
-          </Button>
-        )}
-      </div>
-    </PopoverContent>
-  </Popover>
-</TableHead>
+                      {/* Clear Button */}
+                      {modeFilters.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setModeFilters([])}
+                          className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors mt-1 text-xs"
+                        >
+                          Clear Mode Filters
+                        </Button>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </TableHead>
 
               <TableHead className="font-semibold text-slate-700">
                 Invoice #

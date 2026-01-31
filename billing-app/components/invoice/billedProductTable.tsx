@@ -1,27 +1,27 @@
-'use client'
+"use client";
 
-import React from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { Trash2, Ruler, Weight, Package } from 'lucide-react'
-import type { BilledProduct } from '@/app/dashboard/invoice/hooks/useCreateInvoice'
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Trash2, Ruler, Weight, Package } from "lucide-react";
+import type { BilledProduct } from "@/app/dashboard/invoice/hooks/useCreateInvoice";
 
 interface BilledProductsTableProps {
-  products: BilledProduct[]
+  products: BilledProduct[];
   onUpdate: (
     id: string,
     field: keyof BilledProduct,
     value: string | number | boolean,
-  ) => void
-  onRemove: (id: string) => void
+  ) => void;
+  onRemove: (id: string) => void;
 }
 
 export function BilledProductsTable({
@@ -29,7 +29,7 @@ export function BilledProductsTable({
   onUpdate,
   onRemove,
 }: BilledProductsTableProps) {
-  if (products.length === 0) return null
+  if (products.length === 0) return null;
 
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -74,7 +74,11 @@ export function BilledProductsTable({
                       type="number"
                       value={p.quantity}
                       onChange={(e) =>
-                        onUpdate(p.id, 'quantity', parseInt(e.target.value) || 1)
+                        onUpdate(
+                          p.id,
+                          "quantity",
+                          parseInt(e.target.value) || 1,
+                        )
                       }
                       min={1}
                       className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
@@ -91,7 +95,7 @@ export function BilledProductsTable({
                         type="number"
                         value={p.discount}
                         onChange={(e) =>
-                          onUpdate(p.id, 'discount', e.target.value)
+                          onUpdate(p.id, "discount", e.target.value)
                         }
                         min={0}
                         step="any"
@@ -99,8 +103,8 @@ export function BilledProductsTable({
                       />
                       <Select
                         value={p.discountType}
-                        onValueChange={(v: '%' | '₹') =>
-                          onUpdate(p.id, 'discountType', v)
+                        onValueChange={(v: "%" | "₹") =>
+                          onUpdate(p.id, "discountType", v)
                         }
                       >
                         <SelectTrigger className="w-16 border-slate-300 focus:border-indigo-400">
@@ -118,7 +122,7 @@ export function BilledProductsTable({
                     <Switch
                       checked={p.wasteEnabled ?? false}
                       onCheckedChange={(checked) =>
-                        onUpdate(p.id, 'wasteEnabled', checked)
+                        onUpdate(p.id, "wasteEnabled", checked)
                       }
                       className="data-[state=checked]:bg-indigo-600 data-[state=unchecked]:bg-slate-200 [&>span]:bg-white"
                     />
@@ -160,11 +164,11 @@ export function BilledProductsTable({
 
                 {/* Separator border after each product (except the last one) */}
                 {index < products.length - 1 && (
-
                   // {!p.wasteEnabled && index < products.length - 1 && (      this one is for no border good looking
                   <tr>
                     <td colSpan={7}>
-<div className="h-0.5 bg-slate-400" />                   </td>
+                      <div className="h-0.5 bg-slate-400" />{" "}
+                    </td>
                   </tr>
                 )}
               </React.Fragment>
@@ -173,7 +177,7 @@ export function BilledProductsTable({
         </table>
       </div>
     </div>
-  )
+  );
 }
 
 // Helper: Measurement inputs with icons & premium style
@@ -186,7 +190,7 @@ function renderMeasurementInputs(
   ) => void,
 ) {
   switch (p.measurementType) {
-    case 'height_width':
+    case "height_width":
       return (
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
@@ -194,8 +198,8 @@ function renderMeasurementInputs(
             <Input
               type="number"
               placeholder="Height"
-              value={p.height ?? ''}
-              onChange={(e) => onUpdate(p.id, 'height', e.target.value)}
+              value={p.height ?? ""}
+              onChange={(e) => onUpdate(p.id, "height", e.target.value)}
               className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
             />
           </div>
@@ -204,44 +208,44 @@ function renderMeasurementInputs(
             <Input
               type="number"
               placeholder="Width"
-              value={p.width ?? ''}
-              onChange={(e) => onUpdate(p.id, 'width', e.target.value)}
+              value={p.width ?? ""}
+              onChange={(e) => onUpdate(p.id, "width", e.target.value)}
               className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
             />
           </div>
         </div>
-      )
+      );
 
-    case 'kg':
+    case "kg":
       return (
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground">KG: </span>
           <Input
             type="number"
             placeholder="Kg"
-            value={p.kg ?? ''}
-            onChange={(e) => onUpdate(p.id, 'kg', e.target.value)}
+            value={p.kg ?? ""}
+            onChange={(e) => onUpdate(p.id, "kg", e.target.value)}
             className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
           />
         </div>
-      )
+      );
 
-    case 'unit':
+    case "unit":
       return (
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Unit: </span>
           <Input
             type="number"
             placeholder="Units"
-            value={p.units ?? ''}
-            onChange={(e) => onUpdate(p.id, 'units', e.target.value)}
+            value={p.units ?? ""}
+            onChange={(e) => onUpdate(p.id, "units", e.target.value)}
             className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
           />
         </div>
-      )
+      );
 
     default:
-      return <span className="text-slate-400">—</span>
+      return <span className="text-slate-400">—</span>;
   }
 }
 
@@ -254,18 +258,18 @@ function renderWasteInputs(
     value: string | number,
   ) => void,
 ) {
-  let measurements
+  let measurements;
 
   switch (p.measurementType) {
-    case 'height_width':
+    case "height_width":
       measurements = (
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground ">H: </span>
             <Input
               placeholder="Waste Height"
-              value={p.wasteHeight ?? ''}
-              onChange={(e) => onUpdate(p.id, 'wasteHeight', e.target.value)}
+              value={p.wasteHeight ?? ""}
+              onChange={(e) => onUpdate(p.id, "wasteHeight", e.target.value)}
               className="w-30 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
             />
           </div>
@@ -273,45 +277,45 @@ function renderWasteInputs(
             <span className="text-xs text-muted-foreground">W: </span>
             <Input
               placeholder="Waste Width"
-              value={p.wasteWidth ?? ''}
-              onChange={(e) => onUpdate(p.id, 'wasteWidth', e.target.value)}
+              value={p.wasteWidth ?? ""}
+              onChange={(e) => onUpdate(p.id, "wasteWidth", e.target.value)}
               className="w-30 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
             />
           </div>
         </div>
-      )
-      break
+      );
+      break;
 
-    case 'kg':
+    case "kg":
       measurements = (
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground">KG: </span>
           <Input
             placeholder="Waste Kg"
-            value={p.wasteKg ?? ''}
-            onChange={(e) => onUpdate(p.id, 'wasteKg', e.target.value)}
+            value={p.wasteKg ?? ""}
+            onChange={(e) => onUpdate(p.id, "wasteKg", e.target.value)}
             className="w-24 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
           />
         </div>
-      )
-      break
+      );
+      break;
 
-    case 'unit':
+    case "unit":
       measurements = (
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Unit: </span>
           <Input
             placeholder="Waste Units"
-            value={p.wasteUnits ?? ''}
-            onChange={(e) => onUpdate(p.id, 'wasteUnits', e.target.value)}
+            value={p.wasteUnits ?? ""}
+            onChange={(e) => onUpdate(p.id, "wasteUnits", e.target.value)}
             className="w-25.5 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
           />
         </div>
-      )
-      break
+      );
+      break;
 
     default:
-      measurements = <span className="text-slate-400">—</span>
+      measurements = <span className="text-slate-400">—</span>;
   }
 
   return (
@@ -319,10 +323,10 @@ function renderWasteInputs(
       {measurements}
       <Input
         placeholder="Waste Amount"
-        value={p.wasteAmount ?? ''}
-        onChange={(e) => onUpdate(p.id, 'wasteAmount', e.target.value)}
+        value={p.wasteAmount ?? ""}
+        onChange={(e) => onUpdate(p.id, "wasteAmount", e.target.value)}
         className="w-32 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
       />
     </div>
-  )
+  );
 }

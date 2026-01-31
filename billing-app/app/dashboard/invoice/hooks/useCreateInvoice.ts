@@ -3,10 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/lib/app-context";
 import { addInvoice } from "@/lib/firebase/invoices";
-import { addCustomer, getCustomers } from "@/lib/firebase/customers";
+import { useCustomers } from "@/app/dashboard/customer/hooks/useCustomers";
 import type { Customer } from "@/lib/firebase/customers";
 import type { InventoryItem } from "@/lib/types";
 import { useGst } from "@/app/dashboard/gst/hooks/useGst";
+import { toast } from "sonner";
 
 export interface BilledProduct {
   id: string;
@@ -38,28 +39,29 @@ export function useCreateInvoice() {
   const { cgst: gstCgst, sgst: gstSgst } = useGst();
 
   // ── Customers ──────────────────────────────────────────────
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const { customers, addCustomer , loading } = useCustomers();
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null,
   );
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState({
-    name: "",
-    gstin: "",
-    phone: "",
-    address: "",
-  });
+  name: "",
+  companyName: "",
+  gstin: "",
+  phone: "",
+  address: "",
+  state: "",
+  openingBalanceType: "debit" as "debit" | "credit",
+  openingBalanceAmount: "",
+});
 
   // ── Products ───────────────────────────────────────────────
   const [productSearch, setProductSearch] = useState("");
   const [billedProducts, setBilledProducts] = useState<BilledProduct[]>([]);
   const [billingAddress, setBillingAddress] = useState("");
 
-  useEffect(() => {
-    loadCustomers();
-  }, []);
+ 
 
   useEffect(() => {
     if (selectedCustomer?.address) {
@@ -69,36 +71,72 @@ export function useCreateInvoice() {
     }
   }, [selectedCustomer]);
 
-  const loadCustomers = async () => {
-    setLoadingCustomers(true);
-    try {
-      const data = await getCustomers();
-      setCustomers(data);
-    } catch (err) {
-      console.error("Failed to load customers", err);
-    } finally {
-      setLoadingCustomers(false);
-    }
-  };
+  
 
-  const addNewCustomer = async () => {
-    if (!newCustomer.name || !newCustomer.phone) return false;
-    try {
-      const saved = await addCustomer(newCustomer);
-      setCustomers((prev) => [...prev, saved]);
-      setSelectedCustomer(saved);
-      setBillingAddress(saved.address || "");
-      resetNewCustomer();
-      setIsAddCustomerOpen(false);
-      return true;
-    } catch (err) {
-      console.error("Error saving customer", err);
-      return false;
-    }
-  };
+const addNewCustomer = async () => {
+  if (
+    !newCustomer.name.trim() ||
+    !newCustomer.phone.trim() ||
+    !newCustomer.address.trim() ||
+    !newCustomer.state.trim()
+  ) {
+    console.warn("Required customer fields missing");
+    // You can also set an error state here if you want UI feedback
+    return false;
+  }
 
-  const resetNewCustomer = () =>
-    setNewCustomer({ name: "", gstin: "", phone: "", address: "" });
+  try {
+    // Convert opening balance
+    const amount = Number(newCustomer.openingBalanceAmount) || 0;
+    let openingBalance: number | undefined = undefined;
+
+    if (amount > 0) {
+      openingBalance =
+        newCustomer.openingBalanceType === "debit" ? amount : -amount;
+    }
+
+    // Prepare data — avoid undefined by conditional spread
+    const customerData: Omit<Customer, "id" | "createdAt"> = {
+      name: newCustomer.name.trim(),
+      phone: newCustomer.phone.trim(),
+      address: newCustomer.address.trim(),
+      state: newCustomer.state.trim(),
+      openingBalance,
+      ...(newCustomer.companyName.trim() && {
+        companyName: newCustomer.companyName.trim(),
+      }),
+      ...(newCustomer.gstin.trim() && {
+        gstin: newCustomer.gstin.trim(),
+      }),
+    };
+
+    const saved = await addCustomer(customerData);
+
+    // Success path
+    setSelectedCustomer(saved);
+    setBillingAddress(saved.address || "");
+
+    // Reset form
+    setNewCustomer({
+      name: "",
+      companyName: "",
+      gstin: "",
+      phone: "",
+      address: "",
+      state: "",
+      openingBalanceType: "debit",
+      openingBalanceAmount: "",
+    });
+
+    setIsAddCustomerOpen(false);
+
+    return true;
+  } catch (err: any) {
+    console.error("Failed to add customer from invoice:", err);
+    toast.error("Could not add customer");
+    return false;
+  }
+};
 
   const filteredCustomers = useMemo(() => {
     const search = customerSearch.toLowerCase();
@@ -359,7 +397,7 @@ export function useCreateInvoice() {
 
   return {
     customers,
-    loadingCustomers,
+    loadingCustomers:loading,
     customerSearch,
     setCustomerSearch,
     selectedCustomer,

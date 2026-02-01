@@ -22,12 +22,14 @@ interface BilledProductsTableProps {
     value: string | number | boolean,
   ) => void;
   onRemove: (id: string) => void;
+  enableWaste: boolean;
 }
 
 export function BilledProductsTable({
   products,
   onUpdate,
   onRemove,
+  enableWaste,
 }: BilledProductsTableProps) {
   if (products.length === 0) return null;
 
@@ -49,9 +51,12 @@ export function BilledProductsTable({
               <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
                 Discount
               </th>
-              <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
-                Waste
-              </th>
+              {enableWaste && (
+                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
+                  Waste
+                </th>
+              )}
+
               <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700 pr-8">
                 Total
               </th>
@@ -118,15 +123,16 @@ export function BilledProductsTable({
                     </div>
                   </td>
 
-                  <td className="px-6 py-4 text-center">
-                    <Switch
-                      checked={p.wasteEnabled ?? false}
-                      onCheckedChange={(checked) =>
-                        onUpdate(p.id, "wasteEnabled", checked)
-                      }
-                      className="data-[state=checked]:bg-indigo-600 data-[state=unchecked]:bg-slate-200 [&>span]:bg-white"
-                    />
-                  </td>
+                  {enableWaste && (
+                    <td className="px-6 py-4 text-center">
+                      <Switch
+                        checked={p.wasteEnabled ?? false}
+                        onCheckedChange={(checked) =>
+                          onUpdate(p.id, "wasteEnabled", checked)
+                        }
+                      />
+                    </td>
+                  )}
 
                   <td className="px-6 py-4 text-right pr-8">
                     <span className="font-semibold text-emerald-700">
@@ -147,7 +153,7 @@ export function BilledProductsTable({
                 </tr>
 
                 {/* Waste row (inside the same product block) */}
-                {p.wasteEnabled && (
+                {enableWaste && p.wasteEnabled && (
                   <tr className="bg-slate-100 border-t border-slate-100">
                     <td
                       className="px-6 py-4 font-medium text-slate-600"
@@ -158,19 +164,19 @@ export function BilledProductsTable({
                     <td className="px-6 py-4">
                       {renderWasteInputs(p, onUpdate)}
                     </td>
-                    <td className="px-6 py-4" colSpan={4} />
+                    <td className="px-6 py-4" colSpan={enableWaste ? 4 : 5} />
                   </tr>
                 )}
 
                 {/* Separator border after each product (except the last one) */}
                 {index < products.length - 1 && (
-                  // {!p.wasteEnabled && index < products.length - 1 && (      this one is for no border good looking
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="h-0.5 bg-slate-400" />{" "}
-                    </td>
-                  </tr>
-                )}
+  <tr>
+    <td colSpan={enableWaste ? 7 : 6}>
+      <div className="h-0.5 bg-slate-400" />
+    </td>
+  </tr>
+)}
+
               </React.Fragment>
             ))}
           </tbody>

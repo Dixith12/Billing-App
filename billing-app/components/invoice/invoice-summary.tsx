@@ -11,6 +11,7 @@ interface InvoiceSummaryProps {
   discount: number
   cgst: number
   sgst: number
+  igst: number
   netAmount: number
 }
 
@@ -21,9 +22,15 @@ export function InvoiceSummary({
   discount,
   cgst,
   sgst,
+  igst,
   netAmount,
 }: InvoiceSummaryProps) {
   const taxableAmount = grandTotal - discount
+
+  // Calculate rates (fallback to 0.0 if taxableAmount is 0)
+  const cgstRate = taxableAmount > 0 ? (cgst / taxableAmount * 100).toFixed(1) : '0.0'
+  const sgstRate = taxableAmount > 0 ? (sgst / taxableAmount * 100).toFixed(1) : '0.0'
+  const igstRate = taxableAmount > 0 ? (igst / taxableAmount * 100).toFixed(1) : '0.0'
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
@@ -62,18 +69,26 @@ export function InvoiceSummary({
                 <span className="font-medium text-orange-700">₹{discount.toFixed(2)}</span>
               </div>
 
+              {/* Always show all three GST lines */}
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-600">
-                  CGST ({(cgst / taxableAmount * 100 || 0).toFixed(1)}%)
+                  CGST ({cgstRate}%)
                 </span>
                 <span className="font-medium text-slate-900">₹{cgst.toFixed(2)}</span>
               </div>
 
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-600">
-                  SGST ({(sgst / taxableAmount * 100 || 0).toFixed(1)}%)
+                  SGST ({sgstRate}%)
                 </span>
                 <span className="font-medium text-slate-900">₹{sgst.toFixed(2)}</span>
+              </div>
+
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-600">
+                  IGST ({igstRate}%)
+                </span>
+                <span className="font-medium text-slate-900">₹{igst.toFixed(2)}</span>
               </div>
             </div>
 

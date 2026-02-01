@@ -2,79 +2,132 @@ import {
   collection,
   addDoc,
   serverTimestamp,
-} from "firebase/firestore"
-import { db } from "../firebase"
-import { Timestamp } from "firebase/firestore"
-import { getDocs, getDoc,query, orderBy , doc, updateDoc, runTransaction, deleteDoc} from "firebase/firestore"
-import { cleanUndefined } from "../utils/invoiceUtil"
-
+  Timestamp,
+  getDocs,
+  getDoc,
+  query,
+  orderBy,
+  doc,
+  updateDoc,
+  runTransaction,
+  deleteDoc,
+} from "firebase/firestore";
+import { db } from "../firebase";
+import { cleanUndefined } from "../utils/invoiceUtil";
 
 export interface InvoiceProduct {
-  name: string
-  quantity: number
+  name: string;
+  quantity: number;
 
-  // ── Main measurement ──────────────────────────────────────
-  measurementType: 'height_width' | 'kg' | 'unit'
-  height?: string          // only for height_width
-  width?: string           // only for height_width
-  kg?: string              // only for kg
-  units?: string           // only for unit
+  measurementType: "height_width" | "kg" | "unit";
+  height?: string;
+  width?: string;
+  kg?: string;
+  units?: string;
 
-  // ── Waste (optional) ──────────────────────────────────────
-  wasteEnabled: boolean
-  wasteHeight?: string
-  wasteWidth?: string
-  wasteKg?: string
-  wasteUnits?: string
-  wasteAmount?: number     // ← NEW: calculated/edited waste total
+  wasteEnabled: boolean;
+  wasteHeight?: string;
+  wasteWidth?: string;
+  wasteKg?: string;
+  wasteUnits?: string;
+  wasteAmount?: number;
 
-  discount: string
-  discountType: "%" | "₹"
-  total: number  
-  
-  grossTotal?: number// net total after discount (main product only)
+  discount: string;
+  discountType: "%" | "₹";
+  total: number;
+  grossTotal?: number;
 }
 
 export interface Invoice {
-  id: string
-  invoiceNumber: number
-  customerId: string
-  customerName: string
-  customerPhone: string
-  customerGstin?: string
-  billingAddress: string
-  products: InvoiceProduct[]
-  subtotal: number
-  discount: number
-  cgst: number
-  sgst: number
-  netAmount: number
-  paidAmount:number,
-  status: "pending" | "paid" | "cancelled" | "partially paid"
-    mode: "cash" | "upi" | "card"
+  id: string;
+  invoiceNumber: number;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  customerGstin?: string;
+  billingAddress: string;
+  products: InvoiceProduct[];
 
-  createdAt?: Timestamp | null
+  subtotal: number;
+  discount: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
+  netAmount: number;
+
+  paidAmount: number;
+  status: "pending" | "paid" | "cancelled" | "partially paid";
+  mode: "cash" | "upi" | "card";
+
+  createdAt?: Timestamp | null;
+  invoiceDate?: Timestamp;
+  dueDate?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
+// Input type from UI (accepts Date objects)
+export type CreateInvoiceInput = Omit<
+  Invoice,
+  | "id"
+  | "invoiceNumber"
+  | "status"
+  | "mode"
+  | "paidAmount"
+  | "createdAt"
+  | "updatedAt"
+  | "invoiceDate"
+  | "dueDate"
+> & {
+  invoiceDate?: Date;
+  dueDate?: Date;
+};
 
-const invoiceRef = collection(db, "invoices")
+const invoiceRef = collection(db, "invoices");
 
-export const addInvoice = async (
-  invoice: Omit<Invoice, "id" | "invoiceNumber" | "status" | "createdAt" | "mode" | "paidAmount">
-) => {
-  const nextNumber = await getNextInvoiceNumber()
+export const addInvoice = async (input: CreateInvoiceInput) => {
+  const nextNumber = await getNextInvoiceNumber();
+
+  const now = new Date();
+
+  // Handle invoiceDate: current time if today, else midnight
+  let finalInvoiceDate: Timestamp | undefined;
+  if (input.invoiceDate) {
+    const date = new Date(input.invoiceDate);
+    const isToday =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
+
+    if (!isToday) {
+      date.setHours(0, 0, 0, 0);
+    }
+    finalInvoiceDate = Timestamp.fromDate(date);
+  }
+
+  // Handle dueDate: same logic
+  let finalDueDate: Timestamp | undefined;
+  if (input.dueDate) {
+    const date = new Date(input.dueDate);
+    const isToday =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
+
+    if (!isToday) {
+      date.setHours(0, 0, 0, 0);
+    }
+    finalDueDate = Timestamp.fromDate(date);
+  }
 
   const safeInvoice = cleanUndefined({
-    ...invoice,
-    products: invoice.products.map(product => ({
+    ...input,
+    products: input.products.map((product) => ({
       ...product,
-      // OPTIONAL: force wasteAmount default
-      ...(product.wasteEnabled
-        ? { wasteAmount: product.wasteAmount ?? 0 }
-        : {}
-      )
-    }))
-  })
+      wasteAmount: product.wasteEnabled ? (product.wasteAmount ?? 0) : undefined,
+    })),
+    invoiceDate: finalInvoiceDate,
+    dueDate: finalDueDate,
+  });
 
   const docRef = await addDoc(invoiceRef, {
     ...safeInvoice,
@@ -83,187 +136,185 @@ export const addInvoice = async (
     mode: "cash",
     paidAmount: 0,
     createdAt: serverTimestamp(),
-  })
+    updatedAt: serverTimestamp(),
+  });
 
   return {
     id: docRef.id,
     invoiceNumber: nextNumber,
     ...safeInvoice,
     paidAmount: 0,
-  }
-}
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  };
+};
 
 export const getInvoices = async (): Promise<Invoice[]> => {
-  const q = query(invoiceRef, orderBy("createdAt", "desc"))
-  const snapshot = await getDocs(q)
+  const q = query(invoiceRef, orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
 
   return snapshot.docs.map((snap) => {
-    const data = snap.data() as Omit<Invoice, 'id'>
-
+    const data = snap.data() as Omit<Invoice, "id">;
     return {
       ...data,
-      id: snap.id, // ✅ guaranteed final value
+      id: snap.id,
       products: data.products.map(normalizeInvoiceProduct),
-    }
-  })
-}
+    };
+  });
+};
 
-export const recordInvoicePayment = async (
-  invoiceId: string,
-  payment: {
-    amount: number              // the amount being paid now
-    mode: Invoice["mode"]
-    paymentDate?: string | Date // optional – you can store it if needed
-  }
-) => {
-  if (payment.amount <= 0) {
-    throw new Error("Payment amount must be greater than zero")
-  }
-
-  const invoiceRef = doc(db, "invoices", invoiceId)
-
-  return await runTransaction(db, async (transaction) => {
-    const invoiceSnap = await transaction.get(invoiceRef)
-
-    if (!invoiceSnap.exists()) {
-      throw new Error("Invoice not found")
-    }
-
-    const data = invoiceSnap.data() as Invoice
-
-    const currentPaid = data.paidAmount || 0
-    const total = data.netAmount
-
-    const newPaid = currentPaid + payment.amount
-    const remaining = total - newPaid
-
-    let newStatus: Invoice["status"]
-
-    if (newPaid >= total) {
-      newStatus = "paid"
-    } else if (newPaid > 0) {
-      newStatus = "partially paid"
-    } else {
-      newStatus = "pending"
-    }
-
-    // You can decide whether to:
-    // A) Always overwrite mode with the latest payment (most common for display)
-    // B) Keep original mode and use payments[] array instead
-
-    transaction.update(invoiceRef, {
-      paidAmount: newPaid,
-      status: newStatus,
-      mode: payment.mode,           // ← last payment mode
-      // Optional: lastPaymentDate: serverTimestamp() or Timestamp.fromDate(new Date(payment.paymentDate))
-      // payments: arrayUnion({ ... })  ← if you want history
-    })
-
-    return {
-      newPaidAmount: newPaid,
-      newStatus,
-      remaining,
-    }
-  })
-}
-
-
-// ── Get next sequential number atomically ────────────────────────────────
-const countersRef = doc(db, "counters", "invoiceNumber")
-
-export const getNextInvoiceNumber = async (): Promise<number> => {
-  return await runTransaction(db, async (transaction) => {
-    const counterSnap = await transaction.get(countersRef)
-
-    let newNumber = 1
-
-    if (counterSnap.exists()) {
-      const data = counterSnap.data()
-      const current = data?.current ?? 0
-      newNumber = current + 1
-    }
-
-    // Set / update the counter
-    transaction.set(countersRef, { current: newNumber }, { merge: true })
-
-    return newNumber
-  })
-}
-
-
-// ── Fetch single invoice by ID ─────────────────────────────────────────────
 export const getInvoiceById = async (id: string): Promise<Invoice | null> => {
-  const snap = await getDoc(doc(db, "invoices", id))
+  const snap = await getDoc(doc(db, "invoices", id));
 
-  if (!snap.exists()) return null
+  if (!snap.exists()) return null;
 
-  const data = snap.data() as Omit<Invoice, 'id'>
+  const data = snap.data() as Omit<Invoice, "id">;
 
   return {
     ...data,
     id: snap.id,
     products: data.products.map(normalizeInvoiceProduct),
-  }
-}
+  };
+};
 
 export const updateInvoice = async (
   id: string,
-  updates: Partial<Omit<Invoice, 'id' | 'createdAt' | 'paidAmount' | 'status' | 'mode'>>
+  updates: Partial<CreateInvoiceInput>,
 ): Promise<void> => {
   const docRef = doc(db, "invoices", id);
 
-  // 🔥 CRITICAL LINE
-  const safeUpdates = cleanUndefined({
-    ...updates,
-    products: updates.products?.map(p => ({
+  const now = new Date();
+  let safeUpdates: any = { ...updates };
+
+  if (updates.invoiceDate) {
+    const date = new Date(updates.invoiceDate);
+    const isToday =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
+
+    if (!isToday) date.setHours(0, 0, 0, 0);
+    safeUpdates.invoiceDate = Timestamp.fromDate(date);
+  }
+
+  if (updates.dueDate) {
+    const date = new Date(updates.dueDate);
+    const isToday =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
+
+    if (!isToday) date.setHours(0, 0, 0, 0);
+    safeUpdates.dueDate = Timestamp.fromDate(date);
+  }
+
+  const cleanUpdates = cleanUndefined({
+    ...safeUpdates,
+    products: updates.products?.map((p) => ({
       ...p,
       wasteAmount: p.wasteEnabled ? (p.wasteAmount ?? 0) : undefined,
     })),
-  })
-
-  await updateDoc(docRef, {
-    ...safeUpdates,
     updatedAt: serverTimestamp(),
   });
+
+  await updateDoc(docRef, cleanUpdates);
 };
 
-
-// ── Add this new function ────────────────────────────────────────────────
 export const deleteInvoice = async (invoiceId: string): Promise<void> => {
   const invoiceDocRef = doc(db, "invoices", invoiceId);
-  
-  // Optional: you can add extra safety checks
-  // e.g. check if status === "pending" only, or never delete "paid" invoices, etc.
-  
   await deleteDoc(invoiceDocRef);
 };
 
+export const recordInvoicePayment = async (
+  invoiceId: string,
+  payment: {
+    amount: number;
+    mode: Invoice["mode"];
+    paymentDate?: string | Date;
+  },
+) => {
+  if (payment.amount <= 0) {
+    throw new Error("Payment amount must be greater than zero");
+  }
 
+  const invoiceRef = doc(db, "invoices", invoiceId);
+
+  return await runTransaction(db, async (transaction) => {
+    const invoiceSnap = await transaction.get(invoiceRef);
+
+    if (!invoiceSnap.exists()) {
+      throw new Error("Invoice not found");
+    }
+
+    const data = invoiceSnap.data() as Invoice;
+
+    const currentPaid = data.paidAmount || 0;
+    const total = data.netAmount;
+
+    const newPaid = currentPaid + payment.amount;
+    const remaining = total - newPaid;
+
+    let newStatus: Invoice["status"];
+
+    if (newPaid >= total) {
+      newStatus = "paid";
+    } else if (newPaid > 0) {
+      newStatus = "partially paid";
+    } else {
+      newStatus = "pending";
+    }
+
+    transaction.update(invoiceRef, {
+      paidAmount: newPaid,
+      status: newStatus,
+      mode: payment.mode,
+      updatedAt: serverTimestamp(),
+    });
+
+    return {
+      newPaidAmount: newPaid,
+      newStatus,
+      remaining,
+    };
+  });
+};
+
+const countersRef = doc(db, "counters", "invoiceNumber");
+
+export const getNextInvoiceNumber = async (): Promise<number> => {
+  return await runTransaction(db, async (transaction) => {
+    const counterSnap = await transaction.get(countersRef);
+
+    let newNumber = 1;
+
+    if (counterSnap.exists()) {
+      const data = counterSnap.data();
+      const current = data?.current ?? 0;
+      newNumber = current + 1;
+    }
+
+    transaction.set(countersRef, { current: newNumber }, { merge: true });
+
+    return newNumber;
+  });
+};
 
 function normalizeInvoiceProduct(p: InvoiceProduct): InvoiceProduct {
-return {
-...p,
-
-
-// measurement defaults
-height: p.height ?? '',
-width: p.width ?? '',
-kg: p.kg ?? '',
-units: p.units ?? '',
-
-
-// waste defaults
-wasteEnabled: p.wasteEnabled ?? false,
-wasteHeight: p.wasteHeight ?? '',
-wasteWidth: p.wasteWidth ?? '',
-wasteKg: p.wasteKg ?? '',
-wasteUnits: p.wasteUnits ?? '',
-wasteAmount: p.wasteAmount ?? 0,
-
-
-discount: p.discount ?? '',
-discountType: p.discountType ?? '%',
-total: p.total ?? 0,
-grossTotal: p.grossTotal ?? 0,
-}
+  return {
+    ...p,
+    height: p.height ?? "",
+    width: p.width ?? "",
+    kg: p.kg ?? "",
+    units: p.units ?? "",
+    wasteEnabled: p.wasteEnabled ?? false,
+    wasteHeight: p.wasteHeight ?? "",
+    wasteWidth: p.wasteWidth ?? "",
+    wasteKg: p.wasteKg ?? "",
+    wasteUnits: p.wasteUnits ?? "",
+    wasteAmount: p.wasteAmount ?? 0,
+    discount: p.discount ?? "",
+    discountType: p.discountType ?? "%",
+    total: p.total ?? 0,
+    grossTotal: p.grossTotal ?? 0,
+  };
 }

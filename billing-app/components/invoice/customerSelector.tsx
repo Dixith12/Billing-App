@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, Plus, X, UserPlus, CheckCircle2, MapPin, Phone, FileText, Building, IndianRupee, AlertCircle } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { Search, Plus, X, UserPlus, CheckCircle2, MapPin, Phone, FileText, Building, Building2, Briefcase, Landmark, IndianRupee, AlertCircle, Sparkles } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -18,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Customer } from '@/lib/firebase/customers'
+import { cn } from '@/lib/utils'
+import type { Customer } from '@/lib/firebase/customers' // ← ideally rename to Party or use union type later
 import { useState } from 'react'
 
 const INDIAN_STATES = [
@@ -31,15 +33,16 @@ const INDIAN_STATES = [
   'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
 ] as const
 
-interface CustomerSelectorProps {
-  customerSearch: string
-  setCustomerSearch: (v: string) => void
-  filteredCustomers: Customer[]
-  selectedCustomer: Customer | null
-  setSelectedCustomer: (c: Customer | null) => void
-  isAddCustomerOpen: boolean
-  setIsAddCustomerOpen: (v: boolean) => void
-  newCustomer: {
+interface PartySelectorProps {
+  mode: 'customer' | 'vendor'
+  partySearch: string
+  setPartySearch: (v: string) => void
+  filteredParties: Customer[] // Change to Party[] when you unify types
+  selectedParty: Customer | null
+  setSelectedParty: (c: Customer | null) => void
+  isAddPartyOpen: boolean
+  setIsAddPartyOpen: (v: boolean) => void
+  newParty: {
     name: string
     companyName: string
     gstin: string
@@ -49,31 +52,45 @@ interface CustomerSelectorProps {
     openingBalanceType: 'debit' | 'credit'
     openingBalanceAmount: string
   }
-  setNewCustomer: (v: any) => void
-  addNewCustomer: () => Promise<boolean>
+  setNewParty: (v: any) => void
+  addNewParty: () => Promise<boolean>
 }
 
-export function CustomerSelector(props: CustomerSelectorProps) {
+export function CustomerSelector(props: PartySelectorProps) {
   const {
-    customerSearch,
-    setCustomerSearch,
-    filteredCustomers,
-    selectedCustomer,
-    setSelectedCustomer,
-    isAddCustomerOpen,
-    setIsAddCustomerOpen,
-    newCustomer,
-    setNewCustomer,
-    addNewCustomer,
+    mode,
+    partySearch,
+    setPartySearch,
+    filteredParties,
+    selectedParty,
+    setSelectedParty,
+    isAddPartyOpen,
+    setIsAddPartyOpen,
+    newParty,
+    setNewParty,
+    addNewParty,
   } = props
+
+  const isVendorMode = mode === 'vendor'
+
+  // ── Dynamic strings ──────────────────────────────────────────────────────
+  const title = isVendorMode ? 'Vendor Details' : 'Customer Details'
+  const searchPlaceholder = isVendorMode
+    ? 'Search vendors by name, phone or GSTIN...'
+    : 'Search customers by name, phone or GSTIN...'
+
+  const addButtonText = `Add New ${isVendorMode ? 'Vendor' : 'Customer'}`
+  const sheetTitleText = `Add New ${isVendorMode ? 'Vendor' : 'Customer'}`
+
+  const nameLabel = `${isVendorMode ? 'Vendor' : 'Customer'} Name`
+  const namePlaceholder = isVendorMode ? 'Vendor / Supplier name' : 'Full name or contact name'
 
   const [formError, setFormError] = useState<string | null>(null)
 
   const validateForm = () => {
-    if (!newCustomer.name.trim()) return "Customer Name is required"
-    if (!newCustomer.phone.trim()) return "Phone Number is required"
-    if (!newCustomer.state.trim()) return "State is required"
-    if (!newCustomer.address.trim()) return "Billing Address is required"
+    if (!newParty.name.trim()) return `${nameLabel} is required`
+    if (!newParty.phone.trim()) return 'Phone Number is required'
+    if (!newParty.address.trim()) return 'Address is required'
     return null
   }
 
@@ -84,9 +101,9 @@ export function CustomerSelector(props: CustomerSelectorProps) {
       return
     }
     setFormError(null)
-    const success = await addNewCustomer()
+    const success = await addNewParty()
     if (success) {
-      setIsAddCustomerOpen(false)
+      setIsAddPartyOpen(false)
     }
   }
 
@@ -98,54 +115,56 @@ export function CustomerSelector(props: CustomerSelectorProps) {
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl blur-lg opacity-30"></div>
             <div className="relative p-3 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-md">
-              <UserPlus className="h-5 w-5 text-white" />
+              {isVendorMode ? (
+                <Building2 className="h-5 w-5 text-white" />
+              ) : (
+                <UserPlus className="h-5 w-5 text-white" />
+              )}
             </div>
           </div>
-          <h2 className="text-lg font-semibold text-slate-800">
-            Customer Details
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
         </div>
 
         <Button
           variant="outline"
           size="sm"
           className="gap-2 border-indigo-200 hover:bg-indigo-50 text-indigo-700"
-          onClick={() => setIsAddCustomerOpen(true)}
+          onClick={() => setIsAddPartyOpen(true)}
         >
           <Plus className="h-4 w-4" />
-          Add New Customer
+          {addButtonText}
         </Button>
       </div>
 
-      {/* Search + Selected Customer */}
+      {/* Search & Selected Party Display */}
       <div className="space-y-4">
         <div className="relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl blur opacity-0 group-hover:opacity-30 transition duration-300 pointer-events-none"></div>
           <div className="relative flex items-center">
             <Search className="absolute left-3 h-5 w-5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
             <Input
-              placeholder="Search customers by name, phone or GSTIN..."
+              placeholder={searchPlaceholder}
               className="pl-10 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200 bg-slate-50/50"
-              value={customerSearch}
-              onChange={(e) => setCustomerSearch(e.target.value)}
+              value={partySearch}
+              onChange={(e) => setPartySearch(e.target.value)}
             />
           </div>
 
-          {customerSearch && filteredCustomers.length > 0 && (
+          {partySearch && filteredParties.length > 0 && (
             <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-auto">
-              {filteredCustomers.map((c) => (
+              {filteredParties.map((p) => (
                 <button
-                  key={c.id}
+                  key={p.id}
                   className="w-full px-4 py-3 text-left hover:bg-indigo-50 transition-colors flex flex-col border-b border-slate-100 last:border-none"
                   onClick={() => {
-                    setSelectedCustomer(c)
-                    setCustomerSearch('')
+                    setSelectedParty(p)
+                    setPartySearch('')
                   }}
                 >
-                  <span className="font-medium text-slate-900">{c.name}</span>
+                  <span className="font-medium text-slate-900">{p.name}</span>
                   <span className="text-sm text-slate-500">
-                    {c.phone && <span>{c.phone} • </span>}
-                    GSTIN: {c.gstin || '—'}
+                    {p.phone && <span>{p.phone} • </span>}
+                    GSTIN: {p.gstin || '—'}
                   </span>
                 </button>
               ))}
@@ -153,21 +172,25 @@ export function CustomerSelector(props: CustomerSelectorProps) {
           )}
         </div>
 
-        {selectedCustomer && (
+        {selectedParty && (
           <div className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                <UserPlus className="h-4 w-4 text-indigo-600" />
+                {isVendorMode ? (
+                  <Building2 className="h-4 w-4 text-indigo-600" />
+                ) : (
+                  <UserPlus className="h-4 w-4 text-indigo-600" />
+                )}
               </div>
               <div>
-                <div className="font-medium text-slate-900">{selectedCustomer.name}</div>
+                <div className="font-medium text-slate-900">{selectedParty.name}</div>
                 <div className="text-xs text-slate-600">
-                  {selectedCustomer.phone || 'No phone'} • GSTIN: {selectedCustomer.gstin || '—'}
+                  {selectedParty.phone || 'No phone'} • GSTIN: {selectedParty.gstin || '—'}
                 </div>
               </div>
             </div>
             <button
-              onClick={() => setSelectedCustomer(null)}
+              onClick={() => setSelectedParty(null)}
               className="text-slate-500 hover:text-red-600 transition-colors"
             >
               <X className="h-5 w-5" />
@@ -176,99 +199,132 @@ export function CustomerSelector(props: CustomerSelectorProps) {
         )}
       </div>
 
-      {/* ── Add New Customer Sheet ─────────────────────────────────────────────── */}
-      <Sheet open={isAddCustomerOpen} onOpenChange={setIsAddCustomerOpen}>
-        <SheetContent className="sm:max-w-md bg-white border-slate-200 flex flex-col p-0">
-          {/* Fixed Header */}
-          <div className="px-6 pt-6 pb-4 border-b border-slate-200 shrink-0">
-            <SheetHeader>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl blur-lg opacity-30"></div>
-                  <div className="relative p-3 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-md">
-                    <UserPlus className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <SheetTitle className="text-xl font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
-                  Add New Customer
-                </SheetTitle>
+      {/* ── Add New Party Sheet ─────────────────────────────────────────────── */}
+      <Sheet open={isAddPartyOpen} onOpenChange={setIsAddPartyOpen}>
+        <SheetContent className="sm:max-w-lg bg-white border-slate-200 flex flex-col p-0 max-h-[95vh]">
+          {/* Header */}
+          <div className="px-6 pt-6 pb-5 border-b border-slate-200 shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="p-3.5 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-sm">
+                {isVendorMode ? (
+                  <Building2 className="h-7 w-7 text-white" strokeWidth={2.2} />
+                ) : (
+                  <UserPlus className="h-7 w-7 text-white" />
+                )}
               </div>
-            </SheetHeader>
+
+              <div>
+                <SheetTitle className="text-2xl font-bold text-slate-800">
+                  {sheetTitleText}
+                </SheetTitle>
+                <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-indigo-600" />
+                  Enter {isVendorMode ? 'vendor' : 'customer'} details below
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto px-6 py-8 scrollbar-thin scrollbar-thumb-slate-300 hover:scrollbar-thumb-slate-500">
+          <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin scrollbar-thumb-slate-300 hover:scrollbar-thumb-slate-500">
             <div className="space-y-6">
-              {/* Name - required */}
+              {/* Error */}
+              {formError && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-100 text-red-800">
+                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm font-medium">{formError}</span>
+                </div>
+              )}
+
+              {/* Name */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                  <UserPlus className="h-4 w-4 text-indigo-600" />
-                  Customer Name <span className="text-red-500 text-xs">*</span>
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  {isVendorMode ? (
+                    <Building2 className="h-4 w-4 text-indigo-600" />
+                  ) : (
+                    <UserPlus className="h-4 w-4 text-indigo-600" />
+                  )}
+                  {nameLabel} <span className="text-red-500 text-xs">*</span>
                 </Label>
                 <Input
-                  value={newCustomer.name}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                  placeholder="Full name or company contact name"
-                  className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
+                  value={newParty.name}
+                  onChange={(e) => setNewParty({ ...newParty, name: e.target.value })}
+                  placeholder={namePlaceholder}
+                  className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200 h-11"
                 />
               </div>
 
-              {/* Company Name - optional */}
+              {/* Company Name */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                  <Building className="h-4 w-4 text-blue-600" />
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-blue-600" />
                   Company Name <span className="text-xs text-slate-500">(optional)</span>
                 </Label>
                 <Input
-                  value={newCustomer.companyName}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, companyName: e.target.value })}
+                  value={newParty.companyName}
+                  onChange={(e) => setNewParty({ ...newParty, companyName: e.target.value })}
                   placeholder="Company / Firm name"
-                  className="border-slate-300 focus:border-blue-400 focus:ring-blue-200"
+                  className="border-slate-300 focus:border-blue-400 focus:ring-blue-200 h-11"
                 />
               </div>
 
-              {/* GSTIN - optional */}
+              {/* Phone */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                  <FileText className="h-4 w-4 text-purple-600" />
-                  GSTIN <span className="text-xs text-slate-500">(optional)</span>
-                </Label>
-                <Input
-                  value={newCustomer.gstin}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, gstin: e.target.value })}
-                  placeholder="15-digit GST number"
-                  className="border-slate-300 focus:border-purple-400 focus:ring-purple-200"
-                />
-              </div>
-
-              {/* Phone - required */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
                   <Phone className="h-4 w-4 text-emerald-600" />
                   Phone Number <span className="text-red-500 text-xs">*</span>
                 </Label>
                 <Input
-                  value={newCustomer.phone}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                  placeholder="10-digit mobile number"
-                  className="border-slate-300 focus:border-emerald-400 focus:ring-emerald-200"
+                  type="tel"
+                  value={newParty.phone}
+                  onChange={(e) => setNewParty({ ...newParty, phone: e.target.value })}
+                  placeholder="10-digit mobile / landline"
+                  className="border-slate-300 focus:border-emerald-400 focus:ring-emerald-200 h-11"
                 />
               </div>
 
-              {/* State - required */}
+              {/* GSTIN */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-violet-600" />
+                  GSTIN <span className="text-xs text-slate-500">(optional)</span>
+                </Label>
+                <Input
+                  value={newParty.gstin}
+                  onChange={(e) => setNewParty({ ...newParty, gstin: e.target.value })}
+                  placeholder="15-digit GST number (if applicable)"
+                  className="border-slate-300 focus:border-violet-400 focus:ring-violet-200 h-11"
+                />
+              </div>
+
+              {/* Address */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-amber-600" />
-                  State <span className="text-red-500 text-xs">*</span>
+                  Address <span className="text-red-500 text-xs">*</span>
+                </Label>
+                <Textarea
+                  value={newParty.address}
+                  onChange={(e) => setNewParty({ ...newParty, address: e.target.value })}
+                  placeholder="Street, area, city, PIN code..."
+                  className="border-slate-300 focus:border-amber-400 focus:ring-amber-200 min-h-[100px] resize-none"
+                />
+              </div>
+
+              {/* State */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Landmark className="h-4 w-4 text-purple-600" />
+                  State / UT <span className="text-xs text-slate-500">(optional)</span>
                 </Label>
                 <Select
-                  value={newCustomer.state}
-                  onValueChange={(val) => setNewCustomer({ ...newCustomer, state: val })}
+                  value={newParty.state}
+                  onValueChange={(val) => setNewParty({ ...newParty, state: val })}
                 >
-                  <SelectTrigger className="border-slate-300 focus:border-amber-400">
-                    <SelectValue placeholder="Select state / UT" />
+                  <SelectTrigger className="border-slate-300 focus:border-purple-400 h-11">
+                    <SelectValue placeholder="Select state / union territory" />
                   </SelectTrigger>
-                  <SelectContent className='bg-white'>
+                  <SelectContent className="bg-white max-h-60">
                     {INDIAN_STATES.map((state) => (
                       <SelectItem key={state} value={state}>
                         {state}
@@ -278,98 +334,97 @@ export function CustomerSelector(props: CustomerSelectorProps) {
                 </Select>
               </div>
 
-              {/* Address - required */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-amber-600" />
-                  Billing Address <span className="text-red-500 text-xs">*</span>
-                </Label>
-                <Input
-                  value={newCustomer.address}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
-                  placeholder="Street, area, city, PIN code..."
-                  className="border-slate-300 focus:border-amber-400 focus:ring-amber-200"
-                />
-              </div>
+              {/* Opening Balance */}
+              <div className="border border-slate-200 rounded-xl p-5 bg-slate-50/40 shadow-sm space-y-5">
+                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                  <IndianRupee className="h-5 w-5 text-rose-600" />
+                  Opening Balance
+                </h3>
 
-              {/* Opening Balance - optional */}
-              <div className="space-y-4 pt-6 border-t border-slate-200">
-                <Label className="text-sm font-medium text-slate-700">
-                  Opening Balance <span className="text-xs text-slate-500">(optional)</span>
-                </Label>
+                <div className="flex items-center gap-10">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      id="debit"
+                      name="balanceType"
+                      checked={newParty.openingBalanceType === 'debit'}
+                      onChange={() => setNewParty({ ...newParty, openingBalanceType: 'debit' })}
+                      className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                    />
+                    <label htmlFor="debit" className="text-sm cursor-pointer">
+                      Debit
+                    </label>
+                  </div>
 
-                {/* Vertical radio buttons */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      id="credit"
+                      name="balanceType"
+                      checked={newParty.openingBalanceType === 'credit'}
+                      onChange={() => setNewParty({ ...newParty, openingBalanceType: 'credit' })}
+                      className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                    />
+                    <label htmlFor="credit" className="text-sm cursor-pointer">
+                      Credit
+                    </label>
+                  </div>
+                </div>
+
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      id="debit-sheet"
-                      name="balanceType-sheet"
-                      checked={newCustomer.openingBalanceType === 'debit'}
-                      onChange={() => setNewCustomer({ ...newCustomer, openingBalanceType: 'debit' })}
-                      className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
+                  <div className="relative flex items-center border border-slate-300 rounded-lg h-11 overflow-hidden focus-within:border-rose-400 focus-within:ring-rose-200 shadow-sm">
+                    <span className="px-4 text-slate-600 font-medium bg-slate-100">₹</span>
+                    <Input
+                      type="number"
+                      placeholder="0.00"
+                      value={newParty.openingBalanceAmount}
+                      onChange={(e) => setNewParty({ ...newParty, openingBalanceAmount: e.target.value })}
+                      className="border-0 focus:ring-0 h-full rounded-none bg-transparent px-3"
+                      min="0"
+                      step="0.01"
                     />
-                    <label htmlFor="debit-sheet" className="text-sm text-slate-700 cursor-pointer">
-                      Debit (customer owes us)
-                    </label>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      id="credit-sheet"
-                      name="balanceType-sheet"
-                      checked={newCustomer.openingBalanceType === 'credit'}
-                      onChange={() => setNewCustomer({ ...newCustomer, openingBalanceType: 'credit' })}
-                      className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
-                    />
-                    <label htmlFor="credit-sheet" className="text-sm text-slate-700 cursor-pointer">
-                      Credit (we owe customer)
-                    </label>
-                  </div>
-                </div>
-
-                {/* Amount input below radios */}
-                <div className="flex items-center gap-3 pl-8">
-                  <IndianRupee className="h-5 w-5 text-slate-600" />
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newCustomer.openingBalanceAmount}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, openingBalanceAmount: e.target.value })}
-                    placeholder="0.00"
-                    className="w-40 border-slate-300 focus:border-rose-400 focus:ring-rose-200"
-                  />
+                  {newParty.openingBalanceAmount && Number(newParty.openingBalanceAmount) > 0 && (
+                    <div
+                      className={cn(
+                        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium',
+                        newParty.openingBalanceType === 'debit'
+                          ? 'bg-red-50 text-red-700 border border-red-200'
+                          : 'bg-green-50 text-green-700 border border-green-200'
+                      )}
+                    >
+                      <IndianRupee className="h-3.5 w-3.5" />
+                      {isVendorMode
+                        ? newParty.openingBalanceType === 'debit'
+                          ? 'Vendor pays you'
+                          : 'You pay the vendor'
+                        : newParty.openingBalanceType === 'debit'
+                        ? 'Customer owes you'
+                        : 'You owe customer'}
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* Form error message */}
-              {formError && (
-                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200 mt-4">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Fixed Footer */}
+          {/* Footer */}
           <div className="px-6 py-5 border-t border-slate-200 shrink-0 bg-white">
             <SheetFooter className="gap-3 flex justify-end">
               <Button
                 variant="outline"
-                onClick={() => setIsAddCustomerOpen(false)}
-                className="border-slate-300 hover:bg-slate-50"
+                onClick={() => setIsAddPartyOpen(false)}
+                className="border-slate-300 hover:bg-slate-50 min-w-[100px]"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSave}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[140px] shadow-sm"
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
-                Save Customer
+                Save {isVendorMode ? 'Vendor' : 'Customer'}
               </Button>
             </SheetFooter>
           </div>

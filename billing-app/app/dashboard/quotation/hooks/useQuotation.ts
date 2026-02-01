@@ -1,7 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { addQuotation, getQuotations, updateQuotation, deleteQuotation, convertQuotationToInvoice } from '@/lib/firebase/quotations'
+import {
+  addQuotation,
+  getQuotations,
+  updateQuotation,
+  deleteQuotation,
+  convertQuotationToInvoice,
+} from '@/lib/firebase/quotations'
 import type { Quotation } from '@/lib/firebase/quotations'
 
 export function useQuotation() {
@@ -28,21 +34,26 @@ export function useQuotation() {
     try {
       const newQuotation = await addQuotation(data)
       setQuotations(prev => [newQuotation, ...prev])
-      return true
+      return { success: true, quotation: newQuotation }
     } catch (err: any) {
       setError(err.message)
-      return false
+      return { success: false, message: err.message }
     }
   }
 
-  const editQuotation = async (id: string, data: Partial<Omit<Quotation, 'id' | 'createdAt' | 'quotationNumber'>>) => {
+  const editQuotation = async (
+    id: string,
+    data: Partial<Omit<Quotation, 'id' | 'quotationNumber' | 'createdAt'>>,
+  ) => {
     try {
       await updateQuotation(id, data)
-      setQuotations(prev => prev.map(q => q.id === id ? { ...q, ...data } : q))
-      return true
+      setQuotations(prev =>
+        prev.map(q => (q.id === id ? { ...q, ...data } : q))
+      )
+      return { success: true }
     } catch (err: any) {
       setError(err.message)
-      return false
+      return { success: false, message: err.message }
     }
   }
 
@@ -50,17 +61,21 @@ export function useQuotation() {
     try {
       await deleteQuotation(id)
       setQuotations(prev => prev.filter(q => q.id !== id))
+      return { success: true }
     } catch (err: any) {
       setError(err.message)
+      return { success: false, message: err.message }
     }
   }
 
-  const handleConvertToInvoice = async (id: string) => {
+  const convertToInvoice = async (id: string) => {
     try {
       await convertQuotationToInvoice(id)
       setQuotations(prev => prev.filter(q => q.id !== id))
+      return { success: true }
     } catch (err: any) {
       setError(err.message)
+      return { success: false, message: err.message }
     }
   }
 
@@ -71,6 +86,6 @@ export function useQuotation() {
     addQuotation: addNewQuotation,
     updateQuotation: editQuotation,
     deleteQuotation: removeQuotation,
-    convertToInvoice: handleConvertToInvoice,
+    convertToInvoice,
   }
 }

@@ -8,6 +8,8 @@ import type { Customer } from "@/lib/firebase/customers";
 import type { InventoryItem } from "@/lib/types";
 import { useGst } from "@/app/dashboard/gst/hooks/useGst";
 import { toast } from "sonner";
+import { useVendors } from "@/app/dashboard/vendor/hooks/useVendors";
+
 
 export interface BilledProduct {
   id: string;
@@ -25,128 +27,138 @@ export interface BilledProduct {
   wasteWidth?: string;
   wasteKg?: string;
   wasteUnits?: string;
-  wasteAmount?: number; // ← NEW: calculated/edited waste total
+  wasteAmount?: number;
 
   discount: string;
   discountType: "%" | "₹";
 
-  grossTotal: number; // before discount + waste added
-  netTotal: number; // after discount
+  grossTotal: number;
+  netTotal: number;
 }
 
 export function useCreateInvoice() {
   const { inventoryItems } = useApp();
   const { cgst: gstCgst, sgst: gstSgst } = useGst();
 
-  // ── Customers ──────────────────────────────────────────────
-  const { customers, addCustomer , loading } = useCustomers();
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null,
-  );
-  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({
-  name: "",
-  companyName: "",
-  gstin: "",
-  phone: "",
-  address: "",
-  state: "",
-  openingBalanceType: "debit" as "debit" | "credit",
-  openingBalanceAmount: "",
-});
+  // ── Date states (neutral for all modes) ────────────────────────────────
+  const [documentDate, setDocumentDate] = useState<Date>(new Date());
+  const [dueDate, setDueDate] = useState<Date>(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 30); // default 30 days later
+    return date;
+  });
 
-  // ── Products ───────────────────────────────────────────────
+  // ── Party (Customer/Vendor) ────────────────────────────────────────────
+const { customers, addCustomer, loading: customersLoading } = useCustomers();
+const { vendors, addVendor, loading: vendorsLoading } = useVendors();
+  const [partySearch, setPartySearch] = useState("");
+  const [selectedParty, setSelectedParty] = useState<Customer | null>(null);
+  const [isAddPartyOpen, setIsAddPartyOpen] = useState(false);
+  const [newParty, setNewParty] = useState({
+    name: "",
+    companyName: "",
+    gstin: "",
+    phone: "",
+    address: "",
+    state: "",
+    openingBalanceType: "debit" as "debit" | "credit",
+    openingBalanceAmount: "",
+  });
+
+  // ── Products & Billing ─────────────────────────────────────────────────
   const [productSearch, setProductSearch] = useState("");
   const [billedProducts, setBilledProducts] = useState<BilledProduct[]>([]);
   const [billingAddress, setBillingAddress] = useState("");
 
- 
-
   useEffect(() => {
-    if (selectedCustomer?.address) {
-      setBillingAddress(selectedCustomer.address);
-    } else if (selectedCustomer === null) {
+    if (selectedParty?.address) {
+      setBillingAddress(selectedParty.address);
+    } else if (selectedParty === null) {
       setBillingAddress("");
     }
-  }, [selectedCustomer]);
+  }, [selectedParty]);
 
-  
-
-const addNewCustomer = async () => {
-  if (
-    !newCustomer.name.trim() ||
-    !newCustomer.phone.trim() ||
-    !newCustomer.address.trim() ||
-    !newCustomer.state.trim()
-  ) {
-    console.warn("Required customer fields missing");
-    // You can also set an error state here if you want UI feedback
-    return false;
-  }
-
-  try {
-    // Convert opening balance
-    const amount = Number(newCustomer.openingBalanceAmount) || 0;
-    let openingBalance: number | undefined = undefined;
-
-    if (amount > 0) {
-      openingBalance =
-        newCustomer.openingBalanceType === "debit" ? amount : -amount;
+  const addNewParty = async () => {
+    if (
+      !newParty.name.trim() ||
+      !newParty.phone.trim() ||
+      !newParty.address.trim() ||
+      !newParty.state.trim()
+    ) {
+      toast.error("Required fields missing");
+      return false;
     }
 
-    // Prepare data — avoid undefined by conditional spread
-    const customerData: Omit<Customer, "id" | "createdAt"> = {
-      name: newCustomer.name.trim(),
-      phone: newCustomer.phone.trim(),
-      address: newCustomer.address.trim(),
-      state: newCustomer.state.trim(),
-      openingBalance,
-      ...(newCustomer.companyName.trim() && {
-        companyName: newCustomer.companyName.trim(),
-      }),
-      ...(newCustomer.gstin.trim() && {
-        gstin: newCustomer.gstin.trim(),
-      }),
-    };
+    try {
+      const amount = Number(newParty.openingBalanceAmount) || 0;
+      let openingBalance: number | undefined = undefined;
 
-    const saved = await addCustomer(customerData);
+      if (amount > 0) {
+        openingBalance =
+          newParty.openingBalanceType === "debit" ? amount : -amount;
+      }
 
-    // Success path
-    setSelectedCustomer(saved);
-    setBillingAddress(saved.address || "");
+      const partyData: Omit<Customer, "id" | "createdAt"> = {
+        name: newParty.name.trim(),
+        phone: newParty.phone.trim(),
+        address: newParty.address.trim(),
+        state: newParty.state.trim(),
+        openingBalance,
+        ...(newParty.companyName.trim() && {
+          companyName: newParty.companyName.trim(),
+        }),
+        ...(newParty.gstin.trim() && {
+          gstin: newParty.gstin.trim(),
+        }),
+      };
 
-    // Reset form
-    setNewCustomer({
-      name: "",
-      companyName: "",
-      gstin: "",
-      phone: "",
-      address: "",
-      state: "",
-      openingBalanceType: "debit",
-      openingBalanceAmount: "",
-    });
+      const saved = await addCustomer(partyData);
 
-    setIsAddCustomerOpen(false);
+      setSelectedParty(saved);
+      setBillingAddress(saved.address || "");
 
-    return true;
-  } catch (err: any) {
-    console.error("Failed to add customer from invoice:", err);
-    toast.error("Could not add customer");
-    return false;
-  }
-};
+      setNewParty({
+        name: "",
+        companyName: "",
+        gstin: "",
+        phone: "",
+        address: "",
+        state: "",
+        openingBalanceType: "debit",
+        openingBalanceAmount: "",
+      });
 
-  const filteredCustomers = useMemo(() => {
-    const search = customerSearch.toLowerCase();
-    return customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(search) ||
-        (c.gstin && c.gstin.toLowerCase().includes(search)) ||
-        c.phone.includes(search),
-    );
-  }, [customers, customerSearch]);
+      setIsAddPartyOpen(false);
+
+      toast.success("Party added successfully");
+      return true;
+    } catch (err: any) {
+      console.error("Failed to add party:", err);
+      toast.error("Could not add party", { description: err.message });
+      return false;
+    }
+  };
+
+const filteredCustomers = useMemo(() => {
+  const search = partySearch.toLowerCase();
+  return customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(search) ||
+      (c.gstin && c.gstin.toLowerCase().includes(search)) ||
+      c.phone.includes(search),
+  );
+}, [customers, partySearch]);
+
+const filteredVendors = useMemo(() => {
+  const search = partySearch.toLowerCase();
+  return vendors.filter(
+    (v) =>
+      v.name.toLowerCase().includes(search) ||
+      (v.gstin && v.gstin.toLowerCase().includes(search)) ||
+      v.phone.includes(search),
+  );
+}, [vendors, partySearch]);
+
 
   const filteredInventory = useMemo(() => {
     const search = productSearch.toLowerCase();
@@ -155,7 +167,7 @@ const addNewCustomer = async () => {
     );
   }, [inventoryItems, productSearch]);
 
-  // ── Billed Products Actions ────────────────────────────────
+  // ── Billed Products Actions ────────────────────────────────────────────
   const addProductToBill = (item: InventoryItem) => {
     let basePrice = 0;
 
@@ -213,7 +225,6 @@ const addNewCustomer = async () => {
 
         let updated: BilledProduct = { ...p, [field]: value };
 
-        // ── Product row changes ─────────────────────
         if (["height", "width", "kg", "units", "quantity"].includes(field)) {
           const base = calculateProductBase(updated, inventoryItems);
           const waste = updated.wasteEnabled
@@ -224,25 +235,19 @@ const addNewCustomer = async () => {
           updated.netTotal = updated.grossTotal;
         }
 
-        // ── Waste measurement → update wasteAmount ──
-        if (
-          ["wasteHeight", "wasteWidth", "wasteKg", "wasteUnits"].includes(field)
-        ) {
+        if (["wasteHeight", "wasteWidth", "wasteKg", "wasteUnits"].includes(field)) {
           updated.wasteAmount = calculateWasteAmount(updated, inventoryItems);
-
           const base = calculateProductBase(updated, inventoryItems);
           updated.grossTotal = base + (updated.wasteAmount || 0);
           updated.netTotal = updated.grossTotal;
         }
 
-        // ── Manual waste amount edit ────────────────
         if (field === "wasteAmount") {
           const base = calculateProductBase(updated, inventoryItems);
           updated.grossTotal = base + (Number(value) || 0);
           updated.netTotal = updated.grossTotal;
         }
 
-        // ── Waste toggle OFF ────────────────────────
         if (field === "wasteEnabled" && !value) {
           updated.wasteHeight = undefined;
           updated.wasteWidth = undefined;
@@ -259,8 +264,6 @@ const addNewCustomer = async () => {
       }),
     );
   };
-
-  //chatgpt
 
   function calculateProductBase(p: BilledProduct, inventory: InventoryItem[]) {
     const inv = inventory.find((i) => i.name === p.name);
@@ -308,7 +311,7 @@ const addNewCustomer = async () => {
     setBilledProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
-  // ── Calculations ───────────────────────────────────────────
+  // ── Calculations ───────────────────────────────────────────────────────
   const subtotal = useMemo(
     () => billedProducts.reduce((sum, p) => sum + p.netTotal, 0),
     [billedProducts],
@@ -330,29 +333,57 @@ const addNewCustomer = async () => {
         return sum + gross * (disc / 100);
       }
 
-      // ₹ flat discount per product line
       return sum + disc;
     }, 0);
   }, [billedProducts]);
 
   const taxableAmount = subtotal - totalDiscount;
-  const cgstAmount = taxableAmount * (gstCgst / 100);
-  const sgstAmount = taxableAmount * (gstSgst / 100);
-  const netAmount = taxableAmount + cgstAmount + sgstAmount;
 
-  // ── Save to Firebase ───────────────────────────────────────
+  const isKarnatakaParty = selectedParty?.state?.trim().toLowerCase() === "karnataka";
+
+  const cgstRate = isKarnatakaParty ? gstCgst : 0;
+  const sgstRate = isKarnatakaParty ? gstSgst : 0;
+  const igstRate = isKarnatakaParty ? 0 : (gstCgst + gstSgst);
+
+  const cgstAmount = taxableAmount * (cgstRate / 100);
+  const sgstAmount = taxableAmount * (sgstRate / 100);
+  const igstAmount = taxableAmount * (igstRate / 100);
+
+  const netAmount = taxableAmount + cgstAmount + sgstAmount + igstAmount;
+
+  // ── Save Invoice (only for invoice mode) ───────────────────────────────
   const saveInvoice = async () => {
-    if (!selectedCustomer)
-      return { success: false, message: "No customer selected" };
-    if (billedProducts.length === 0)
-      return { success: false, message: "No products added" };
+    if (!selectedParty) return { success: false, message: "No party selected" };
+    if (billedProducts.length === 0) return { success: false, message: "No products added" };
 
     try {
+      const now = new Date();
+
+      let finalDocumentDate = new Date(documentDate);
+      const isToday =
+        finalDocumentDate.getFullYear() === now.getFullYear() &&
+        finalDocumentDate.getMonth() === now.getMonth() &&
+        finalDocumentDate.getDate() === now.getDate();
+
+      if (!isToday) {
+        finalDocumentDate.setHours(0, 0, 0, 0);
+      }
+
+      let finalDueDate = new Date(dueDate);
+      const isDueToday =
+        finalDueDate.getFullYear() === now.getFullYear() &&
+        finalDueDate.getMonth() === now.getMonth() &&
+        finalDueDate.getDate() === now.getDate();
+
+      if (!isDueToday) {
+        finalDueDate.setHours(0, 0, 0, 0);
+      }
+
       await addInvoice({
-        customerId: selectedCustomer.id,
-        customerName: selectedCustomer.name,
-        customerPhone: selectedCustomer.phone,
-        customerGstin: selectedCustomer.gstin ?? undefined,
+        customerId: selectedParty.id,
+        customerName: selectedParty.name,
+        customerPhone: selectedParty.phone,
+        customerGstin: selectedParty.gstin ?? undefined,
         billingAddress,
         products: billedProducts.map((p) => ({
           name: p.name,
@@ -370,64 +401,89 @@ const addNewCustomer = async () => {
           wasteAmount: p.wasteAmount,
           discount: p.discount,
           discountType: p.discountType,
-          total: p.netTotal, // ← send netTotal as total (what invoice expects)
-          // you can also add grossTotal if you want to save it too:
-          grossTotal: p.grossTotal, // optional – nice to have for future reference
+          total: p.netTotal,
+          grossTotal: p.grossTotal,
         })),
-        subtotal, // based on netTotals
+        subtotal,
         discount: totalDiscount,
         cgst: cgstAmount,
         sgst: sgstAmount,
+        igst: igstAmount,
         netAmount,
+        invoiceDate: finalDocumentDate,
+        dueDate: finalDueDate,
       });
+
+      toast.success("Invoice saved successfully");
       return { success: true };
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving invoice:", err);
+      toast.error("Failed to save invoice", { description: err.message });
       return { success: false, message: "Failed to save invoice" };
     }
   };
 
   const resetForm = () => {
-    setSelectedCustomer(null);
+    setSelectedParty(null);
     setBilledProducts([]);
     setBillingAddress("");
-    setCustomerSearch("");
+    setPartySearch("");
     setProductSearch("");
+    setDocumentDate(new Date());
+    setDueDate(() => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30);
+      return date;
+    });
   };
+
+  const loadingParties = customersLoading || vendorsLoading;
 
   return {
-    customers,
-    loadingCustomers:loading,
-    customerSearch,
-    setCustomerSearch,
-    selectedCustomer,
-    setSelectedCustomer,
-    filteredCustomers,
-    isAddCustomerOpen,
-    setIsAddCustomerOpen,
-    newCustomer,
-    setNewCustomer,
-    addNewCustomer,
-    billingAddress,
-    setBillingAddress,
+  // Party
+  parties: customers, // optional, you can remove later
+  loadingParties,
+  partySearch,
+  setPartySearch,
+  selectedParty,
+  setSelectedParty,
+  filteredCustomers,
+  filteredVendors,
 
-    productSearch,
-    setProductSearch,
-    filteredInventory,
-    billedProducts,
-    addProductToBill,
-    updateBilledProduct,
-    removeBilledProduct,
-    setBilledProducts,
+  isAddPartyOpen,
+  setIsAddPartyOpen,
+  newParty,
+  setNewParty,
+  addNewParty,
+  billingAddress,
+  setBillingAddress,
 
-    totalGross,
-    subtotal,
-    totalDiscount,
-    cgst: cgstAmount,
-    sgst: sgstAmount,
-    netAmount,
+  // Products
+  productSearch,
+  setProductSearch,
+  filteredInventory,
+  billedProducts,
+  addProductToBill,
+  updateBilledProduct,
+  removeBilledProduct,
+  setBilledProducts,
 
-    saveInvoice,
-    resetForm,
-  };
+  // Calculations
+  totalGross,
+  subtotal,
+  totalDiscount,
+  cgst: cgstAmount,
+  sgst: sgstAmount,
+  igst: igstAmount,
+  netAmount,
+
+  saveInvoice,
+  resetForm,
+
+  documentDate,
+  setDocumentDate,
+  dueDate,
+  setDueDate,
+};
+
 }

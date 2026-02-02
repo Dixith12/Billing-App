@@ -3,14 +3,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/lib/app-context";
 import { addInvoice } from "@/lib/firebase/invoices";
+import { addPurchase } from "@/lib/firebase/purchase"; // ← Make sure this is imported
 import { useCustomers } from "@/app/dashboard/customer/hooks/useCustomers";
 import type { Customer } from "@/lib/firebase/customers";
 import type { InventoryItem } from "@/lib/types";
 import { useGst } from "@/app/dashboard/gst/hooks/useGst";
 import { toast } from "sonner";
 import { useVendors } from "@/app/dashboard/vendor/hooks/useVendors";
-import { addPurchase } from "@/lib/firebase/purchase"; // assuming this exists
-import { addQuotation } from "@/lib/firebase/quotations"; // assuming this exists
 
 export interface BilledProduct {
   id: string;
@@ -37,8 +36,69 @@ export interface BilledProduct {
   netTotal: number;
 }
 
-export function useCreateInvoice(options?: { isPurchaseMode?: boolean }) {
-  const isPurchaseMode = options?.isPurchaseMode ?? false
+
+export interface UseCreateInvoiceReturn {
+  // Party
+  parties: Customer[]; // ✅ ADD THIS
+  loadingParties: boolean;
+
+  partySearch: string;
+  setPartySearch: React.Dispatch<React.SetStateAction<string>>;
+  selectedParty: Customer | null;
+  setSelectedParty: React.Dispatch<React.SetStateAction<Customer | null>>;
+  filteredCustomers: Customer[];
+  filteredVendors: Customer[];
+
+  isAddPartyOpen: boolean;
+  setIsAddPartyOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  newParty: any;
+  setNewParty: React.Dispatch<React.SetStateAction<any>>;
+  addNewParty: () => Promise<boolean>;
+  billingAddress: string;
+  setBillingAddress: React.Dispatch<React.SetStateAction<string>>;
+
+  // Products
+  productSearch: string;
+  setProductSearch: React.Dispatch<React.SetStateAction<string>>;
+  filteredInventory: any[];
+  billedProducts: any[];
+  addProductToBill: (item: any) => void;
+  addCustomPurchaseItem: (data: any) => void;
+  updateBilledProduct: (
+    id: string,
+    field: any,
+    value: string | number | boolean
+  ) => void;
+  removeBilledProduct: (id: string) => void;
+  setBilledProducts: React.Dispatch<React.SetStateAction<any[]>>;
+
+  // Calculations
+  totalGross: number;
+  subtotal: number;
+  totalDiscount: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
+  netAmount: number;
+
+  // Dates
+  documentDate: Date;
+  setDocumentDate: React.Dispatch<React.SetStateAction<Date>>;
+  dueDate: Date;
+  setDueDate: React.Dispatch<React.SetStateAction<Date>>;
+
+  // Actions
+  saveDocument: () => Promise<{ success: boolean; message?: string }>;
+  resetForm: () => void;
+
+  isPurchaseMode: boolean;
+}
+
+
+export function useCreateInvoice(
+  options?: { isPurchaseMode?: boolean }
+): UseCreateInvoiceReturn {
+  const isPurchaseMode = options?.isPurchaseMode ?? false;
 
   const { inventoryItems } = useApp();
   const { cgst: gstCgst, sgst: gstSgst } = useGst();
@@ -81,7 +141,7 @@ export function useCreateInvoice(options?: { isPurchaseMode?: boolean }) {
     }
   }, [selectedParty]);
 
-  // ── Add new party (unchanged) ─────────────────────────────────────────
+  // ── Add new party ──────────────────────────────────────────────────────
   const addNewParty = async () => {
     if (
       !newParty.name.trim() ||
@@ -158,17 +218,17 @@ export function useCreateInvoice(options?: { isPurchaseMode?: boolean }) {
     );
   }, [vendors, partySearch]);
 
- const filteredInventory = useMemo(() => {
-  if (isPurchaseMode) return []
-  const search = productSearch.toLowerCase()
-  return inventoryItems.filter((item) =>
-    item.name.toLowerCase().includes(search),
-  )
-}, [inventoryItems, productSearch, isPurchaseMode])
+  const filteredInventory = useMemo(() => {
+    if (isPurchaseMode) return [];
+    const search = productSearch.toLowerCase();
+    return inventoryItems.filter((item) =>
+      item.name.toLowerCase().includes(search),
+    );
+  }, [inventoryItems, productSearch, isPurchaseMode]);
 
+  const addProductToBill = (item: InventoryItem) => {
+    if (isPurchaseMode) return;
 
-const addProductToBill = (item: InventoryItem) => {
-  if (isPurchaseMode) return   
     let basePrice = 0;
 
     switch (item.measurementType) {
@@ -212,12 +272,11 @@ const addProductToBill = (item: InventoryItem) => {
 
     setBilledProducts((prev) => [...prev, newProduct]);
     if (!isPurchaseMode) {
-  setProductSearch("")
-}
-
+      setProductSearch("");
+    }
   };
 
-  // ── NEW: Add custom item created in modal (for purchase only) ──────────
+  // ── Add custom item (for purchase mode) ────────────────────────────────
   const addCustomPurchaseItem = (customData: {
     name: string;
     measurementType: "height_width" | "kg" | "unit";
@@ -247,7 +306,7 @@ const addProductToBill = (item: InventoryItem) => {
     }
 
     const newProduct: BilledProduct = {
-      id: crypto.randomUUID() || Date.now().toString() + Math.random().toString(36).slice(2),
+      id: crypto.randomUUID(),
       name: customData.name.trim() || "Unnamed Item",
       quantity: 1,
       measurementType: customData.measurementType,
@@ -271,7 +330,6 @@ const addProductToBill = (item: InventoryItem) => {
     toast.success("Item added to purchase");
   };
 
-  // ── Update any product (works for both inventory & custom) ─────────────
   const updateBilledProduct = (
     id: string,
     field: keyof BilledProduct,
@@ -283,14 +341,12 @@ const addProductToBill = (item: InventoryItem) => {
 
         let updated: BilledProduct = { ...p, [field]: value };
 
-        // Recalculate totals
         const base = calculateProductBase(updated);
         const waste = updated.wasteEnabled ? Number(updated.wasteAmount || 0) : 0;
 
         updated.grossTotal = base + waste;
         updated.netTotal = updated.grossTotal;
 
-        // Clean waste fields if disabled
         if (field === "wasteEnabled" && !value) {
           updated.wasteHeight = undefined;
           updated.wasteWidth = undefined;
@@ -304,14 +360,11 @@ const addProductToBill = (item: InventoryItem) => {
     );
   };
 
-  // ── Base price calculation (safe for custom items) ─────────────────────
   function calculateProductBase(p: BilledProduct) {
-    // If gross/net already set (from custom add), preserve ratio
     if (p.grossTotal && p.netTotal && p.grossTotal === p.netTotal) {
       return p.grossTotal / (p.quantity || 1);
     }
 
-    // Fallback for inventory-based items
     const inv = inventoryItems.find((i) => i.name === p.name);
     if (!inv) return 0;
 
@@ -338,7 +391,7 @@ const addProductToBill = (item: InventoryItem) => {
     setBilledProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
-  // ── Totals (unchanged) ─────────────────────────────────────────────────
+  // ── Totals ─────────────────────────────────────────────────────────────
   const subtotal = useMemo(
     () => billedProducts.reduce((sum, p) => sum + p.netTotal, 0),
     [billedProducts],
@@ -378,20 +431,19 @@ const addProductToBill = (item: InventoryItem) => {
 
   const netAmount = taxableAmount + cgstAmount + sgstAmount + igstAmount;
 
-  // ── Save logic (unchanged) ─────────────────────────────────────────────
-  const saveInvoice = async () => {
+  // ── Save logic (main change here) ──────────────────────────────────────
+  const saveDocument = async () => {
     if (!selectedParty) return { success: false, message: "No party selected" };
     if (billedProducts.length === 0) return { success: false, message: "No products added" };
 
     try {
-
-      await addInvoice({
-        customerId: selectedParty.id,
-        customerName: selectedParty.name,
-        customerPhone: selectedParty.phone,
-        customerGstin: selectedParty.gstin ?? undefined,
+      const commonData = {
+        vendorId: selectedParty.id, // works for both customerId / vendorId
+        vendorName: selectedParty.name,
+        vendorPhone: selectedParty.phone,
+        vendorGstin: selectedParty.gstin ?? undefined,
+        vendorState: selectedParty.state?.trim() || "Karnataka", // ← saved for purchases
         billingAddress,
-        placeOfSupply:selectedParty.state?.trim()||"29",
         products: billedProducts.map((p) => ({
           name: p.name,
           quantity: p.quantity,
@@ -417,17 +469,37 @@ const addProductToBill = (item: InventoryItem) => {
         sgst: sgstAmount,
         igst: igstAmount,
         netAmount,
-        invoiceDate: documentDate,
-        dueDate: dueDate,
+      };
 
-      });
+      if (isPurchaseMode) {
+        // PURCHASE MODE
+        await addPurchase({
+          ...commonData,
+          purchaseDate: documentDate,
+        });
+        toast.success("Purchase order saved successfully");
+      } else {
+        // INVOICE MODE
+        await addInvoice({
+          ...commonData,
+          customerId: selectedParty.id,
+          customerName: selectedParty.name,
+          customerPhone: selectedParty.phone,
+          customerGstin: selectedParty.gstin ?? undefined,
+          placeOfSupply: selectedParty.state?.trim() || "29",
+          invoiceDate: documentDate,
+          dueDate,
+        });
+        toast.success("Invoice saved successfully");
+      }
 
-      toast.success("Invoice saved successfully");
       return { success: true };
     } catch (err: any) {
-      console.error("Error saving invoice:", err);
-      toast.error("Failed to save invoice", { description: err.message });
-      return { success: false, message: "Failed to save invoice" };
+      console.error("Error saving document:", err);
+      toast.error(`Failed to save ${isPurchaseMode ? "purchase" : "invoice"}`, {
+        description: err.message,
+      });
+      return { success: false, message: err.message };
     }
   };
 
@@ -449,7 +521,7 @@ const addProductToBill = (item: InventoryItem) => {
 
   return {
     // Party
-    parties: customers,
+    parties: customers, // note: you might want to return vendors when isPurchaseMode
     loadingParties,
     partySearch,
     setPartySearch,
@@ -471,8 +543,8 @@ const addProductToBill = (item: InventoryItem) => {
     setProductSearch,
     filteredInventory,
     billedProducts,
-    addProductToBill,           // inventory-based
-    addCustomPurchaseItem,      // custom purchase items
+    addProductToBill,
+    addCustomPurchaseItem,
     updateBilledProduct,
     removeBilledProduct,
     setBilledProducts,
@@ -486,12 +558,14 @@ const addProductToBill = (item: InventoryItem) => {
     igst: igstAmount,
     netAmount,
 
-    saveInvoice,
+    saveDocument,          // ← Updated name - use this in your form button
     resetForm,
 
     documentDate,
     setDocumentDate,
     dueDate,
     setDueDate,
+
+    isPurchaseMode,        // useful if component needs to know mode
   };
 }

@@ -1,4 +1,3 @@
-// components/purchase/purchase-table.tsx
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -51,6 +50,7 @@ import { cn } from "@/lib/utils";
 import type { Purchase } from "@/lib/firebase/purchase";
 import { pdf } from "@react-pdf/renderer";
 import PurchasePDF from "@/components/purchase/purchase-pdf";
+import { exportPurchasesToExcel } from "@/lib/utils/exportPurchaseToExcel"; // Correct import (fixed name)
 
 type SortOrder = "asc" | "desc" | null;
 
@@ -103,29 +103,6 @@ export function PurchaseTable({
         }).format(date)
       : "—";
 
-  const getRelativeTime = (timestamp: Date | undefined): string => {
-    if (!timestamp) return "—";
-    const now = new Date();
-    const diffMs = now.getTime() - timestamp.getTime();
-    if (diffMs < 0) return "just now";
-
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffSeconds < 45) return "just now";
-    if (diffSeconds < 90) return "1 minute ago";
-    if (diffMinutes < 45) return `${diffMinutes} minutes ago`;
-    if (diffMinutes < 90) return "1 hour ago";
-    if (diffHours < 22) return `${diffHours} hours ago`;
-    if (diffHours < 36) return "1 day ago";
-    if (diffDays < 6) return `${diffDays} days ago`;
-    if (diffDays < 10) return "1 week ago";
-    return `${diffDays} days ago`;
-  };
-
-  // Purchase number formatted as #0001 (same as quotation)
   const formatPurchaseNumber = (num: number | undefined): string => {
     if (num == null) return "Draft";
     return `#${String(num).padStart(4, "0")}`;
@@ -156,7 +133,6 @@ export function PurchaseTable({
     let result = purchases.filter((p) => {
       const search = searchQuery.toLowerCase().trim();
 
-      // Search works with #0001, 0001, 1, etc.
       const numberStr = String(p.purchaseNumber ?? "");
       const matchesSearch =
         !search ||
@@ -238,7 +214,7 @@ export function PurchaseTable({
 
   return (
     <div className="space-y-6 ml-3 mr-3 mt-3 mb-3">
-      {/* Search + Filters */}
+      {/* Search + Filters Row */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="relative max-w-md w-full">
           <Input
@@ -250,8 +226,9 @@ export function PurchaseTable({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
         </div>
 
-        <div className="flex gap-3">
-          {/* Amount Filter Popover */}
+        {/* Filters + Export Button */}
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Amount Filter Button */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -264,7 +241,6 @@ export function PurchaseTable({
                     : "text-slate-700 hover:bg-slate-50"
                 )}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md pointer-events-none"></div>
                 <span className="relative flex items-center gap-2 font-medium">
                   <IndianRupee className="h-4 w-4" />
                   Amount
@@ -281,8 +257,8 @@ export function PurchaseTable({
                 </span>
               </Button>
             </PopoverTrigger>
-
             <PopoverContent className="w-80 p-6 bg-white border border-slate-200 shadow-2xl rounded-xl" align="end">
+              {/* Your existing Amount filter content here */}
               <div className="space-y-5">
                 <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
@@ -353,7 +329,7 @@ export function PurchaseTable({
             </PopoverContent>
           </Popover>
 
-          {/* Date Filter Popover */}
+          {/* Date Filter Button */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -366,7 +342,6 @@ export function PurchaseTable({
                     : "text-slate-700 hover:bg-slate-50"
                 )}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md pointer-events-none"></div>
                 <span className="relative flex items-center gap-2 font-medium">
                   <CalendarDays className="h-4 w-4" />
                   Date
@@ -381,8 +356,8 @@ export function PurchaseTable({
                 </span>
               </Button>
             </PopoverTrigger>
-
             <PopoverContent className="w-96 p-6 bg-white border border-slate-200 shadow-2xl rounded-xl" align="end">
+              {/* Your existing Date filter content here */}
               <div className="space-y-6">
                 <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
@@ -474,10 +449,28 @@ export function PurchaseTable({
               </div>
             </PopoverContent>
           </Popover>
+
+          {/* Export Excel Button - placed right after the two filters */}
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "group relative overflow-hidden border-purple-300 hover:border-purple-500 transition-all duration-300 shadow-sm hover:shadow-md",
+              filteredPurchases.length > 0 ? "bg-gradient-to-r from-purple-50 to-pink-50" : ""
+            )}
+            onClick={() => exportPurchasesToExcel(filteredPurchases)}
+            disabled={filteredPurchases.length === 0 || isGenerating}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md pointer-events-none"></div>
+            <Download className="h-4 w-4 mr-2 text-purple-600 group-hover:text-purple-700 transition-transform" />
+            <span className="font-medium text-purple-700 group-hover:text-purple-800">
+              Export Excel
+            </span>
+          </Button>
         </div>
       </div>
 
-      {/* Empty State */}
+      {/* Empty State or Table */}
       {filteredPurchases.length === 0 ? (
         <div className="text-center py-16 bg-slate-50/70 rounded-xl border border-slate-200">
           <ShoppingCart className="mx-auto h-12 w-12 text-slate-400 mb-4" />

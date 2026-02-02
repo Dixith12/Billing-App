@@ -21,6 +21,7 @@ export interface Purchase {
   vendorName: string;
   vendorPhone?: string;
   vendorGstin?: string;
+  vendorState?: string;
   billingAddress: string;
   products: InvoiceProduct[];
   subtotal: number;
@@ -64,6 +65,7 @@ export const addPurchase = async (
   const safeData = cleanUndefined({
     ...data,
     purchaseNumber: nextNumber,
+    vendorState:data.vendorState?.trim()||"Karnataka",
   });
 
   const payload = {
@@ -136,6 +138,7 @@ export const updatePurchase = async (
   const safeUpdates = cleanUndefined({
     ...data,
     updatedAt: Timestamp.now(),
+    ...(data.vendorState && { vendorState: data.vendorState.trim() }),
   });
 
   await updateDoc(purchaseDoc, safeUpdates);

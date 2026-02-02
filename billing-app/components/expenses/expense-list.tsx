@@ -11,16 +11,18 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   ReceiptIndianRupee,
   Pencil,
   Trash2,
   CalendarDays,
   AlertCircle,
+  Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Expense } from '@/lib/firebase/expenses'
-import { Input } from '../ui/input'
+import { exportExpensesToExcel } from '@/lib/utils/exportExpensesToExcel'
 
 interface ExpenseListProps {
   expenses: Expense[]
@@ -35,7 +37,9 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
     (exp) =>
       exp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       exp.amount.toString().includes(searchQuery) ||
-      exp.date.includes(searchQuery)
+      exp.date.includes(searchQuery) ||
+      (exp.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (exp.state || '').toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const formatCurrency = (amount: number) =>
@@ -47,10 +51,12 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
     }).format(amount)
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '—'
     const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return '—'
     return date.toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
+      day: 'numeric',
+      month: 'numeric',
       year: 'numeric',
     })
   }
@@ -69,23 +75,42 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
 
   return (
     <div className="space-y-6 ml-3 mt-3 mr-3 mb-3">
-      {/* Optional search (added for better UX, can remove if not wanted) */}
-      <div className="relative max-w-md">
-        <Input
-          placeholder="Search by name, amount or date..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
-        />
-        <ReceiptIndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+      {/* Search + Export */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="relative max-w-md w-full">
+          <Input
+            placeholder="Search by name, amount, date, category or state..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
+          />
+          <ReceiptIndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "group relative overflow-hidden border-purple-300 hover:border-purple-500 transition-all duration-300 shadow-sm hover:shadow-md",
+            filteredExpenses.length > 0 ? "bg-gradient-to-r from-purple-50 to-pink-50" : ""
+          )}
+          onClick={() => exportExpensesToExcel(filteredExpenses, 'Expense_Register.xlsx')}
+          disabled={filteredExpenses.length === 0}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md pointer-events-none"></div>
+          <Download className="h-4 w-4 mr-2 text-purple-600 group-hover:text-purple-700" />
+          <span className="font-medium text-purple-700 group-hover:text-purple-800">
+            Export Excel
+          </span>
+        </Button>
       </div>
 
-      {/* Table – premium style */}
+      {/* Simple Table (only basic columns) */}
       <div className="border border-slate-300 rounded-xl overflow-hidden shadow-sm bg-white">
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/80 border-b border-slate-200">
-              <TableHead className="font-semibold text-slate-700">Bill / Expense Name</TableHead>
+              <TableHead className="font-semibold text-slate-700">Expense Name</TableHead>
               <TableHead className="font-semibold text-slate-700">Amount</TableHead>
               <TableHead className="font-semibold text-slate-700">Date</TableHead>
               <TableHead className="font-semibold text-slate-700 text-right pr-6">Actions</TableHead>
@@ -95,14 +120,14 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
           <TableBody>
             {filteredExpenses.map((expense, idx) => (
               <TableRow
-                key={expense.id}
+                key={`${expense.id}-${idx}`}  // Safe unique key
                 className={cn(
                   "hover:bg-slate-50/70 transition-colors",
                   idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"
                 )}
               >
                 <TableCell className="font-medium text-slate-900">
-                  {expense.name}
+                  {expense.name || '-'}
                 </TableCell>
 
                 <TableCell>

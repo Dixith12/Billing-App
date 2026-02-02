@@ -120,7 +120,7 @@ function InvoiceContent() {
     dueDate,
     setDueDate,
 
-    saveInvoice,
+    saveDocument,
     resetForm,
   } = useCreateInvoice({ isPurchaseMode });
 
@@ -406,7 +406,7 @@ function InvoiceContent() {
           });
           success = true;
         } else {
-          const result = await saveInvoice();
+          const result = await saveDocument();
           success = result.success;
         }
 

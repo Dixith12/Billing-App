@@ -31,9 +31,11 @@ export interface Quotation {
   igst?: number; // 👈 ADD
   netAmount: number;
   totalGross?: number; // 👈 ADD
-  quotationDate?: Date; // 👈 ADD
-  createdAt?: Date;
-  updatedAt?: Date; // 👈 ADD
+  quotationDate?: Date
+createdAt?: Date
+updatedAt?: Date
+
+ // 👈 ADD
 }
 
 const quotationsRef = collection(db, "quotations");
@@ -69,21 +71,31 @@ export const addQuotation = async (
   });
 
   // ✅ add Timestamp AFTER cleaning
-  const payload = {
-    ...safeData,
-    totalGross: data.totalGross ?? data.netAmount,
-    createdAt: now,
-    updatedAt: now,
-  };
+ const payload = {
+  ...safeData,
+  totalGross: data.totalGross ?? data.netAmount,
+
+  // ✅ quotationDate comes from form (Date)
+  quotationDate: data.quotationDate
+    ? Timestamp.fromDate(data.quotationDate)
+    : now,
+
+  createdAt: now,
+  updatedAt: now,
+};
+
 
   const docRef = await addDoc(quotationsRef, payload);
 
   return {
-    id: docRef.id,
-    ...safeData,
-    quotationNumber: nextNumber,
-    createdAt: now.toDate(), // UI uses Date
-  };
+  id: docRef.id,
+  ...safeData,
+  quotationNumber: nextNumber,
+  quotationDate: data.quotationDate ?? now.toDate(),
+  createdAt: now.toDate(),
+  updatedAt: now.toDate(),
+}
+
 };
 
 export const getQuotations = async (): Promise<Quotation[]> => {

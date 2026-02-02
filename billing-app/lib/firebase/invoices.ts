@@ -46,6 +46,7 @@ export interface Invoice {
   customerPhone: string;
   customerGstin?: string;
   billingAddress: string;
+  placeOfSupply?: string;
   products: InvoiceProduct[];
 
   subtotal: number;
@@ -80,6 +81,7 @@ export type CreateInvoiceInput = Omit<
 > & {
   invoiceDate?: Date;
   dueDate?: Date;
+  placeOfSupply?:String,
 };
 
 const invoiceRef = collection(db, "invoices");
@@ -129,12 +131,18 @@ export const addInvoice = async (input: CreateInvoiceInput) => {
     dueDate: finalDueDate,
   });
 
+  if (!finalInvoiceDate) {
+  finalInvoiceDate = Timestamp.fromDate(new Date());
+}
+
+
   const docRef = await addDoc(invoiceRef, {
     ...safeInvoice,
     invoiceNumber: nextNumber,
     status: "pending",
     mode: "cash",
     paidAmount: 0,
+    invoiceDate:finalInvoiceDate,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

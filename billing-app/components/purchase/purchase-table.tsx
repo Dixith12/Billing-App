@@ -1,4 +1,5 @@
-'use client'
+// components/purchase/purchase-table.tsx
+"use client";
 
 import { useState, useMemo, useEffect } from "react";
 import {
@@ -22,6 +23,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -43,16 +45,18 @@ import {
   Trash2,
   Pencil,
   ShoppingCart,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Purchase } from "@/lib/firebase/purchase";
 import { pdf } from "@react-pdf/renderer";
-// import PurchasePDF from "@/components/purchase/purchase-pdf"; // ← create this later if needed
+import PurchasePDF from "@/components/purchase/purchase-pdf";
 
 type SortOrder = "asc" | "desc" | null;
 
 interface PurchaseTableProps {
-  purchases: any[]; // Replace with your Purchase type later
-  onEdit: (purchase: any) => void;
+  purchases: Purchase[];
+  onEdit: (purchase: Purchase) => void;
   onDelete: (id: string) => void;
 }
 
@@ -63,8 +67,14 @@ export function PurchaseTable({
 }: PurchaseTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [amountSort, setAmountSort] = useState<SortOrder>(null);
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
+  const [datePreset, setDatePreset] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
-  const [selectedPdfPurchase, setSelectedPdfPurchase] = useState<any>(null);
+  const [selectedPdfPurchase, setSelectedPdfPurchase] = useState<Purchase | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -105,153 +115,574 @@ export function PurchaseTable({
     const diffDays = Math.floor(diffHours / 24);
 
     if (diffSeconds < 45) return "just now";
+    if (diffSeconds < 90) return "1 minute ago";
     if (diffMinutes < 45) return `${diffMinutes} minutes ago`;
+    if (diffMinutes < 90) return "1 hour ago";
     if (diffHours < 22) return `${diffHours} hours ago`;
+    if (diffHours < 36) return "1 day ago";
     if (diffDays < 6) return `${diffDays} days ago`;
+    if (diffDays < 10) return "1 week ago";
     return `${diffDays} days ago`;
   };
 
+  // Purchase number formatted as #0001 (same as quotation)
   const formatPurchaseNumber = (num: number | undefined): string => {
     if (num == null) return "Draft";
     return `#${String(num).padStart(4, "0")}`;
   };
 
-//   const handleDownloadPDF = async (purchase: any) => {
-//     if (isGenerating) return;
-//     setIsGenerating(true);
-//     try {
-//       const blob = await pdf(<PurchasePDF purchase={purchase} />).toBlob();
-//       const url = URL.createObjectURL(blob);
-//       const link = document.createElement("a");
-//       link.href = url;
-//       link.download = `Purchase-${formatPurchaseNumber(purchase.purchaseNumber)}.pdf`;
-//       document.body.appendChild(link);
-//       link.click();
-//       document.body.removeChild(link);
-//       URL.revokeObjectURL(url);
-//     } catch (err) {
-//       console.error("PDF download failed:", err);
-//       alert("Failed to generate PDF.");
-//     } finally {
-//       setIsGenerating(false);
-//     }
-//   };
+  const handleDownloadPDF = async (purchase: Purchase) => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    try {
+      const blob = await pdf(<PurchasePDF purchase={purchase} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Purchase-${formatPurchaseNumber(purchase.purchaseNumber)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download failed:", err);
+      alert("Failed to generate or download PDF.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const filteredPurchases = useMemo(() => {
-    return purchases.filter((p) => {
+    let result = purchases.filter((p) => {
       const search = searchQuery.toLowerCase().trim();
-      return (
+
+      // Search works with #0001, 0001, 1, etc.
+      const numberStr = String(p.purchaseNumber ?? "");
+      const matchesSearch =
         !search ||
         p.vendorName?.toLowerCase().includes(search) ||
         p.vendorPhone?.includes(search) ||
-        (p.purchaseNumber != null && String(p.purchaseNumber).includes(search))
-      );
+        p.vendorGstin?.toLowerCase().includes(search) ||
+        numberStr.includes(search) ||
+        formatPurchaseNumber(p.purchaseNumber).toLowerCase().includes(search);
+
+      const minAmount = amountMin ? parseFloat(amountMin) : null;
+      const maxAmount = amountMax ? parseFloat(amountMax) : null;
+      const matchesAmount =
+        (minAmount === null || p.netAmount >= minAmount) &&
+        (maxAmount === null || p.netAmount <= maxAmount);
+
+      let matchesDate = true;
+      if (p.purchaseDate) {
+        const pDate = p.purchaseDate;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (datePreset) {
+          switch (datePreset) {
+            case "today":
+              matchesDate = pDate.toDateString() === today.toDateString();
+              break;
+            case "yesterday": {
+              const yesterday = new Date(today);
+              yesterday.setDate(yesterday.getDate() - 1);
+              matchesDate = pDate.toDateString() === yesterday.toDateString();
+              break;
+            }
+            case "thisMonth":
+              matchesDate =
+                pDate.getMonth() === today.getMonth() &&
+                pDate.getFullYear() === today.getFullYear();
+              break;
+            case "last30days": {
+              const last30 = new Date(today);
+              last30.setDate(last30.getDate() - 30);
+              matchesDate = pDate >= last30;
+              break;
+            }
+          }
+        } else if (dateFrom || dateTo) {
+          const from = dateFrom ? new Date(dateFrom) : null;
+          const to = dateTo ? new Date(dateTo) : null;
+
+          if (from) from.setHours(0, 0, 0, 0);
+          if (to) to.setHours(23, 59, 59, 999);
+
+          matchesDate = (!from || pDate >= from) && (!to || pDate <= to);
+        }
+      }
+
+      return matchesSearch && matchesAmount && matchesDate;
     });
-  }, [purchases, searchQuery]);
+
+    if (amountSort) {
+      result = [...result].sort((a, b) =>
+        amountSort === "asc" ? a.netAmount - b.netAmount : b.netAmount - a.netAmount
+      );
+    }
+
+    return result;
+  }, [purchases, searchQuery, amountMin, amountMax, datePreset, dateFrom, dateTo, amountSort]);
+
+  const clearAmountFilter = () => {
+    setAmountMin("");
+    setAmountMax("");
+    setAmountSort(null);
+  };
+
+  const clearDateFilter = () => {
+    setDatePreset(null);
+    setDateFrom("");
+    setDateTo("");
+  };
 
   return (
-    <div className="space-y-6 mt-3 ml-3 mr-3 mb-3">
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Input
-          placeholder="Search by vendor name, phone or purchase #..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
-        />
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-      </div>
+    <div className="space-y-6 ml-3 mr-3 mt-3 mb-3">
+      {/* Search + Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="relative max-w-md w-full">
+          <Input
+            placeholder="Search by vendor, phone, GSTIN or PO #..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+        </div>
 
-      {/* Table */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50/80 border-b border-slate-200">
-              <TableHead className="font-semibold text-slate-700">Amount</TableHead>
-              <TableHead className="font-semibold text-slate-700 text-center">#Purchase</TableHead>
-              <TableHead className="font-semibold text-slate-700">Vendor</TableHead>
-              <TableHead className="font-semibold text-slate-700">Date</TableHead>
-              <TableHead className="font-semibold text-slate-700 text-right pr-6">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {filteredPurchases.map((purchase) => (
-              <TableRow
-                key={purchase.id}
-                className="hover:bg-slate-50/70 transition-colors"
+        <div className="flex gap-3">
+          {/* Amount Filter Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "group relative overflow-hidden border-slate-300 hover:border-indigo-400 transition-all duration-300 shadow-sm hover:shadow-md",
+                  amountMin || amountMax || amountSort
+                    ? "bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border-indigo-300"
+                    : "text-slate-700 hover:bg-slate-50"
+                )}
               >
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className="bg-emerald-50 text-emerald-700 border-emerald-200 px-2.5 py-0.5 font-medium"
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md pointer-events-none"></div>
+                <span className="relative flex items-center gap-2 font-medium">
+                  <IndianRupee className="h-4 w-4" />
+                  Amount
+                  <Filter
+                    className={cn(
+                      "h-4 w-4 transition-all duration-300",
+                      amountMin || amountMax || amountSort
+                        ? "text-indigo-600 scale-110"
+                        : "text-slate-400 group-hover:text-indigo-600 group-hover:scale-110"
+                    )}
+                  />
+                  {amountSort === "asc" && <ChevronUp className="h-4 w-4 text-indigo-600" />}
+                  {amountSort === "desc" && <ChevronDown className="h-4 w-4 text-indigo-600" />}
+                </span>
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent className="w-80 p-6 bg-white border border-slate-200 shadow-2xl rounded-xl" align="end">
+              <div className="space-y-5">
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+                    <IndianRupee className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-lg bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                    Filter & Sort by Amount
+                  </h3>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    variant={amountSort === "asc" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setAmountSort(amountSort === "asc" ? null : "asc")}
+                    className={cn(
+                      "flex-1 transition-all duration-300 shadow-sm",
+                      amountSort === "asc" && "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                    )}
                   >
-                    {formatCurrency(purchase.netAmount)}
-                  </Badge>
-                </TableCell>
+                    <ChevronUp className="h-4 w-4 mr-2" /> Low to High
+                  </Button>
+                  <Button
+                    variant={amountSort === "desc" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setAmountSort(amountSort === "desc" ? null : "desc")}
+                    className={cn(
+                      "flex-1 transition-all duration-300 shadow-sm",
+                      amountSort === "desc" && "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                    )}
+                  >
+                    <ChevronDown className="h-4 w-4 mr-2" /> High to Low
+                  </Button>
+                </div>
 
-                <TableCell className="text-center font-semibold text-slate-700">
-                  {formatPurchaseNumber(purchase.purchaseNumber)}
-                </TableCell>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700">Minimum Amount</label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={amountMin}
+                      onChange={(e) => setAmountMin(e.target.value)}
+                      className="border-slate-300 focus:border-indigo-500 focus:ring-indigo-200 h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700">Maximum Amount</label>
+                    <Input
+                      type="number"
+                      placeholder="Any"
+                      value={amountMax}
+                      onChange={(e) => setAmountMax(e.target.value)}
+                      className="border-slate-300 focus:border-indigo-500 focus:ring-indigo-200 h-10"
+                    />
+                  </div>
+                </div>
 
-                <TableCell>
-                  <div className="font-medium text-slate-900">
-                    {purchase.vendorName || "—"}
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {purchase.vendorPhone || "—"}
-                  </div>
-                </TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAmountFilter}
+                  className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors mt-2"
+                >
+                  Clear Amount Filter
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
 
-                <TableCell>
-                  <div className="text-sm font-medium text-slate-700">
-                    {formatDate(purchase.createdAt)}
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {getRelativeTime(purchase.createdAt)}
-                  </div>
-                </TableCell>
+          {/* Date Filter Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "group relative overflow-hidden border-slate-300 hover:border-indigo-400 transition-all duration-300 shadow-sm hover:shadow-md",
+                  datePreset || dateFrom || dateTo
+                    ? "bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border-indigo-300"
+                    : "text-slate-700 hover:bg-slate-50"
+                )}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md pointer-events-none"></div>
+                <span className="relative flex items-center gap-2 font-medium">
+                  <CalendarDays className="h-4 w-4" />
+                  Date
+                  <Filter
+                    className={cn(
+                      "h-4 w-4 transition-all duration-300",
+                      datePreset || dateFrom || dateTo
+                        ? "text-indigo-600 scale-110"
+                        : "text-slate-400 group-hover:text-indigo-600 group-hover:scale-110"
+                    )}
+                  />
+                </span>
+              </Button>
+            </PopoverTrigger>
 
-                <TableCell className="text-right pr-6">
-                  <div className="flex items-center justify-end gap-1.5">
-                    {/* <Button
-                      variant="outline"
+            <PopoverContent className="w-96 p-6 bg-white border border-slate-200 shadow-2xl rounded-xl" align="end">
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+                    <CalendarDays className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-lg bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                    Filter by Date
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: "All", value: null },
+                    { label: "Today", value: "today" },
+                    { label: "Yesterday", value: "yesterday" },
+                    { label: "This Month", value: "thisMonth" },
+                    { label: "Last 30 days", value: "last30days" },
+                  ].map((item) => (
+                    <Button
+                      key={item.value ?? "all"}
+                      variant={datePreset === item.value ? "default" : "outline"}
                       size="sm"
-                      className="h-9 gap-2 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300"
-                      disabled={isGenerating}
-                      onClick={() => handleDownloadPDF(purchase)}
+                      className={cn(
+                        "transition-all duration-300 shadow-sm",
+                        datePreset === item.value &&
+                          "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white"
+                      )}
+                      onClick={() => {
+                        setDatePreset(item.value);
+                        if (item.value) {
+                          setDateFrom("");
+                          setDateTo("");
+                        }
+                      }}
                     >
-                      <Download className="h-4 w-4" />
-                      PDF
-                    </Button> */}
+                      {item.label}
+                    </Button>
+                  ))}
+                </div>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-100">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(purchase)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600 focus:text-red-700"
-                          onClick={() => onDelete(purchase.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <div className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                    Custom Date Range
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
+                        <CalendarDays className="h-3.5 w-3.5 text-indigo-600" />
+                        From
+                      </label>
+                      <Input
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => {
+                          setDateFrom(e.target.value);
+                          setDatePreset(null);
+                        }}
+                        className="border-slate-300 focus:border-indigo-500 focus:ring-indigo-200 h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
+                        <CalendarDays className="h-3.5 w-3.5 text-indigo-600" />
+                        To
+                      </label>
+                      <Input
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => {
+                          setDateTo(e.target.value);
+                          setDatePreset(null);
+                        }}
+                        className="border-slate-300 focus:border-indigo-500 focus:ring-indigo-200 h-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {(datePreset || dateFrom || dateTo) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearDateFilter}
+                    className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors mt-2"
+                  >
+                    Clear Date Filter
+                  </Button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
+
+      {/* Empty State */}
+      {filteredPurchases.length === 0 ? (
+        <div className="text-center py-16 bg-slate-50/70 rounded-xl border border-slate-200">
+          <ShoppingCart className="mx-auto h-12 w-12 text-slate-400 mb-4" />
+          <p className="text-lg font-medium text-slate-700">No purchases found</p>
+          <p className="text-sm text-slate-500 mt-2">
+            {searchQuery || amountMin || amountMax || datePreset || dateFrom || dateTo
+              ? "Try adjusting your filters"
+              : "Create your first purchase order to get started"}
+          </p>
+        </div>
+      ) : (
+        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50/80 border-b border-slate-200">
+                <TableHead className="font-semibold text-slate-700">Amount</TableHead>
+                <TableHead className="font-semibold text-slate-700 text-center">
+                  #Purchase
+                </TableHead>
+                <TableHead className="font-semibold text-slate-700">Vendor</TableHead>
+                <TableHead className="font-semibold text-slate-700">Date</TableHead>
+                <TableHead className="font-semibold text-slate-700 text-right pr-6">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              {filteredPurchases.map((purchase, index) => (
+                <TableRow
+                  key={purchase.id}
+                  className={cn(
+                    "hover:bg-slate-50/70 transition-colors",
+                    index % 2 === 0 ? "bg-white" : "bg-slate-50/40"
+                  )}
+                >
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-50 text-emerald-700 border-emerald-200 px-2.5 py-0.5 font-medium"
+                    >
+                      {formatCurrency(purchase.netAmount)}
+                    </Badge>
+                  </TableCell>
+
+                  <TableCell className="text-center font-semibold text-slate-700">
+                    {formatPurchaseNumber(purchase.purchaseNumber)}
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="font-medium text-slate-900">
+                      {purchase.vendorName || "—"}
+                    </div>
+                    <div className="text-xs text-slate-500 flex items-center gap-1">
+                      {purchase.vendorPhone && <span>{purchase.vendorPhone}</span>}
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="text-sm font-medium text-slate-700">
+                      {purchase.purchaseDate ? formatDate(purchase.purchaseDate) : "—"}
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="text-right pr-6">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 gap-2 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-all duration-200 group"
+                        disabled={isGenerating}
+                        onClick={async () => {
+                          if (isGenerating) return;
+                          setIsGenerating(true);
+                          setSelectedPdfPurchase(purchase);
+                          setPdfModalOpen(true);
+                          try {
+                            const blob = await pdf(<PurchasePDF purchase={purchase} />).toBlob();
+                            const url = URL.createObjectURL(blob);
+                            setPdfBlobUrl(url);
+                          } catch (err) {
+                            console.error("PDF error:", err);
+                            alert("Failed to generate PDF preview");
+                          } finally {
+                            setIsGenerating(false);
+                          }
+                        }}
+                      >
+                        <Eye className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                        View
+                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 hover:bg-slate-100 transition-all duration-200 group"
+                          >
+                            <MoreHorizontal className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-48 bg-white border-slate-200 shadow-xl"
+                        >
+                          <DropdownMenuItem
+                            onClick={() => onEdit(purchase)}
+                            className="cursor-pointer group hover:bg-indigo-50 transition-colors"
+                          >
+                            <Pencil className="h-4 w-4 mr-2 text-indigo-600 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Edit</span>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={() => handleDownloadPDF(purchase)}
+                            disabled={isGenerating}
+                            className="cursor-pointer group hover:bg-blue-50 transition-colors"
+                          >
+                            <Download className="h-4 w-4 mr-2 text-blue-600 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Download PDF</span>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            className="cursor-pointer text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors group"
+                            onClick={() => onDelete(purchase.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Delete</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* PDF Preview Modal */}
+      <Dialog open={pdfModalOpen} onOpenChange={setPdfModalOpen}>
+        <DialogContent className="max-w-6xl h-[90vh] p-0 flex flex-col bg-white border-slate-200">
+          <DialogHeader className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+              Purchase Order Preview
+              {selectedPdfPurchase?.vendorName && ` – ${selectedPdfPurchase.vendorName}`}
+            </DialogTitle>
+            <DialogDescription className="flex items-center gap-2 text-slate-600 mt-1">
+              {selectedPdfPurchase ? (
+                <>
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  Purchase Date:{" "}
+                  {selectedPdfPurchase.purchaseDate
+                    ? formatDate(selectedPdfPurchase.purchaseDate)
+                    : "—"}
+                </>
+              ) : (
+                "Loading purchase order..."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 bg-slate-100 overflow-hidden">
+            {isGenerating ? (
+              <div className="h-full flex flex-col items-center justify-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-indigo-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                  <Loader2 className="relative h-16 w-16 animate-spin text-indigo-600" />
+                </div>
+                <p className="text-lg font-semibold text-slate-900">
+                  Generating Purchase Order PDF
+                </p>
+                <p className="text-sm text-slate-500">Please wait...</p>
+              </div>
+            ) : pdfBlobUrl ? (
+              <iframe
+                src={`${pdfBlobUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                className="w-full h-full border-0"
+                title="Purchase Order PDF Preview"
+              />
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center gap-3">
+                <AlertCircle className="h-12 w-12 text-red-500" />
+                <p className="text-slate-600 font-medium">Failed to load PDF preview</p>
+              </div>
+            )}
+          </div>
+
+          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => selectedPdfPurchase && handleDownloadPDF(selectedPdfPurchase)}
+              disabled={isGenerating || !selectedPdfPurchase}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </Button>
+            <Button variant="outline" onClick={() => setPdfModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

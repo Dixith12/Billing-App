@@ -91,6 +91,9 @@ export function QuotationTable({
     };
   }, [pdfBlobUrl]);
 
+  const toJSDate = (ts?: { seconds: number }) =>
+    ts ? new Date(ts.seconds * 1000) : null;
+
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -173,42 +176,50 @@ export function QuotationTable({
         (maxAmount === null || q.netAmount <= maxAmount);
 
       let matchesDate = true;
-      if (q.createdAt) {
-        const qDate = q.createdAt;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+      if (q.quotationDate) {
+  const qDate = q.quotationDate
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
 
-        if (datePreset) {
-          switch (datePreset) {
-            case "today":
-              matchesDate = qDate.toDateString() === today.toDateString();
-              break;
-            case "yesterday": {
-              const yesterday = new Date(today);
-              yesterday.setDate(yesterday.getDate() - 1);
-              matchesDate = qDate.toDateString() === yesterday.toDateString();
-              break;
-            }
-            case "thisMonth":
-              matchesDate =
-                qDate.getMonth() === today.getMonth() &&
-                qDate.getFullYear() === today.getFullYear();
-              break;
-            case "last30days": {
-              const last30 = new Date(today);
-              last30.setDate(last30.getDate() - 30);
-              matchesDate = qDate >= last30;
-              break;
-            }
-          }
-        } else if (dateFrom || dateTo) {
-          const from = dateFrom ? new Date(dateFrom) : null;
-          const to = dateTo ? new Date(dateTo) : null;
-          if (from) from.setHours(0, 0, 0, 0);
-          if (to) to.setHours(23, 59, 59, 999);
-          matchesDate = (!from || qDate >= from) && (!to || qDate <= to);
-        }
+  if (datePreset) {
+    switch (datePreset) {
+      case "today":
+        matchesDate = qDate.toDateString() === today.toDateString()
+        break
+
+      case "yesterday": {
+        const yesterday = new Date(today)
+        yesterday.setDate(yesterday.getDate() - 1)
+        matchesDate = qDate.toDateString() === yesterday.toDateString()
+        break
       }
+
+      case "thisMonth":
+        matchesDate =
+          qDate.getMonth() === today.getMonth() &&
+          qDate.getFullYear() === today.getFullYear()
+        break
+
+      case "last30days": {
+        const last30 = new Date(today)
+        last30.setDate(last30.getDate() - 30)
+        matchesDate = qDate >= last30
+        break
+      }
+    }
+  } else if (dateFrom || dateTo) {
+    const from = dateFrom ? new Date(dateFrom) : null
+    const to = dateTo ? new Date(dateTo) : null
+
+    if (from) from.setHours(0, 0, 0, 0)
+    if (to) to.setHours(23, 59, 59, 999)
+
+    matchesDate =
+      (!from || qDate >= from) &&
+      (!to || qDate <= to)
+  }
+}
+
 
       return matchesSearch && matchesAmount && matchesDate;
     });
@@ -597,13 +608,13 @@ export function QuotationTable({
                   </TableCell>
 
                   <TableCell>
-                    <div className="text-sm font-medium text-slate-700">
-                      {formatDate(quotation.createdAt)}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {getRelativeTime(quotation.createdAt)}
-                    </div>
-                  </TableCell>
+  <div className="text-sm font-medium text-slate-700">
+    {quotation.quotationDate
+      ? formatDate(quotation.quotationDate)
+      : "—"}
+  </div>
+</TableCell>
+
 
                   <TableCell className="text-right pr-6">
                     <div className="flex items-center justify-end gap-1.5">
@@ -707,8 +718,11 @@ export function QuotationTable({
               {selectedPdfQuotation ? (
                 <>
                   <CalendarDays className="h-3.5 w-3.5" />
-                  Created: {formatDate(selectedPdfQuotation.createdAt)} •{" "}
-                  {getRelativeTime(selectedPdfQuotation.createdAt)}
+                  Quotation Date:{" "}
+                  {selectedPdfQuotation.quotationDate
+  ? formatDate(selectedPdfQuotation.quotationDate)
+  : "—"}
+
                 </>
               ) : (
                 "Loading quotation..."

@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import React from "react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Ruler, Weight, Package } from "lucide-react";
 import type { BilledProduct } from "@/app/dashboard/invoice/hooks/useCreateInvoice";
+import { cn } from "@/lib/utils";
 
 interface BilledProductsTableProps {
   products: BilledProduct[];
@@ -36,31 +37,30 @@ export function BilledProductsTable({
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[900px]">
           <thead>
             <tr className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 min-w-[180px]">
                 Product
               </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 min-w-[100px]">
                 Quantity
               </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 min-w-[220px]">
                 Measurements
               </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 min-w-[160px]">
                 Discount
               </th>
               {enableWaste && (
-                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
+                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700 min-w-[100px]">
                   Waste
                 </th>
               )}
-
-              <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700 pr-8">
+              <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700 pr-8 min-w-[120px]">
                 Total
               </th>
-              <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">
+              <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700 min-w-[80px]">
                 Action
               </th>
             </tr>
@@ -71,7 +71,7 @@ export function BilledProductsTable({
               <React.Fragment key={p.id}>
                 <tr className="hover:bg-slate-50/70 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-slate-900">{p.name}</div>
+                    <div className="font-medium text-slate-900">{p.name || "Unnamed Item"}</div>
                   </td>
 
                   <td className="px-6 py-4">
@@ -79,11 +79,7 @@ export function BilledProductsTable({
                       type="number"
                       value={p.quantity}
                       onChange={(e) =>
-                        onUpdate(
-                          p.id,
-                          "quantity",
-                          parseInt(e.target.value) || 1,
-                        )
+                        onUpdate(p.id, "quantity", parseInt(e.target.value) || 1)
                       }
                       min={1}
                       className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
@@ -99,18 +95,14 @@ export function BilledProductsTable({
                       <Input
                         type="number"
                         value={p.discount}
-                        onChange={(e) =>
-                          onUpdate(p.id, "discount", e.target.value)
-                        }
+                        onChange={(e) => onUpdate(p.id, "discount", e.target.value)}
                         min={0}
                         step="any"
                         className="w-20 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
                       />
                       <Select
                         value={p.discountType}
-                        onValueChange={(v: "%" | "₹") =>
-                          onUpdate(p.id, "discountType", v)
-                        }
+                        onValueChange={(v: "%" | "₹") => onUpdate(p.id, "discountType", v)}
                       >
                         <SelectTrigger className="w-16 border-slate-300 focus:border-indigo-400">
                           <SelectValue />
@@ -127,16 +119,17 @@ export function BilledProductsTable({
                     <td className="px-6 py-4 text-center">
                       <Switch
                         checked={p.wasteEnabled ?? false}
-                        onCheckedChange={(checked) =>
-                          onUpdate(p.id, "wasteEnabled", checked)
-                        }
+                        onCheckedChange={(checked) => onUpdate(p.id, "wasteEnabled", checked)}
                       />
                     </td>
                   )}
 
                   <td className="px-6 py-4 text-right pr-8">
-                    <span className="font-semibold text-emerald-700">
-                      ₹{p.grossTotal.toFixed(2)}
+                    <span className={cn(
+                      "font-semibold",
+                      p.grossTotal > 0 ? "text-emerald-700" : "text-slate-400"
+                    )}>
+                      ₹{(p.grossTotal || 0).toFixed(2)}
                     </span>
                   </td>
 
@@ -152,31 +145,27 @@ export function BilledProductsTable({
                   </td>
                 </tr>
 
-                {/* Waste row (inside the same product block) */}
+                {/* Waste row – only shown if enabled */}
                 {enableWaste && p.wasteEnabled && (
-                  <tr className="bg-slate-100 border-t border-slate-100">
-                    <td
-                      className="px-6 py-4 font-medium text-slate-600"
-                      colSpan={2}
-                    >
-                      Waste for {p.name} :
+                  <tr className="bg-slate-50/80 border-t border-slate-100">
+                    <td className="px-6 py-4 font-medium text-slate-600" colSpan={2}>
+                      Waste for {p.name}:
                     </td>
                     <td className="px-6 py-4">
                       {renderWasteInputs(p, onUpdate)}
                     </td>
-                    <td className="px-6 py-4" colSpan={enableWaste ? 4 : 5} />
+                    <td colSpan={enableWaste ? 4 : 5} />
                   </tr>
                 )}
 
-                {/* Separator border after each product (except the last one) */}
+                {/* Separator between products */}
                 {index < products.length - 1 && (
-  <tr>
-    <td colSpan={enableWaste ? 7 : 6}>
-      <div className="h-0.5 bg-slate-400" />
-    </td>
-  </tr>
-)}
-
+                  <tr>
+                    <td colSpan={enableWaste ? 7 : 6}>
+                      <div className="h-px bg-slate-200 my-1" />
+                    </td>
+                  </tr>
+                )}
               </React.Fragment>
             ))}
           </tbody>
@@ -186,21 +175,19 @@ export function BilledProductsTable({
   );
 }
 
-// Helper: Measurement inputs with icons & premium style
+// ────────────────────────────────────────────────
+//   Measurement inputs (unchanged – works for custom items)
+// ────────────────────────────────────────────────
 function renderMeasurementInputs(
   p: BilledProduct,
-  onUpdate: (
-    id: string,
-    field: keyof BilledProduct,
-    value: string | number,
-  ) => void,
+  onUpdate: (id: string, field: keyof BilledProduct, value: string | number) => void,
 ) {
   switch (p.measurementType) {
     case "height_width":
       return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">H: </span>
+            <span className="text-xs text-slate-500">H:</span>
             <Input
               type="number"
               placeholder="Height"
@@ -210,7 +197,7 @@ function renderMeasurementInputs(
             />
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">W: </span>
+            <span className="text-xs text-slate-500">W:</span>
             <Input
               type="number"
               placeholder="Width"
@@ -225,7 +212,7 @@ function renderMeasurementInputs(
     case "kg":
       return (
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">KG: </span>
+          <span className="text-xs text-slate-500">Kg:</span>
           <Input
             type="number"
             placeholder="Kg"
@@ -239,7 +226,7 @@ function renderMeasurementInputs(
     case "unit":
       return (
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">Unit: </span>
+          <span className="text-xs text-slate-500">Unit:</span>
           <Input
             type="number"
             placeholder="Units"
@@ -251,41 +238,39 @@ function renderMeasurementInputs(
       );
 
     default:
-      return <span className="text-slate-400">—</span>;
+      return <span className="text-slate-400 text-sm">—</span>;
   }
 }
 
-// Helper: Waste inputs with premium style
+// ────────────────────────────────────────────────
+//   Waste inputs – only used when enableWaste=true
+// ────────────────────────────────────────────────
 function renderWasteInputs(
   p: BilledProduct,
-  onUpdate: (
-    id: string,
-    field: keyof BilledProduct,
-    value: string | number,
-  ) => void,
+  onUpdate: (id: string, field: keyof BilledProduct, value: string | number) => void,
 ) {
   let measurements;
 
   switch (p.measurementType) {
     case "height_width":
       measurements = (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground ">H: </span>
+            <span className="text-xs text-slate-500">H:</span>
             <Input
-              placeholder="Waste Height"
+              placeholder="Waste H"
               value={p.wasteHeight ?? ""}
               onChange={(e) => onUpdate(p.id, "wasteHeight", e.target.value)}
-              className="w-30 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
+              className="w-24 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
             />
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">W: </span>
+            <span className="text-xs text-slate-500">W:</span>
             <Input
-              placeholder="Waste Width"
+              placeholder="Waste W"
               value={p.wasteWidth ?? ""}
               onChange={(e) => onUpdate(p.id, "wasteWidth", e.target.value)}
-              className="w-30 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
+              className="w-24 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
             />
           </div>
         </div>
@@ -295,7 +280,7 @@ function renderWasteInputs(
     case "kg":
       measurements = (
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">KG: </span>
+          <span className="text-xs text-slate-500">Kg:</span>
           <Input
             placeholder="Waste Kg"
             value={p.wasteKg ?? ""}
@@ -309,26 +294,26 @@ function renderWasteInputs(
     case "unit":
       measurements = (
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">Unit: </span>
+          <span className="text-xs text-slate-500">Unit:</span>
           <Input
             placeholder="Waste Units"
             value={p.wasteUnits ?? ""}
             onChange={(e) => onUpdate(p.id, "wasteUnits", e.target.value)}
-            className="w-25.5 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
+            className="w-24 border-slate-300 focus:border-purple-400 focus:ring-purple-200"
           />
         </div>
       );
       break;
 
     default:
-      measurements = <span className="text-slate-400">—</span>;
+      measurements = <span className="text-slate-400 text-sm">—</span>;
   }
 
   return (
     <div className="flex items-center gap-4">
       {measurements}
       <Input
-        placeholder="Waste Amount"
+        placeholder="Waste ₹"
         value={p.wasteAmount ?? ""}
         onChange={(e) => onUpdate(p.id, "wasteAmount", e.target.value)}
         className="w-32 border-slate-300 focus:border-purple-400 focus:ring-purple-200"

@@ -1,64 +1,135 @@
 // lib/utils/exportToExcel.ts
 import * as XLSX from 'xlsx'
-import type { Invoice } from '@/lib/firebase/invoices' // Adjust import to your Invoice type
+import type { Invoice } from '@/lib/firebase/invoices'
 
-export function exportTransactionsToExcel(invoices: Invoice[], fileName: string = 'Transactions.xlsx') {
+export function exportTransactionsToExcel(invoices: Invoice[], fileName: string = 'GST_Invoices.xlsx') {
   if (invoices.length === 0) {
+    alert('No invoices to export')
+    return
+  }
+
+  const data: any[] = []
+
+  invoices.forEach((invoice) => {
+    // Dates
+    const invDate = invoice.invoiceDate
+      ? new Date(invoice.invoiceDate.seconds * 1000)
+      : null
+    const formattedInvDate = invDate
+      ? invDate.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: '2-digit' })
+      : '-'
+
+    // Invoice number
+    const invoiceNum = invoice.invoiceNumber
+      ? `#${String(invoice.invoiceNumber).padStart(4, '0')}`
+      : 'Draft'
+
+    // Customer & Address
+    const customerGST = invoice.customerGstin || '-'
+    const billingAddr = invoice.billingAddress || '-'
+    const customerGSAddress = `${customerGST} ${billingAddr}`.trim() || '-'
+
+    // Place of Supply (update this field name if you have it!)
+    const placeOfSupply = 'KA' // ← Change to real value when available (e.g. invoice.placeOfSupply || invoice.state || 'KA')
+
+    // Root-level values
+    const subtotal = Number(invoice.subtotal) || 0
+    const discountAmount = Number(invoice.discount) || 0
+    const taxableAmount = Math.max(0, subtotal - discountAmount)
+    const cgst = Number(invoice.cgst) || 0
+    const sgst = Number(invoice.sgst) || 0
+    const igst = Number(invoice.igst) || 0
+    const totalGst = cgst + sgst + igst
+    const netAmount = Number(invoice.netAmount) || 0
+
+    // Calculate combined GST %
+    let gstPercentage = 0
+    if (taxableAmount > 0 && totalGst > 0) {
+      gstPercentage = Math.round((totalGst / taxableAmount) * 100)
+    }
+    const gstPercentStr = gstPercentage > 0 ? `${gstPercentage}%` : '0%'
+
+    const isGstApplicable = totalGst > 0 ? 'Yes' : 'No'
+
+    // If no products → one summary row
+    if (!invoice.products || invoice.products.length === 0) {
+      data.push({
+        'Invoice N': invoiceNum,
+        'Invoice Date': formattedInvDate,
+        Customer: invoice.customerName || '-',
+        'Customer GS Address': customerGSAddress,
+        'Place of Su': placeOfSupply,
+        Product: '(No items)',
+        'HSN/SAC': '',
+        Quantity: '',
+        'Unit Price': '',
+        'Discount Amount': discountAmount.toFixed(2),
+        'Taxable Amount': taxableAmount.toFixed(2),
+        'GST %': gstPercentStr,
+        'CGST Amount': cgst.toFixed(2),
+        'SGST Amount': sgst.toFixed(2),
+        'IGST Amount': igst.toFixed(2),
+        'GST Amount': totalGst.toFixed(2),
+        'Total Amount': netAmount.toFixed(2),
+        'Is GST Applicable': isGstApplicable,
+      })
+      return
+    }
+
+    // One row per product (repeat invoice-level GST, discount, taxable etc.)
+    invoice.products.forEach((product: any) => {
+      const itemName = product.name || '-'
+      const itemQty = Number(product.quantity) || 1
+      const itemTotal = Number(product.total) || 0
+      // Rough unit price (for display)
+      const unitPrice = itemQty > 0 ? (itemTotal / itemQty) : 0
+
+      data.push({
+        'Invoice N': invoiceNum,
+        'Invoice Date': formattedInvDate,
+        Customer: invoice.customerName || '-',
+        'Customer GS Address': customerGSAddress,
+        'Place of Su': placeOfSupply,
+        Product: itemName,
+        'HSN/SAC': product.hsnCode || product.hsn || '', // add field when you store it
+        Quantity: itemQty,
+        'Unit Price': unitPrice.toFixed(2),
+        'Discount Amount': discountAmount.toFixed(2), // invoice-level discount shown on each row
+        'Taxable Amount': taxableAmount.toFixed(2),   // invoice-level after discount
+        'GST %': gstPercentStr,
+        'CGST Amount': cgst.toFixed(2),
+        'SGST Amount': sgst.toFixed(2),
+        'IGST Amount': igst.toFixed(2),
+        'GST Amount': totalGst.toFixed(2),
+        'Total Amount': netAmount.toFixed(2),         // full invoice total (repeated)
+        'Is GST Applicable': isGstApplicable,
+      })
+    })
+  })
+
+  if (data.length === 0) {
     alert('No data to export')
     return
   }
 
-  // Map invoices to simple array of objects for Excel
-  const data = invoices.map((invoice) => ({
-    Amount: invoice.netAmount.toFixed(2), // Format as string for Excel
-    Status: invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1),
-    Mode: invoice.mode.toUpperCase(),
-    'Invoice Number': invoice.invoiceNumber ? String(invoice.invoiceNumber).padStart(4, '0') : 'Draft',
-    Customer: invoice.customerName,
-    'Customer Phone': invoice.customerPhone,
-    Date: invoice.createdAt?.toDate().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) || '-',
-    'Relative Time': getRelativeTime(invoice.createdAt?.toDate()), // Use your getRelativeTime function (import if needed)
-  }))
-
-  // Create worksheet
   const ws = XLSX.utils.json_to_sheet(data)
 
-  // Create workbook
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Transactions')
-
-  // Generate and download
-  XLSX.writeFile(wb, fileName)
-}
-
-const getRelativeTime = (timestamp: Date | undefined): string => {
-    if (!timestamp) return '—'
-
-    const now = new Date()
-    const diffMs = now.getTime() - timestamp.getTime()
-
-    if (diffMs < 0) return 'just now' // future dates (unlikely but safe)
-
-    const diffSeconds = Math.floor(diffMs / 1000)
-    const diffMinutes = Math.floor(diffSeconds / 60)
-    const diffHours = Math.floor(diffMinutes / 60)
-    const diffDays = Math.floor(diffHours / 24)
-    const diffWeeks = Math.floor(diffDays / 7)
-    const diffMonths = Math.floor(diffDays / 30)
-    const diffYears = Math.floor(diffDays / 365)
-
-    if (diffSeconds < 45) return 'just now'
-    if (diffSeconds < 90) return '1 minute ago'
-    if (diffMinutes < 45) return `${diffMinutes} minutes ago`
-    if (diffMinutes < 90) return '1 hour ago'
-    if (diffHours < 22) return `${diffHours} hours ago`
-    if (diffHours < 36) return '1 day ago'
-    if (diffDays < 6) return `${diffDays} days ago`
-    if (diffDays < 10) return '1 week ago'
-    if (diffWeeks < 4) return `${diffWeeks} weeks ago`
-    if (diffMonths < 12) return `${diffMonths} months ago`
-    if (diffYears === 1) return '1 year ago'
-
-    return `${diffYears} years ago`
+  // Auto-size columns roughly
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
+  ws['!cols'] = []
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    let maxw = 10
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      const cell = ws[XLSX.utils.encode_cell({ c: C, r: R })]
+      if (cell?.v) {
+        const len = String(cell.v).length
+        if (len > maxw) maxw = len
+      }
+    }
+    ws['!cols'][C] = { wch: maxw + 3 }
   }
 
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Invoices')
+  XLSX.writeFile(wb, fileName)
+}

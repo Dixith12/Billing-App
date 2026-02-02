@@ -9,7 +9,8 @@ import type { InventoryItem } from "@/lib/types";
 import { useGst } from "@/app/dashboard/gst/hooks/useGst";
 import { toast } from "sonner";
 import { useVendors } from "@/app/dashboard/vendor/hooks/useVendors";
-
+import { addPurchase } from "@/lib/firebase/purchase"; // assuming this exists
+import { addQuotation } from "@/lib/firebase/quotations"; // assuming this exists
 
 export interface BilledProduct {
   id: string;
@@ -36,21 +37,23 @@ export interface BilledProduct {
   netTotal: number;
 }
 
-export function useCreateInvoice() {
+export function useCreateInvoice(options?: { isPurchaseMode?: boolean }) {
+  const isPurchaseMode = options?.isPurchaseMode ?? false
+
   const { inventoryItems } = useApp();
   const { cgst: gstCgst, sgst: gstSgst } = useGst();
 
-  // ── Date states (neutral for all modes) ────────────────────────────────
+  // ── Date states ────────────────────────────────────────────────────────
   const [documentDate, setDocumentDate] = useState<Date>(new Date());
   const [dueDate, setDueDate] = useState<Date>(() => {
     const date = new Date();
-    date.setDate(date.getDate() + 30); // default 30 days later
+    date.setDate(date.getDate() + 30);
     return date;
   });
 
-  // ── Party (Customer/Vendor) ────────────────────────────────────────────
-const { customers, addCustomer, loading: customersLoading } = useCustomers();
-const { vendors, addVendor, loading: vendorsLoading } = useVendors();
+  // ── Party selection ────────────────────────────────────────────────────
+  const { customers, addCustomer, loading: customersLoading } = useCustomers();
+  const { vendors, addVendor, loading: vendorsLoading } = useVendors();
   const [partySearch, setPartySearch] = useState("");
   const [selectedParty, setSelectedParty] = useState<Customer | null>(null);
   const [isAddPartyOpen, setIsAddPartyOpen] = useState(false);
@@ -78,6 +81,7 @@ const { vendors, addVendor, loading: vendorsLoading } = useVendors();
     }
   }, [selectedParty]);
 
+  // ── Add new party (unchanged) ─────────────────────────────────────────
   const addNewParty = async () => {
     if (
       !newParty.name.trim() ||
@@ -104,12 +108,8 @@ const { vendors, addVendor, loading: vendorsLoading } = useVendors();
         address: newParty.address.trim(),
         state: newParty.state.trim(),
         openingBalance,
-        ...(newParty.companyName.trim() && {
-          companyName: newParty.companyName.trim(),
-        }),
-        ...(newParty.gstin.trim() && {
-          gstin: newParty.gstin.trim(),
-        }),
+        ...(newParty.companyName.trim() && { companyName: newParty.companyName.trim() }),
+        ...(newParty.gstin.trim() && { gstin: newParty.gstin.trim() }),
       };
 
       const saved = await addCustomer(partyData);
@@ -129,7 +129,6 @@ const { vendors, addVendor, loading: vendorsLoading } = useVendors();
       });
 
       setIsAddPartyOpen(false);
-
       toast.success("Party added successfully");
       return true;
     } catch (err: any) {
@@ -139,36 +138,37 @@ const { vendors, addVendor, loading: vendorsLoading } = useVendors();
     }
   };
 
-const filteredCustomers = useMemo(() => {
-  const search = partySearch.toLowerCase();
-  return customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search) ||
-      (c.gstin && c.gstin.toLowerCase().includes(search)) ||
-      c.phone.includes(search),
-  );
-}, [customers, partySearch]);
-
-const filteredVendors = useMemo(() => {
-  const search = partySearch.toLowerCase();
-  return vendors.filter(
-    (v) =>
-      v.name.toLowerCase().includes(search) ||
-      (v.gstin && v.gstin.toLowerCase().includes(search)) ||
-      v.phone.includes(search),
-  );
-}, [vendors, partySearch]);
-
-
-  const filteredInventory = useMemo(() => {
-    const search = productSearch.toLowerCase();
-    return inventoryItems.filter((item) =>
-      item.name.toLowerCase().includes(search),
+  const filteredCustomers = useMemo(() => {
+    const search = partySearch.toLowerCase();
+    return customers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(search) ||
+        (c.gstin && c.gstin.toLowerCase().includes(search)) ||
+        c.phone.includes(search),
     );
-  }, [inventoryItems, productSearch]);
+  }, [customers, partySearch]);
 
-  // ── Billed Products Actions ────────────────────────────────────────────
-  const addProductToBill = (item: InventoryItem) => {
+  const filteredVendors = useMemo(() => {
+    const search = partySearch.toLowerCase();
+    return vendors.filter(
+      (v) =>
+        v.name.toLowerCase().includes(search) ||
+        (v.gstin && v.gstin.toLowerCase().includes(search)) ||
+        v.phone.includes(search),
+    );
+  }, [vendors, partySearch]);
+
+ const filteredInventory = useMemo(() => {
+  if (isPurchaseMode) return []
+  const search = productSearch.toLowerCase()
+  return inventoryItems.filter((item) =>
+    item.name.toLowerCase().includes(search),
+  )
+}, [inventoryItems, productSearch, isPurchaseMode])
+
+
+const addProductToBill = (item: InventoryItem) => {
+  if (isPurchaseMode) return   
     let basePrice = 0;
 
     switch (item.measurementType) {
@@ -188,7 +188,7 @@ const filteredVendors = useMemo(() => {
     }
 
     const newProduct: BilledProduct = {
-      id: Date.now().toString() + Math.random().toString(36).slice(2),
+      id: crypto.randomUUID() || Date.now().toString() + Math.random().toString(36).slice(2),
       name: item.name,
       quantity: 1,
       measurementType: item.measurementType ?? "height_width",
@@ -211,9 +211,67 @@ const filteredVendors = useMemo(() => {
     };
 
     setBilledProducts((prev) => [...prev, newProduct]);
-    setProductSearch("");
+    if (!isPurchaseMode) {
+  setProductSearch("")
+}
+
   };
 
+  // ── NEW: Add custom item created in modal (for purchase only) ──────────
+  const addCustomPurchaseItem = (customData: {
+    name: string;
+    measurementType: "height_width" | "kg" | "unit";
+    height?: number;
+    width?: number;
+    pricePerHeight?: number;
+    pricePerWidth?: number;
+    kg?: number;
+    pricePerKg?: number;
+    units?: number;
+    pricePerUnit?: number;
+  }) => {
+    let basePrice = 0;
+
+    switch (customData.measurementType) {
+      case "height_width":
+        basePrice =
+          (customData.pricePerHeight ?? 0) * (customData.height ?? 1) +
+          (customData.pricePerWidth ?? 0) * (customData.width ?? 1);
+        break;
+      case "kg":
+        basePrice = (customData.pricePerKg ?? 0) * (customData.kg ?? 1);
+        break;
+      case "unit":
+        basePrice = (customData.pricePerUnit ?? 0) * (customData.units ?? 1);
+        break;
+    }
+
+    const newProduct: BilledProduct = {
+      id: crypto.randomUUID() || Date.now().toString() + Math.random().toString(36).slice(2),
+      name: customData.name.trim() || "Unnamed Item",
+      quantity: 1,
+      measurementType: customData.measurementType,
+      height: customData.measurementType === "height_width" ? String(customData.height ?? 1) : undefined,
+      width: customData.measurementType === "height_width" ? String(customData.width ?? 1) : undefined,
+      kg: customData.measurementType === "kg" ? String(customData.kg ?? 1) : undefined,
+      units: customData.measurementType === "unit" ? String(customData.units ?? 1) : undefined,
+      wasteEnabled: false,
+      wasteHeight: undefined,
+      wasteWidth: undefined,
+      wasteKg: undefined,
+      wasteUnits: undefined,
+      wasteAmount: undefined,
+      discount: "0",
+      discountType: "%",
+      grossTotal: basePrice,
+      netTotal: basePrice,
+    };
+
+    setBilledProducts((prev) => [...prev, newProduct]);
+    toast.success("Item added to purchase");
+  };
+
+  // ── Update any product (works for both inventory & custom) ─────────────
   const updateBilledProduct = (
     id: string,
     field: keyof BilledProduct,
@@ -225,39 +283,20 @@ const filteredVendors = useMemo(() => {
 
         let updated: BilledProduct = { ...p, [field]: value };
 
-        if (["height", "width", "kg", "units", "quantity"].includes(field)) {
-          const base = calculateProductBase(updated, inventoryItems);
-          const waste = updated.wasteEnabled
-            ? Number(updated.wasteAmount || 0)
-            : 0;
+        // Recalculate totals
+        const base = calculateProductBase(updated);
+        const waste = updated.wasteEnabled ? Number(updated.wasteAmount || 0) : 0;
 
-          updated.grossTotal = base + waste;
-          updated.netTotal = updated.grossTotal;
-        }
+        updated.grossTotal = base + waste;
+        updated.netTotal = updated.grossTotal;
 
-        if (["wasteHeight", "wasteWidth", "wasteKg", "wasteUnits"].includes(field)) {
-          updated.wasteAmount = calculateWasteAmount(updated, inventoryItems);
-          const base = calculateProductBase(updated, inventoryItems);
-          updated.grossTotal = base + (updated.wasteAmount || 0);
-          updated.netTotal = updated.grossTotal;
-        }
-
-        if (field === "wasteAmount") {
-          const base = calculateProductBase(updated, inventoryItems);
-          updated.grossTotal = base + (Number(value) || 0);
-          updated.netTotal = updated.grossTotal;
-        }
-
+        // Clean waste fields if disabled
         if (field === "wasteEnabled" && !value) {
           updated.wasteHeight = undefined;
           updated.wasteWidth = undefined;
           updated.wasteKg = undefined;
           updated.wasteUnits = undefined;
           updated.wasteAmount = undefined;
-
-          const base = calculateProductBase(updated, inventoryItems);
-          updated.grossTotal = base;
-          updated.netTotal = base;
         }
 
         return updated;
@@ -265,8 +304,15 @@ const filteredVendors = useMemo(() => {
     );
   };
 
-  function calculateProductBase(p: BilledProduct, inventory: InventoryItem[]) {
-    const inv = inventory.find((i) => i.name === p.name);
+  // ── Base price calculation (safe for custom items) ─────────────────────
+  function calculateProductBase(p: BilledProduct) {
+    // If gross/net already set (from custom add), preserve ratio
+    if (p.grossTotal && p.netTotal && p.grossTotal === p.netTotal) {
+      return p.grossTotal / (p.quantity || 1);
+    }
+
+    // Fallback for inventory-based items
+    const inv = inventoryItems.find((i) => i.name === p.name);
     if (!inv) return 0;
 
     let base = 0;
@@ -288,30 +334,11 @@ const filteredVendors = useMemo(() => {
     return base * (p.quantity || 1);
   }
 
-  function calculateWasteAmount(p: BilledProduct, inventory: InventoryItem[]) {
-    const inv = inventory.find((i) => i.name === p.name);
-    if (!inv || !p.wasteEnabled) return 0;
-
-    switch (p.measurementType) {
-      case "height_width":
-        return (
-          (parseFloat(p.wasteHeight || "0") || 0) * (inv.pricePerHeight ?? 0) +
-          (parseFloat(p.wasteWidth || "0") || 0) * (inv.pricePerWidth ?? 0)
-        );
-      case "kg":
-        return (parseFloat(p.wasteKg || "0") || 0) * (inv.pricePerKg ?? 0);
-      case "unit":
-        return (parseFloat(p.wasteUnits || "0") || 0) * (inv.pricePerUnit ?? 0);
-      default:
-        return 0;
-    }
-  }
-
   const removeBilledProduct = (id: string) => {
     setBilledProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
-  // ── Calculations ───────────────────────────────────────────────────────
+  // ── Totals (unchanged) ─────────────────────────────────────────────────
   const subtotal = useMemo(
     () => billedProducts.reduce((sum, p) => sum + p.netTotal, 0),
     [billedProducts],
@@ -351,33 +378,12 @@ const filteredVendors = useMemo(() => {
 
   const netAmount = taxableAmount + cgstAmount + sgstAmount + igstAmount;
 
-  // ── Save Invoice (only for invoice mode) ───────────────────────────────
+  // ── Save logic (unchanged) ─────────────────────────────────────────────
   const saveInvoice = async () => {
     if (!selectedParty) return { success: false, message: "No party selected" };
     if (billedProducts.length === 0) return { success: false, message: "No products added" };
 
     try {
-      const now = new Date();
-
-      let finalDocumentDate = new Date(documentDate);
-      const isToday =
-        finalDocumentDate.getFullYear() === now.getFullYear() &&
-        finalDocumentDate.getMonth() === now.getMonth() &&
-        finalDocumentDate.getDate() === now.getDate();
-
-      if (!isToday) {
-        finalDocumentDate.setHours(0, 0, 0, 0);
-      }
-
-      let finalDueDate = new Date(dueDate);
-      const isDueToday =
-        finalDueDate.getFullYear() === now.getFullYear() &&
-        finalDueDate.getMonth() === now.getMonth() &&
-        finalDueDate.getDate() === now.getDate();
-
-      if (!isDueToday) {
-        finalDueDate.setHours(0, 0, 0, 0);
-      }
 
       await addInvoice({
         customerId: selectedParty.id,
@@ -385,6 +391,7 @@ const filteredVendors = useMemo(() => {
         customerPhone: selectedParty.phone,
         customerGstin: selectedParty.gstin ?? undefined,
         billingAddress,
+        placeOfSupply:selectedParty.state?.trim()||"29",
         products: billedProducts.map((p) => ({
           name: p.name,
           quantity: p.quantity,
@@ -410,8 +417,9 @@ const filteredVendors = useMemo(() => {
         sgst: sgstAmount,
         igst: igstAmount,
         netAmount,
-        invoiceDate: finalDocumentDate,
-        dueDate: finalDueDate,
+        invoiceDate: documentDate,
+        dueDate: dueDate,
+
       });
 
       toast.success("Invoice saved successfully");
@@ -440,50 +448,50 @@ const filteredVendors = useMemo(() => {
   const loadingParties = customersLoading || vendorsLoading;
 
   return {
-  // Party
-  parties: customers, // optional, you can remove later
-  loadingParties,
-  partySearch,
-  setPartySearch,
-  selectedParty,
-  setSelectedParty,
-  filteredCustomers,
-  filteredVendors,
+    // Party
+    parties: customers,
+    loadingParties,
+    partySearch,
+    setPartySearch,
+    selectedParty,
+    setSelectedParty,
+    filteredCustomers,
+    filteredVendors,
 
-  isAddPartyOpen,
-  setIsAddPartyOpen,
-  newParty,
-  setNewParty,
-  addNewParty,
-  billingAddress,
-  setBillingAddress,
+    isAddPartyOpen,
+    setIsAddPartyOpen,
+    newParty,
+    setNewParty,
+    addNewParty,
+    billingAddress,
+    setBillingAddress,
 
-  // Products
-  productSearch,
-  setProductSearch,
-  filteredInventory,
-  billedProducts,
-  addProductToBill,
-  updateBilledProduct,
-  removeBilledProduct,
-  setBilledProducts,
+    // Products
+    productSearch,
+    setProductSearch,
+    filteredInventory,
+    billedProducts,
+    addProductToBill,           // inventory-based
+    addCustomPurchaseItem,      // custom purchase items
+    updateBilledProduct,
+    removeBilledProduct,
+    setBilledProducts,
 
-  // Calculations
-  totalGross,
-  subtotal,
-  totalDiscount,
-  cgst: cgstAmount,
-  sgst: sgstAmount,
-  igst: igstAmount,
-  netAmount,
+    // Calculations
+    totalGross,
+    subtotal,
+    totalDiscount,
+    cgst: cgstAmount,
+    sgst: sgstAmount,
+    igst: igstAmount,
+    netAmount,
 
-  saveInvoice,
-  resetForm,
+    saveInvoice,
+    resetForm,
 
-  documentDate,
-  setDocumentDate,
-  dueDate,
-  setDueDate,
-};
-
+    documentDate,
+    setDocumentDate,
+    dueDate,
+    setDueDate,
+  };
 }

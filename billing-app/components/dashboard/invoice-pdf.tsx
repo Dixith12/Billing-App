@@ -136,26 +136,32 @@ interface InvoicePDFProps {
   invoice: Invoice
 }
 
+const toJSDate = (ts?: { seconds: number }) =>
+  ts ? new Date(ts.seconds * 1000) : null
+
+
 export default function InvoicePDF({ invoice }: InvoicePDFProps) {
-  const createdDate = invoice.createdAt?.toDate()
-    ? new Intl.DateTimeFormat('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      }).format(invoice.createdAt.toDate())
-    : '—'
+  const invoiceDateObj = toJSDate(invoice.invoiceDate)
 
-  const dueDateObj = invoice.createdAt?.toDate()
-    ? new Date(invoice.createdAt.toDate().getTime() + 30 * 24 * 60 * 60 * 1000)
-    : null
+const invoiceDate = invoiceDateObj
+  ? new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(invoiceDateObj)
+  : '—'
 
-  const dueDate = dueDateObj
-    ? new Intl.DateTimeFormat('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      }).format(dueDateObj)
-    : '—'
+
+  const dueDateObj = toJSDate(invoice.dueDate)
+
+const dueDate = dueDateObj
+  ? new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(dueDateObj)
+  : '—'
+
 
   const products = invoice.products || []
 
@@ -229,7 +235,7 @@ export default function InvoicePDF({ invoice }: InvoicePDFProps) {
                 <Text style={{ marginBottom: 2 }}>
                   Invoice Number: INV-{invoice.invoiceNumber}
                 </Text>
-                <Text>Date: {createdDate}</Text>
+                <Text>Date: {invoiceDate}</Text>
                 <Text>Due Date: {dueDate}</Text>
               </View>
             </View>

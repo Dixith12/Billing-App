@@ -69,9 +69,17 @@ export const addPurchase = async (
   const payload = {
   ...safeData,
   totalGross: data.totalGross ?? data.netAmount,
+
+  // ✅ SAVE USER-SELECTED PURCHASE DATE
+  purchaseDate: data.purchaseDate
+    ? Timestamp.fromDate(new Date(data.purchaseDate))
+    : now,
+
+  // system metadata
   createdAt: now,
   updatedAt: now,
 };
+
 
 
   const docRef = await addDoc(purchasesRef, payload);

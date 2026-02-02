@@ -26,6 +26,29 @@ export interface InventoryItem {
   createdAt: Date;
 }
 
+// ─────────────────────────────────────────────
+// Purchase-only draft item (NOT saved to inventory)
+// ─────────────────────────────────────────────
+export interface PurchaseItemDraft {
+  name: string;
+
+  measurementType: 'height_width' | 'kg' | 'unit';
+
+  // height / width
+  height?: number;
+  width?: number;
+  pricePerHeight?: number;
+  pricePerWidth?: number;
+
+  // kg
+  kg?: number;
+  pricePerKg?: number;
+
+  // unit
+  units?: number;
+  pricePerUnit?: number;
+}
+
 // Optional: helper type for form data (if you want stricter typing later)
 export type InventoryFormData = Omit<InventoryItem, 'id' | 'createdAt'>;
 export type StatusFilter = 'all' | 'paid' | 'pending' | 'partially paid' | 'cancelled' | 'draft'

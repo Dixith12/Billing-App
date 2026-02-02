@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Loader2,
@@ -11,6 +10,7 @@ import {
   FileText,
   ReceiptIndianRupee,
   ShoppingCart,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -38,6 +38,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+// ── NEW: Import the purchase-specific modal
+import { CreatePurchaseItemModal } from "@/components/purchase/createPurchaseItemModel";
+
 function InvoiceContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -53,12 +56,31 @@ function InvoiceContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [documentDate, setDocumentDate] = useState<Date>(new Date());
-  const [dueDate, setDueDate] = useState<Date>(() => {
-    const date = new Date();
-    date.setDate(date.getDate() + 30);
-    return date;
-  });
+  // NEW: Control the "Create Item" modal in purchase mode
+  const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
+
+  function safeToDate(value: any): Date | undefined {
+    if (!value) return undefined;
+
+    // Firestore Timestamp
+    if (typeof value.toDate === "function") {
+      const d = value.toDate();
+      return isNaN(d.getTime()) ? undefined : d;
+    }
+
+    // Firestore { seconds, nanoseconds }
+    if (typeof value.seconds === "number") {
+      const d = new Date(value.seconds * 1000);
+      return isNaN(d.getTime()) ? undefined : d;
+    }
+
+    // JS Date
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? undefined : value;
+    }
+
+    return undefined;
+  }
 
   const {
     partySearch,
@@ -80,6 +102,7 @@ function InvoiceContent() {
     filteredInventory,
     billedProducts,
     addProductToBill,
+    addCustomPurchaseItem, // ← NEW: from hook
     updateBilledProduct,
     removeBilledProduct,
     setBilledProducts,
@@ -92,9 +115,14 @@ function InvoiceContent() {
     netAmount,
     totalGross,
 
+    documentDate,
+    setDocumentDate,
+    dueDate,
+    setDueDate,
+
     saveInvoice,
     resetForm,
-  } = useCreateInvoice();
+  } = useCreateInvoice({ isPurchaseMode });
 
   useEffect(() => {
     if (!isPurchaseMode) return;
@@ -164,12 +192,14 @@ function InvoiceContent() {
             ? data.quotationDate
             : data.invoiceDate;
 
-        if (docDateField) {
-          setDocumentDate(docDateField.toDate?.() || new Date(docDateField));
+        const safeDocDate = safeToDate(docDateField);
+        if (safeDocDate) {
+          setDocumentDate(safeDocDate);
         }
 
-        if (data.dueDate) {
-          setDueDate(data.dueDate.toDate?.() || new Date(data.dueDate));
+        const safeDueDate = safeToDate(data.dueDate);
+        if (safeDueDate) {
+          setDueDate(safeDueDate);
         }
 
         const formProducts = (data.products || []).map((p: InvoiceProduct) => ({
@@ -212,7 +242,7 @@ function InvoiceContent() {
     setBilledProducts,
   ]);
 
-  // ── Save / Update handler ────────────────────────────────────────────────
+  // ── Save / Update handler (unchanged – works with custom items) ────────
   const handleSave = async () => {
     if (isSaving) return;
     setIsSaving(true);
@@ -225,7 +255,6 @@ function InvoiceContent() {
         return;
       }
 
-      // Critical guard: ensure name exists (prevents cleanUndefined from removing it)
       const partyName = selectedParty.name?.trim() || "Unnamed Party";
 
       if (billedProducts.length === 0) {
@@ -265,7 +294,6 @@ function InvoiceContent() {
         }),
       );
 
-      // Prepare dates (midnight if not today)
       const now = new Date();
       let finalDocumentDate = new Date(documentDate);
       const isToday =
@@ -281,7 +309,6 @@ function InvoiceContent() {
         finalDueDate.getDate() === now.getDate();
       if (!isDueToday) finalDueDate.setHours(0, 0, 0, 0);
 
-      // Common fields — name is guaranteed non-empty
       const commonPayload = cleanUndefined({
         ...(isPurchaseMode
           ? { vendorId: selectedParty.id }
@@ -307,7 +334,6 @@ function InvoiceContent() {
         netAmount,
       });
 
-      // Add mode-specific date field
       const dateFieldName = isPurchaseMode
         ? "purchaseDate"
         : isQuotationMode
@@ -616,7 +642,21 @@ function InvoiceContent() {
                       <Calendar
                         mode="single"
                         selected={documentDate}
-                        onSelect={(date) => date && setDocumentDate(date)}
+                        onSelect={(date) => {
+                          if (!date) return;
+
+                          const localDate = new Date(
+                            date.getFullYear(),
+                            date.getMonth(),
+                            date.getDate(),
+                            0,
+                            0,
+                            0,
+                            0,
+                          );
+
+                          setDocumentDate(localDate);
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
@@ -645,8 +685,21 @@ function InvoiceContent() {
                         <Calendar
                           mode="single"
                           selected={dueDate}
-                          onSelect={(date) => date && setDueDate(date)}
-                          disabled={(date) => date < documentDate}
+                          onSelect={(date) => {
+                            if (!date) return;
+
+                            const localDate = new Date(
+                              date.getFullYear(),
+                              date.getMonth(),
+                              date.getDate(),
+                              0,
+                              0,
+                              0,
+                              0,
+                            );
+
+                            setDueDate(localDate);
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
@@ -655,12 +708,30 @@ function InvoiceContent() {
               </div>
             </div>
 
-            <ProductSearcher
-              productSearch={productSearch}
-              setProductSearch={setProductSearch}
-              filteredInventory={filteredInventory}
-              onAddProduct={addProductToBill}
-            />
+            {/* ── CONDITIONAL RENDERING FOR PRODUCTS SECTION ── */}
+            {isPurchaseMode ? (
+              <div className="flex flex-col items-center justify-center py-12 px-6 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
+                <Button
+                  size="lg"
+                  className="h-14 px-10 text-lg gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md hover:shadow-xl transition-all duration-300 group"
+                  onClick={() => setIsCreateItemModalOpen(true)}
+                >
+                  <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
+                  <span className="font-semibold">Create & Add New Item</span>
+                </Button>
+                <p className="mt-4 text-sm text-slate-500 text-center max-w-md">
+                  Items added here are specific to this purchase (not saved to
+                  main inventory)
+                </p>
+              </div>
+            ) : (
+              <ProductSearcher
+                productSearch={productSearch}
+                setProductSearch={setProductSearch}
+                filteredInventory={filteredInventory}
+                onAddProduct={addProductToBill}
+              />
+            )}
 
             <BilledProductsTable
               products={billedProducts}
@@ -712,13 +783,24 @@ function InvoiceContent() {
                   No products added yet
                 </p>
                 <p className="text-sm text-slate-500">
-                  Search and add products or services to continue
+                  {isPurchaseMode
+                    ? "Click 'Create & Add New Item' to start building your purchase"
+                    : "Search and add products or services to continue"}
                 </p>
               </div>
             )}
           </section>
         </div>
       </div>
+
+      {/* ── Purchase-only modal for creating new items ── */}
+      {isPurchaseMode && (
+        <CreatePurchaseItemModal
+          isOpen={isCreateItemModalOpen}
+          onClose={() => setIsCreateItemModalOpen(false)}
+          onItemCreated={addCustomPurchaseItem} // from the updated hook
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import type { Quotation } from "@/lib/firebase/quotations";
+import type { Purchase } from "@/lib/firebase/purchase"; // adjust path if needed
 
 const ITEMS_PER_PAGE = 12;
 
@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  quotationText: {
+  titleText: {
     fontSize: 26,
     fontWeight: "bold",
     color: "white",
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  /* ───────── BILLING ───────── */
+  /* ───────── VENDOR SECTION ───────── */
   billSection: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -106,7 +106,6 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 
-  /* Rupee symbol fix – bold + larger size */
   rupeeLarge: {
     fontFamily: "Helvetica",
     fontSize: 10,
@@ -132,61 +131,57 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 
-  /* Spacer to prevent page shrink when few items */
   pageSpacer: {
     flexGrow: 1,
     minHeight: 250,
   },
 });
 
-interface QuotationPDFProps {
-  quotation: Quotation;
+interface PurchasePDFProps {
+  purchase: Purchase;
 }
 
-const toJSDate = (ts?: { seconds: number }) =>
-  ts ? new Date(ts.seconds * 1000) : null;
+export default function PurchasePDF({ purchase }: PurchasePDFProps) {
+  const purchaseNumber = purchase.purchaseNumber ?? 0;
+  const purchaseDate = purchase.purchaseDate
+    ? new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(purchase.purchaseDate)
+    : "—";
 
-export default function QuotationPDF({ quotation }: QuotationPDFProps) {
-  const quotationNumber = quotation.quotationNumber;
-  const quotationDate = quotation.quotationDate
-  ? new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(quotation.quotationDate)
-  : "—"
+  const products = purchase.products || [];
 
-
-  const products = quotation.products || [];
-
-  const subtotal = quotation.subtotal || 0;
-  const discount = quotation.discount || 0;
-  const sgst = quotation.sgst || 0;
-  const cgst = quotation.cgst || 0;
-  const grandTotal = quotation.netAmount || 0;
+  const subtotal    = purchase.subtotal    ?? 0;
+  const discount    = purchase.discount    ?? 0;
+  const cgst        = purchase.cgst        ?? 0;
+  const sgst        = purchase.sgst        ?? 0;
+  const igst        = purchase.igst        ?? 0;
+  const netAmount   = purchase.netAmount   ?? 0;
 
   const formatINR = (num: number) => {
-    const value = Number(num || 0);
-    return `Rs. ${new Intl.NumberFormat("en-IN", {
+    return `₹ ${new Intl.NumberFormat("en-IN", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(value)}`;
+    }).format(num)}`;
   };
 
-  // Helper to format measurement in one column (same as InvoicePDF)
   const getMeasurementText = (p: any) => {
     if (p.measurementType === "height_width") {
       return `Height: ${p.height ?? "—"} | Width: ${p.width ?? "—"}`;
-    } else if (p.measurementType === "kg") {
+    }
+    if (p.measurementType === "kg") {
       return `Kg: ${p.kg ?? "—"}`;
-    } else if (p.measurementType === "unit") {
+    }
+    if (p.measurementType === "unit") {
       return `Unit: ${p.units ?? "—"}`;
     }
     return "—";
   };
 
-  // Split products into pages (max 12 per page)
-  const pages = [];
+  // Paginate products
+  const pages: any[][] = [];
   for (let i = 0; i < products.length; i += ITEMS_PER_PAGE) {
     pages.push(products.slice(i, i + ITEMS_PER_PAGE));
   }
@@ -196,11 +191,11 @@ export default function QuotationPDF({ quotation }: QuotationPDFProps) {
     <Document>
       {pages.map((pageProducts, pageIndex) => (
         <Page key={pageIndex} size="A4" style={styles.page} wrap={false}>
-          {/* HEADER – only on first page */}
+          {/* HEADER – first page only */}
           {pageIndex === 0 && (
             <View style={styles.headerBg}>
               <View style={styles.headerRow}>
-                <Text style={styles.quotationText}>QUOTATION</Text>
+                <Text style={styles.titleText}>PURCHASE ORDER</Text>
                 <View style={styles.companyRight}>
                   <Text style={styles.companyBrand}>HANOVER</Text>
                   <Text style={styles.companyBrand}>& TYKE</Text>
@@ -209,29 +204,27 @@ export default function QuotationPDF({ quotation }: QuotationPDFProps) {
             </View>
           )}
 
-          {/* BILL TO – only on first page */}
+          {/* VENDOR INFO – first page only */}
           {pageIndex === 0 && (
             <View style={styles.billSection}>
               <View style={styles.leftCol}>
-                <Text style={styles.label}>BILL TO:</Text>
-                <Text>{quotation.customerName || "—"}</Text>
-                <Text>{quotation.billingAddress || "—"}</Text>
-                <Text>Phone: {quotation.customerPhone || "—"}</Text>
+                <Text style={styles.label}>VENDOR</Text>
+                <Text>{purchase.vendorName || "—"}</Text>
+                <Text>{purchase.billingAddress || "—"}</Text>
+                {purchase.vendorPhone && <Text>Phone: {purchase.vendorPhone}</Text>}
+                {purchase.vendorGstin && <Text>GSTIN: {purchase.vendorGstin}</Text>}
               </View>
 
               <View style={styles.rightCol}>
                 <Text style={{ marginBottom: 2 }}>
-                  Quotation Number: QUO-
-                  {quotationNumber
-                    ? String(quotationNumber).padStart(4, "0")
-                    : "Draft"}
+                  PO No.: {String(purchaseNumber).padStart(4, "0")}
                 </Text>
-                <Text>Quotation Date: {quotationDate}</Text>
+                <Text>Date: {purchaseDate}</Text>
               </View>
             </View>
           )}
 
-          {/* TABLE – exact same structure as InvoicePDF */}
+          {/* TABLE HEADER + ROWS */}
           <View>
             <View style={styles.tableHeader}>
               <Text style={styles.colProduct}>Item Description</Text>
@@ -240,7 +233,7 @@ export default function QuotationPDF({ quotation }: QuotationPDFProps) {
               <Text style={styles.colTotal}>Amount</Text>
             </View>
 
-            {pageProducts.map((product: any, idx: number) => (
+            {pageProducts.map((product, idx) => (
               <View style={styles.tableRow} key={idx}>
                 <Text style={styles.colProduct}>{product.name || "—"}</Text>
                 <Text style={styles.colMeasurement}>
@@ -255,61 +248,67 @@ export default function QuotationPDF({ quotation }: QuotationPDFProps) {
 
             {pageProducts.length === 0 && pageIndex === 0 && (
               <View style={styles.tableRow}>
-                <Text style={{ ...styles.colProduct, textAlign: "center" }}>
-                  No products added
+                <Text style={{ ...styles.colProduct, textAlign: "center", width: "100%" }}>
+                  No items in this purchase order
                 </Text>
               </View>
             )}
           </View>
-          {/* SUMMARY + TERMS – only on LAST page */}
+
+          {/* TOTALS + TERMS – last page only */}
           {pageIndex === pages.length - 1 && (
             <>
               <View style={styles.totalBox}>
                 <View style={styles.totalRow}>
-                  <Text>Sub Total</Text>
+                  <Text>Subtotal</Text>
                   <Text style={styles.rupeeLarge}>{formatINR(subtotal)}</Text>
                 </View>
 
                 {discount > 0 && (
                   <View style={styles.totalRow}>
                     <Text>Discount</Text>
-                    <Text style={styles.rupeeLarge}>{formatINR(discount)}</Text>
+                    <Text style={styles.rupeeLarge}>-{formatINR(discount)}</Text>
                   </View>
                 )}
 
-                <View style={styles.totalRow}>
-                  <Text>
-                    CGST (
-                    {((cgst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)
-                  </Text>
-                  <Text style={styles.rupeeLarge}>{formatINR(cgst)}</Text>
-                </View>
+                {cgst > 0 && (
+                  <View style={styles.totalRow}>
+                    <Text>CGST ({((cgst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)</Text>
+                    <Text style={styles.rupeeLarge}>{formatINR(cgst)}</Text>
+                  </View>
+                )}
 
-                <View style={styles.totalRow}>
-                  <Text>
-                    SGST (
-                    {((sgst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)
-                  </Text>
-                  <Text style={styles.rupeeLarge}>{formatINR(sgst)}</Text>
-                </View>
+                {sgst > 0 && (
+                  <View style={styles.totalRow}>
+                    <Text>SGST ({((sgst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)</Text>
+                    <Text style={styles.rupeeLarge}>{formatINR(sgst)}</Text>
+                  </View>
+                )}
+
+                {igst > 0 && (
+                  <View style={styles.totalRow}>
+                    <Text>IGST ({((igst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)</Text>
+                    <Text style={styles.rupeeLarge}>{formatINR(igst)}</Text>
+                  </View>
+                )}
 
                 <View style={styles.totalHighlight}>
                   <Text style={styles.totalHighlightText}>
-                    TOTAL: {formatINR(grandTotal)}
+                    GRAND TOTAL: {formatINR(netAmount)}
                   </Text>
                 </View>
               </View>
 
               <View style={styles.termsSection}>
-                <Text style={styles.termsTitle}>TERMS AND CONDITIONS</Text>
-                <Text>Quotation valid for 30 days from date of issue</Text>
-                <Text>Please contact us to confirm acceptance</Text>
-                <Text>BigBot Co.</Text>
+                <Text style={styles.termsTitle}>TERMS & CONDITIONS</Text>
+                <Text>• This purchase order is valid for 30 days from the date of issue.</Text>
+                <Text>• Supply should strictly adhere to specifications and delivery schedule.</Text>
+                <Text>• Payment terms: 30 days from receipt of invoice and material.</Text>
+                <Text style={{ marginTop: 8 }}>Hanover & Tyke</Text>
               </View>
             </>
           )}
 
-          {/* Page Number */}
           <Text style={styles.pageNumber}>
             Page {pageIndex + 1} of {pages.length}
           </Text>

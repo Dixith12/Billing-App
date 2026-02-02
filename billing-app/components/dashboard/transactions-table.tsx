@@ -757,10 +757,9 @@ export function TransactionsTable(props: TransactionsTableProps) {
 
                 <TableCell>
                   <div className="text-sm font-medium text-slate-700">
-                    {formatDate(invoice.createdAt?.toDate())}
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {getRelativeTime(invoice.createdAt?.toDate())}
+                    {invoice.invoiceDate
+                      ? formatDate(new Date(invoice.invoiceDate.seconds * 1000))
+                      : "-"}
                   </div>
                 </TableCell>
 

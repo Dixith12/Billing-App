@@ -15,7 +15,7 @@ export interface BilledProduct {
   id: string;
   name: string;
   quantity: number;
-
+  hsncode?:string;
   measurementType: "height_width" | "kg" | "unit";
   height?: string;
   width?: string;
@@ -250,6 +250,7 @@ export function useCreateInvoice(
     const newProduct: BilledProduct = {
       id: crypto.randomUUID() || Date.now().toString() + Math.random().toString(36).slice(2),
       name: item.name,
+      hsncode:item.hsnCode?? undefined,
       quantity: 1,
       measurementType: item.measurementType ?? "height_width",
       height:
@@ -330,62 +331,94 @@ export function useCreateInvoice(
     toast.success("Item added to purchase");
   };
 
-  const updateBilledProduct = (
-    id: string,
-    field: keyof BilledProduct,
-    value: string | number | boolean,
-  ) => {
-    setBilledProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p;
 
-        let updated: BilledProduct = { ...p, [field]: value };
+  function calculateBaseAmount(p: BilledProduct, inventoryItems: InventoryItem[]) {
+  const inv = inventoryItems.find((i) => i.name === p.name);
+  if (!inv) return 0;
 
-        const base = calculateProductBase(updated);
-        const waste = updated.wasteEnabled ? Number(updated.wasteAmount || 0) : 0;
+  let base = 0;
 
-        updated.grossTotal = base + waste;
-        updated.netTotal = updated.grossTotal;
+  switch (p.measurementType) {
+    case "height_width":
+      base =
+        (parseFloat(p.height || "0") || 0) * (inv.pricePerHeight ?? 0) +
+        (parseFloat(p.width || "0") || 0) * (inv.pricePerWidth ?? 0);
+      break;
 
-        if (field === "wasteEnabled" && !value) {
-          updated.wasteHeight = undefined;
-          updated.wasteWidth = undefined;
-          updated.wasteKg = undefined;
-          updated.wasteUnits = undefined;
-          updated.wasteAmount = undefined;
-        }
+    case "kg":
+      base = (parseFloat(p.kg || "0") || 0) * (inv.pricePerKg ?? 0);
+      break;
 
-        return updated;
-      }),
-    );
-  };
-
-  function calculateProductBase(p: BilledProduct) {
-    if (p.grossTotal && p.netTotal && p.grossTotal === p.netTotal) {
-      return p.grossTotal / (p.quantity || 1);
-    }
-
-    const inv = inventoryItems.find((i) => i.name === p.name);
-    if (!inv) return 0;
-
-    let base = 0;
-
-    switch (p.measurementType) {
-      case "height_width":
-        base =
-          (parseFloat(p.height || "0") || 0) * (inv.pricePerHeight ?? 0) +
-          (parseFloat(p.width || "0") || 0) * (inv.pricePerWidth ?? 0);
-        break;
-      case "kg":
-        base = (parseFloat(p.kg || "0") || 0) * (inv.pricePerKg ?? 0);
-        break;
-      case "unit":
-        base = (parseFloat(p.units || "0") || 0) * (inv.pricePerUnit ?? 0);
-        break;
-    }
-
-    return base * (p.quantity || 1);
+    case "unit":
+      base = (parseFloat(p.units || "0") || 0) * (inv.pricePerUnit ?? 0);
+      break;
   }
+
+  return base * (p.quantity || 1);
+}
+
+
+function calculateWasteAmount(p: BilledProduct, inventoryItems: InventoryItem[]) {
+  const inv = inventoryItems.find((i) => i.name === p.name);
+  if (!inv) return 0;
+
+  let waste = 0;
+
+  switch (p.measurementType) {
+    case "height_width":
+      waste =
+        (parseFloat(p.wasteHeight || "0") || 0) * (inv.pricePerHeight ?? 0) +
+        (parseFloat(p.wasteWidth || "0") || 0) * (inv.pricePerWidth ?? 0);
+      break;
+
+    case "kg":
+      waste = (parseFloat(p.wasteKg || "0") || 0) * (inv.pricePerKg ?? 0);
+      break;
+
+    case "unit":
+      waste = (parseFloat(p.wasteUnits || "0") || 0) * (inv.pricePerUnit ?? 0);
+      break;
+  }
+
+  return waste;
+}
+
+  const updateBilledProduct = (
+  id: string,
+  field: keyof BilledProduct,
+  value: string | number | boolean,
+) => {
+  setBilledProducts((prev) =>
+    prev.map((p) => {
+      if (p.id !== id) return p;
+
+      let updated: BilledProduct = { ...p, [field]: value };
+
+      // Auto-clear waste when disabled
+      if (field === "wasteEnabled" && !value) {
+        updated.wasteHeight = undefined;
+        updated.wasteWidth = undefined;
+        updated.wasteKg = undefined;
+        updated.wasteUnits = undefined;
+        updated.wasteAmount = undefined;
+      }
+
+      const baseAmount = calculateBaseAmount(updated, inventoryItems);
+
+      let wasteAmount = 0;
+      if (updated.wasteEnabled) {
+        wasteAmount = calculateWasteAmount(updated, inventoryItems);
+        updated.wasteAmount = wasteAmount;
+      }
+
+      updated.grossTotal = baseAmount + wasteAmount;
+      updated.netTotal = updated.grossTotal;
+
+      return updated;
+    }),
+  );
+};
+
 
   const removeBilledProduct = (id: string) => {
     setBilledProducts((prev) => prev.filter((p) => p.id !== id));
@@ -438,14 +471,10 @@ export function useCreateInvoice(
 
     try {
       const commonData = {
-        vendorId: selectedParty.id, // works for both customerId / vendorId
-        vendorName: selectedParty.name,
-        vendorPhone: selectedParty.phone,
-        vendorGstin: selectedParty.gstin ?? undefined,
-        vendorState: selectedParty.state?.trim() || "Karnataka", // ← saved for purchases
         billingAddress,
         products: billedProducts.map((p) => ({
           name: p.name,
+          hsnCode:p.hsncode??undefined,
           quantity: p.quantity,
           measurementType: p.measurementType,
           height: p.height,
@@ -475,8 +504,14 @@ export function useCreateInvoice(
         // PURCHASE MODE
         await addPurchase({
           ...commonData,
-          purchaseDate: documentDate,
-        });
+           vendorId: selectedParty.id,
+    vendorName: selectedParty.name,
+    vendorPhone: selectedParty.phone,
+    vendorGstin: selectedParty.gstin ?? undefined,
+    vendorState: selectedParty.state?.trim(),
+
+    purchaseDate: documentDate,
+  });
         toast.success("Purchase order saved successfully");
       } else {
         // INVOICE MODE

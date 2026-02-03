@@ -11,7 +11,24 @@ import {
 } from 'firebase/firestore'
 
 import { db } from '@/lib/firebase'
-import { InventoryItem } from '@/lib/types'
+
+// Updated interface with HSN Code
+export interface InventoryItem {
+  id: string;
+  name: string;
+  measurementType: 'height_width' | 'kg' | 'unit';
+  height?: number;
+  width?: number;
+  kg?: number;
+  units?: number;
+  pricePerHeight?: number;
+  pricePerWidth?: number;
+  pricePerKg?: number;
+  pricePerUnit?: number;
+  hsnCode?: string | null;              // ← NEW FIELD (optional)
+  createdAt?: any;               // Timestamp or Date
+  // Add any other fields you already have...
+}
 
 const inventoryRef = collection(db, 'inventory')
 
@@ -32,13 +49,16 @@ export function listenInventory(
 }
 
 // ➕ ADD
-export async function addInventory(item: any) {
+export async function addInventory(item: Omit<InventoryItem, 'id' | 'createdAt'>) {
   console.log("🚀 addInventory CALLED", item)
 
-  await addDoc(collection(db, "inventory"), {
+  const safeItem = {
     ...item,
+    hsnCode: item.hsnCode ? item.hsnCode.trim() : null,  // clean up HSN
     createdAt: serverTimestamp(),
-  })
+  }
+
+  await addDoc(inventoryRef, safeItem)
 
   console.log("✅ Firestore write finished")
 }
@@ -46,9 +66,19 @@ export async function addInventory(item: any) {
 // ✏️ UPDATE
 export async function updateInventory(
   id: string,
-  data: Omit<InventoryItem, 'id' | 'createdAt'>
+  data: Partial<Omit<InventoryItem, 'id' | 'createdAt'>>
 ) {
-  await updateDoc(doc(db, 'inventory', id), data)
+  const updateData = {
+    ...data,
+    // Clean HSN on update too
+...(data.hsnCode !== undefined && {
+  hsnCode: typeof data.hsnCode === 'string'
+    ? data.hsnCode.trim() || null
+    : null,
+}),
+  }
+
+  await updateDoc(doc(db, 'inventory', id), updateData)
 }
 
 // 🗑 DELETE

@@ -30,7 +30,14 @@ export function useQuotation() {
     fetchQuotations()
   }, [])
 
-  const addNewQuotation = async (data: Omit<Quotation, 'id' | 'quotationNumber' | 'createdAt'>) => {
+type NewQuotation = Omit<
+  Quotation,
+  'id' | 'quotationNumber' | 'createdAt' | 'updatedAt'
+> & {
+  quotationDate: Date
+}
+
+const addNewQuotation = async (data: NewQuotation) => {
     try {
       const newQuotation = await addQuotation(data)
       setQuotations(prev => [newQuotation, ...prev])

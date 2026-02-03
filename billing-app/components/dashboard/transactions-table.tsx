@@ -112,7 +112,7 @@ interface TransactionsTableProps {
   allStatuses: Invoice["status"][];
 
   formatCurrency: (amount: number) => string;
-  formatDate: (date: Date | undefined) => string;
+  formatDate: (value: any) => string;
   getRelativeTime: (timestamp: Date | undefined) => string;
   getStatusBadgeVariant: (status: Invoice["status"]) => string;
 
@@ -757,9 +757,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
 
                 <TableCell>
                   <div className="text-sm font-medium text-slate-700">
-                    {invoice.invoiceDate
-                      ? formatDate(new Date(invoice.invoiceDate.seconds * 1000))
-                      : "-"}
+                    {formatDate(invoice.invoiceDate ?? invoice.createdAt)}
                   </div>
                 </TableCell>
 

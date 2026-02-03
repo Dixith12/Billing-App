@@ -11,11 +11,17 @@ import { listenInventory, addInventory, updateInventory, deleteInventory } from 
 interface AppContextType {
   invoices: Invoice[]
   inventoryItems: InventoryItem[]
-  addInventoryItem: (item: Omit<InventoryItem, 'id' | 'createdAt'>) => Promise<void>
-  updateInventoryItem: (id: string, item: Omit<InventoryItem, 'id' | 'createdAt'>) => Promise<void>
+  addInventoryItem: (
+    item: Omit<InventoryItem, 'id' | 'createdAt'>
+  ) => Promise<void>
+  updateInventoryItem: (
+    id: string,
+    item: Partial<Omit<InventoryItem, 'id' | 'createdAt'>>
+  ) => Promise<void>
   deleteInventoryItem: (id: string) => Promise<void>
   getTotalSales: () => number
 }
+
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
 

@@ -25,12 +25,12 @@ export function exportTransactionsToExcel(invoices: Invoice[], fileName: string 
       : 'Draft'
 
     // Customer & Address
-    const customerGST = invoice.customerGstin || '-'
-    const billingAddr = invoice.billingAddress || '-'
-    const customerGSAddress = `${customerGST} ${billingAddr}`.trim() || '-'
+    const customerGSTIN = invoice.customerGstin || '-'
+    const customerAddress = invoice.billingAddress || '-'
 
-    // Place of Supply (update this field name if you have it!)
-    const placeOfSupply = 'KA' // ← Change to real value when available (e.g. invoice.placeOfSupply || invoice.state || 'KA')
+    const placeOfSupply =
+  invoice.placeOfSupply ||'-'
+
 
     // Root-level values
     const subtotal = Number(invoice.subtotal) || 0
@@ -57,8 +57,9 @@ export function exportTransactionsToExcel(invoices: Invoice[], fileName: string 
         'Invoice N': invoiceNum,
         'Invoice Date': formattedInvDate,
         Customer: invoice.customerName || '-',
-        'Customer GS Address': customerGSAddress,
-        'Place of Su': placeOfSupply,
+'Customer GSTIN': customerGSTIN,
+'Customer Address': customerAddress,
+'Place of Supply': placeOfSupply,
         Product: '(No items)',
         'HSN/SAC': '',
         Quantity: '',
@@ -88,8 +89,10 @@ export function exportTransactionsToExcel(invoices: Invoice[], fileName: string 
         'Invoice N': invoiceNum,
         'Invoice Date': formattedInvDate,
         Customer: invoice.customerName || '-',
-        'Customer GS Address': customerGSAddress,
-        'Place of Su': placeOfSupply,
+'Customer GSTIN': customerGSTIN,
+'Customer Address': customerAddress,
+'Place of Supply': placeOfSupply,
+
         Product: itemName,
         'HSN/SAC': product.hsnCode || product.hsn || '', // add field when you store it
         Quantity: itemQty,

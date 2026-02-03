@@ -21,12 +21,19 @@ import { BilledProductsTable } from "@/components/invoice/billedProductTable";
 import { InvoiceSummary } from "@/components/invoice/invoice-summary";
 import { TotalsFooter } from "@/components/invoice/totalFooter";
 
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Invoice, InvoiceProduct } from "@/lib/firebase/invoices";
 import { addQuotation } from "@/lib/firebase/quotations";
 import { addPurchase, updatePurchase } from "@/lib/firebase/purchase";
 import { cleanUndefined } from "@/lib/utils/invoiceUtil";
+import { useApp } from "@/lib/app-context";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -51,6 +58,7 @@ function InvoiceContent() {
   const isPurchaseMode = type === "purchase";
   const isInvoiceMode = !isQuotationMode && !isPurchaseMode;
   const enableWaste = !isPurchaseMode;
+  const { inventoryItems } = useApp();
 
   const [loading, setLoading] = useState(isEditMode);
   const [error, setError] = useState<string | null>(null);
@@ -264,8 +272,10 @@ function InvoiceContent() {
         return;
       }
 
-      const productsToSave = billedProducts.map((p) =>
-        cleanUndefined({
+      const productsToSave = billedProducts.map((p) => {
+        const inventoryItem = inventoryItems.find((i) => i.name === p.name);
+
+        return cleanUndefined({
           name: p.name,
           quantity: p.quantity,
           measurementType: p.measurementType,
@@ -276,6 +286,8 @@ function InvoiceContent() {
           }),
           ...(p.measurementType === "kg" && { kg: p.kg }),
           ...(p.measurementType === "unit" && { units: p.units }),
+
+          hsnCode: inventoryItem?.hsnCode ?? null, // ✅ ADD THIS
 
           wasteEnabled: enableWaste ? p.wasteEnabled : false,
 
@@ -291,23 +303,27 @@ function InvoiceContent() {
           discountType: p.discountType,
           total: p.netTotal,
           grossTotal: p.grossTotal ?? p.netTotal,
-        }),
-      );
+        });
+      });
 
       const now = new Date();
-      let finalDocumentDate = new Date(documentDate);
-      const isToday =
-        finalDocumentDate.getFullYear() === now.getFullYear() &&
-        finalDocumentDate.getMonth() === now.getMonth() &&
-        finalDocumentDate.getDate() === now.getDate();
-      if (!isToday) finalDocumentDate.setHours(0, 0, 0, 0);
+      const finalDocumentDate = new Date(
+        documentDate.getFullYear(),
+        documentDate.getMonth(),
+        documentDate.getDate(),
+        12,
+        0,
+        0, // ⬅️ noon avoids timezone shifts
+      );
 
-      let finalDueDate = new Date(dueDate);
-      const isDueToday =
-        finalDueDate.getFullYear() === now.getFullYear() &&
-        finalDueDate.getMonth() === now.getMonth() &&
-        finalDueDate.getDate() === now.getDate();
-      if (!isDueToday) finalDueDate.setHours(0, 0, 0, 0);
+      const finalDueDate = new Date(
+        dueDate.getFullYear(),
+        dueDate.getMonth(),
+        dueDate.getDate(),
+        12,
+        0,
+        0,
+      );
 
       const commonPayload = cleanUndefined({
         ...(isPurchaseMode
@@ -359,10 +375,29 @@ function InvoiceContent() {
 
         const ref = doc(db, collectionName, editId);
 
-        await updateDoc(ref, {
-          ...payload,
-          updatedAt: serverTimestamp(),
-        });
+        await updateDoc(
+          ref,
+          cleanUndefined({
+            ...commonPayload,
+
+            ...(isQuotationMode && {
+              quotationDate: Timestamp.fromDate(finalDocumentDate),
+            }),
+
+            ...(isInvoiceMode && {
+              invoiceDate: Timestamp.fromDate(finalDocumentDate),
+              dueDate: finalDueDate
+                ? Timestamp.fromDate(finalDueDate)
+                : undefined,
+            }),
+
+            ...(isPurchaseMode && {
+              purchaseDate: Timestamp.fromDate(finalDocumentDate),
+            }),
+
+            updatedAt: serverTimestamp(),
+          }),
+        );
 
         toast.success(
           `${isPurchaseMode ? "Purchase" : isQuotationMode ? "Quotation" : "Invoice"} Updated`,
@@ -375,6 +410,7 @@ function InvoiceContent() {
             vendorName: partyName,
             vendorPhone: selectedParty.phone,
             vendorGstin: selectedParty.gstin,
+            vendorState:selectedParty.state,
             billingAddress,
             products: productsToSave,
             subtotal,
@@ -392,7 +428,10 @@ function InvoiceContent() {
             customerId: selectedParty.id,
             customerName: partyName,
             customerPhone: selectedParty.phone,
-            customerGstin: selectedParty.gstin,
+            customerGstin: selectedParty.gstin ?? undefined,
+
+            placeOfSupply: selectedParty.state?.trim(), // ✅ ADD THIS LINE
+
             billingAddress,
             products: productsToSave,
             subtotal,
@@ -405,9 +444,6 @@ function InvoiceContent() {
             quotationDate: finalDocumentDate,
           });
           success = true;
-        } else {
-          const result = await saveDocument();
-          success = result.success;
         }
 
         if (success) {

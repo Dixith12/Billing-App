@@ -1,37 +1,57 @@
-// lib/utils/exportExpensesToExcel.ts
 import * as XLSX from 'xlsx';
 import type { Expense } from '@/lib/firebase/expenses';
 
-export function exportExpensesToExcel(expenses: Expense[], fileName = 'Expense_Register.xlsx') {
+export function exportExpensesToExcel(
+  expenses: Expense[],
+  fileName = 'Expense_Register.xlsx',
+) {
   if (expenses.length === 0) {
     alert('No expenses to export');
     return;
   }
 
   const data = expenses.map((exp) => {
-    // Super safe state handling
-    const stateValue = exp.state ?? ''; // null/undefined → ''
+    /* ───────────────
+       STATE CHECK
+    ─────────────── */
+
+    const stateValue = exp.state ?? '';
     const stateLower = stateValue.toString().toLowerCase().trim();
     const isKarnataka = stateLower === 'karnataka';
 
-    // Safe percentage defaults
-    const cgstPct = Number(exp.cgstPercent) || 0;
-    const sgstPct = Number(exp.sgstPercent) || 0;
-    const igstPct = Number(exp.igstPercent) || 0;
-
-    // GST amounts (safe even if percentages are missing)
-    const cgstAmt = isKarnataka ? (exp.amount * cgstPct) / 100 : 0;
-    const sgstAmt = isKarnataka ? (exp.amount * sgstPct) / 100 : 0;
-    const igstAmt = !isKarnataka ? (exp.amount * igstPct) / 100 : 0;
-    const totalGst = cgstAmt + sgstAmt + igstAmt;
+    /* ───────────────
+       BASE VALUES
+    ─────────────── */
 
     const taxable = Number(exp.amount) || 0;
     const quantity = Number(exp.quantity) || 1;
     const unitPrice = quantity > 0 ? taxable / quantity : 0;
 
-    const gstPercentDisplay = isKarnataka
-      ? `${(cgstPct + sgstPct).toFixed(0)}%`
-      : `${igstPct.toFixed(0)}%`;
+    /* ───────────────
+       GST %
+    ─────────────── */
+
+    const cgstPct = Number(exp.cgstPercent) || 0;
+    const sgstPct = Number(exp.sgstPercent) || 0;
+    const igstPct = Number(exp.igstPercent) || 0;
+
+    // Display logic:
+    // Karnataka → CGST + SGST
+    // Other state → IGST only
+    const displayCgst = isKarnataka ? `${cgstPct}%` : '0%';
+    const displaySgst = isKarnataka ? `${sgstPct}%` : '0%';
+    const displayIgst = isKarnataka ? '0%' : `${igstPct}%`;
+
+    /* ───────────────
+       TOTAL AMOUNT
+       (calculated internally)
+    ─────────────── */
+
+    const gstAmount = isKarnataka
+      ? (taxable * (cgstPct + sgstPct)) / 100
+      : (taxable * igstPct) / 100;
+
+    const totalAmount = taxable + gstAmount;
 
     return {
       'Expense Date': exp.date
@@ -47,15 +67,20 @@ export function exportExpensesToExcel(expenses: Expense[], fileName = 'Expense_R
       Quantity: quantity,
       'Unit Price': unitPrice.toFixed(2),
       'Taxable Amount': taxable.toFixed(2),
-      'GST %': gstPercentDisplay,
-      'CGST Amount': cgstAmt.toFixed(2),
-      'SGST Amount': sgstAmt.toFixed(2),
-      'IGST Amount': igstAmt.toFixed(2),
-      'GST Amount': totalGst.toFixed(2),
-      'Total Amount': (taxable + totalGst).toFixed(2),
+
+      // ✅ PERCENTAGE COLUMNS ONLY
+      'CGST %': displayCgst,
+      'SGST %': displaySgst,
+      'IGST %': displayIgst,
+
+      'Total Amount': totalAmount.toFixed(2),
       'ITC Eligible': 'Yes',
     };
   });
+
+  /* ───────────────
+     EXCEL WRITE
+  ─────────────── */
 
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -68,7 +93,9 @@ export function exportExpensesToExcel(expenses: Expense[], fileName = 'Expense_R
     let maxw = 12;
     for (let R = range.s.r; R <= range.e.r; ++R) {
       const cell = ws[XLSX.utils.encode_cell({ c: C, r: R })];
-      if (cell?.v) maxw = Math.max(maxw, String(cell.v).length + 2);
+      if (cell?.v) {
+        maxw = Math.max(maxw, String(cell.v).length + 2);
+      }
     }
     ws['!cols'][C] = { wch: maxw };
   }

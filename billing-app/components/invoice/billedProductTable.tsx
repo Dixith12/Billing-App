@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import React from "react";
 import { Button } from "@/components/ui/button";
@@ -71,7 +71,9 @@ export function BilledProductsTable({
               <React.Fragment key={p.id}>
                 <tr className="hover:bg-slate-50/70 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-slate-900">{p.name || "Unnamed Item"}</div>
+                    <div className="font-medium text-slate-900">
+                      {p.name || "Unnamed Item"}
+                    </div>
                   </td>
 
                   <td className="px-6 py-4">
@@ -79,7 +81,11 @@ export function BilledProductsTable({
                       type="number"
                       value={p.quantity}
                       onChange={(e) =>
-                        onUpdate(p.id, "quantity", parseInt(e.target.value) || 1)
+                        onUpdate(
+                          p.id,
+                          "quantity",
+                          parseInt(e.target.value) || 1,
+                        )
                       }
                       min={1}
                       className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
@@ -95,14 +101,18 @@ export function BilledProductsTable({
                       <Input
                         type="number"
                         value={p.discount}
-                        onChange={(e) => onUpdate(p.id, "discount", e.target.value)}
+                        onChange={(e) =>
+                          onUpdate(p.id, "discount", e.target.value)
+                        }
                         min={0}
                         step="any"
                         className="w-20 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
                       />
                       <Select
                         value={p.discountType}
-                        onValueChange={(v: "%" | "₹") => onUpdate(p.id, "discountType", v)}
+                        onValueChange={(v: "%" | "₹") =>
+                          onUpdate(p.id, "discountType", v)
+                        }
                       >
                         <SelectTrigger className="w-16 border-slate-300 focus:border-indigo-400">
                           <SelectValue />
@@ -119,16 +129,28 @@ export function BilledProductsTable({
                     <td className="px-6 py-4 text-center">
                       <Switch
                         checked={p.wasteEnabled ?? false}
-                        onCheckedChange={(checked) => onUpdate(p.id, "wasteEnabled", checked)}
+                        onCheckedChange={(checked) =>
+                          onUpdate(p.id, "wasteEnabled", checked)
+                        }
+                        className="
+    transition-colors
+    data-[state=checked]:bg-indigo-600
+    data-[state=unchecked]:bg-slate-300
+    [&>span]:bg-white
+  "
                       />
                     </td>
                   )}
 
                   <td className="px-6 py-4 text-right pr-8">
-                    <span className={cn(
-                      "font-semibold",
-                      p.grossTotal > 0 ? "text-emerald-700" : "text-slate-400"
-                    )}>
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        p.grossTotal > 0
+                          ? "text-emerald-700"
+                          : "text-slate-400",
+                      )}
+                    >
                       ₹{(p.grossTotal || 0).toFixed(2)}
                     </span>
                   </td>
@@ -148,7 +170,10 @@ export function BilledProductsTable({
                 {/* Waste row – only shown if enabled */}
                 {enableWaste && p.wasteEnabled && (
                   <tr className="bg-slate-50/80 border-t border-slate-100">
-                    <td className="px-6 py-4 font-medium text-slate-600" colSpan={2}>
+                    <td
+                      className="px-6 py-4 font-medium text-slate-600"
+                      colSpan={2}
+                    >
                       Waste for {p.name}:
                     </td>
                     <td className="px-6 py-4">
@@ -180,7 +205,11 @@ export function BilledProductsTable({
 // ────────────────────────────────────────────────
 function renderMeasurementInputs(
   p: BilledProduct,
-  onUpdate: (id: string, field: keyof BilledProduct, value: string | number) => void,
+  onUpdate: (
+    id: string,
+    field: keyof BilledProduct,
+    value: string | number,
+  ) => void,
 ) {
   switch (p.measurementType) {
     case "height_width":
@@ -247,7 +276,11 @@ function renderMeasurementInputs(
 // ────────────────────────────────────────────────
 function renderWasteInputs(
   p: BilledProduct,
-  onUpdate: (id: string, field: keyof BilledProduct, value: string | number) => void,
+  onUpdate: (
+    id: string,
+    field: keyof BilledProduct,
+    value: string | number,
+  ) => void,
 ) {
   let measurements;
 

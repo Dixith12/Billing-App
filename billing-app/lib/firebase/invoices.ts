@@ -24,6 +24,7 @@ export interface InvoiceProduct {
   width?: string;
   kg?: string;
   units?: string;
+  hsnCode?:string;
 
   wasteEnabled: boolean;
   wasteHeight?: string;

@@ -18,6 +18,7 @@ export function useAddInventoryForm(onSuccess?: () => void) {
     pricePerWidth: '',
     pricePerKg: '',
     pricePerUnit: '',
+    hsnCode: '',           // ← NEW FIELD
   })
 
   const [error, setError] = useState<string | null>(null)
@@ -37,6 +38,7 @@ export function useAddInventoryForm(onSuccess?: () => void) {
       pricePerWidth: '',
       pricePerKg: '',
       pricePerUnit: '',
+      hsnCode: '',         // ← Reset HSN too
     })
     setError(null)
   }
@@ -58,6 +60,7 @@ export function useAddInventoryForm(onSuccess?: () => void) {
     const baseData = {
       name: form.name.trim(),
       measurementType: type,
+      hsnCode: form.hsnCode.trim() || null,   // ← Save HSN (null if empty)
     }
 
     let dataToSave: any

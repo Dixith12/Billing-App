@@ -1,19 +1,17 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Search, Plus } from 'lucide-react'
-import type { InventoryItem } from '@/lib/types'
-import { formatINR } from '@/lib/utils/inventory'
-import { cn } from '@/lib/utils'
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Search, Plus } from "lucide-react";
+import type { InventoryItem } from "@/lib/types";
+import { formatINR } from "@/lib/utils/inventory";
+import { cn } from "@/lib/utils";
 
 interface ProductSearcherProps {
-  productSearch: string
-  setProductSearch: (v: string) => void
-  filteredInventory: InventoryItem[]
-  onAddProduct: (item: InventoryItem) => void
-  isPurchaseMode?: boolean           // ← NEW: pass this from page
-  onCreateNewItem?: () => void       // ← NEW: callback to open modal
+  productSearch: string;
+  setProductSearch: (v: string) => void;
+  filteredInventory: InventoryItem[];
+  onAddProduct: (item: InventoryItem) => void;
 }
 
 export function ProductSearcher({
@@ -21,50 +19,27 @@ export function ProductSearcher({
   setProductSearch,
   filteredInventory,
   onAddProduct,
-  isPurchaseMode = false,
-  onCreateNewItem,
 }: ProductSearcherProps) {
-  // ────────────────────────────────────────────────
-  //   PURCHASE MODE – show only "Create New Item" button
-  // ────────────────────────────────────────────────
-  if (isPurchaseMode) {
-    return (
-      <div className="flex flex-col items-center justify-center py-10 px-6 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/70 hover:bg-slate-100/70 transition-colors">
-        <Button
-          size="lg"
-          className="h-14 px-10 text-lg gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md hover:shadow-xl transition-all duration-300 group"
-          onClick={onCreateNewItem}
-        >
-          <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
-          <span className="font-semibold">Create & Add New Item</span>
-        </Button>
-        <p className="mt-4 text-sm text-slate-500 text-center max-w-md">
-          Add purchase-specific items directly here (not saved to main inventory)
-        </p>
-      </div>
-    )
-  }
-
   // ────────────────────────────────────────────────
   //   INVOICE / QUOTATION MODE – original search flow
   // ────────────────────────────────────────────────
   const getPriceDisplay = (item: InventoryItem) => {
     switch (item.measurementType) {
-      case 'height_width':
-        const ph = item.pricePerHeight ?? 0
-        const pw = item.pricePerWidth ?? 0
-        return `Height: ${formatINR(ph)} / Width: ${formatINR(pw)}`
+      case "height_width":
+        const ph = item.pricePerHeight ?? 0;
+        const pw = item.pricePerWidth ?? 0;
+        return `Height: ${formatINR(ph)} / Width: ${formatINR(pw)}`;
 
-      case 'kg':
-        return `${formatINR(item.pricePerKg ?? 0)} / kg`
+      case "kg":
+        return `${formatINR(item.pricePerKg ?? 0)} / kg`;
 
-      case 'unit':
-        return `${formatINR(item.pricePerUnit ?? 0)} per unit`
+      case "unit":
+        return `${formatINR(item.pricePerUnit ?? 0)} per unit`;
 
       default:
-        return '—'
+        return "—";
     }
-  }
+  };
 
   return (
     <div className="relative group bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
@@ -89,7 +64,8 @@ export function ProductSearcher({
           disabled={!productSearch || filteredInventory.length === 0}
           className="group relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-sm hover:shadow-md transition-all duration-300 min-w-[160px]"
           onClick={() => {
-            if (filteredInventory.length > 0) onAddProduct(filteredInventory[0])
+            if (filteredInventory.length > 0)
+              onAddProduct(filteredInventory[0]);
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -109,10 +85,17 @@ export function ProductSearcher({
             >
               <div className="flex flex-col">
                 <span className="font-medium text-slate-900">{item.name}</span>
+
                 <span className="text-xs text-slate-500 mt-0.5">
                   {item.measurementType}
+                  {item.hsnCode && (
+                    <span className="ml-2 text-slate-400">
+                      • HSN: {item.hsnCode}
+                    </span>
+                  )}
                 </span>
               </div>
+
               <span className="text-sm font-medium text-emerald-700">
                 {getPriceDisplay(item)}
               </span>
@@ -121,5 +104,5 @@ export function ProductSearcher({
         </div>
       )}
     </div>
-  )
+  );
 }

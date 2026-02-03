@@ -1,5 +1,5 @@
 // components/inventory/add-inventory-modal.tsx
-'use client'
+"use client";
 
 import {
   Dialog,
@@ -7,78 +7,80 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useAddInventoryForm } from '@/app/dashboard/inventory/hooks/useAddInventoryForm'
-import { 
-  Package, 
-  Ruler, 
-  Weight, 
-  Hash, 
-  IndianRupee, 
+} from "@/components/ui/select";
+import { useAddInventoryForm } from "@/app/dashboard/inventory/hooks/useAddInventoryForm";
+import {
+  Package,
+  Ruler,
+  Weight,
+  Hash,
+  IndianRupee,
   CheckCircle2,
   AlertCircle,
-  Sparkles
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+  Sparkles,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AddInventoryModalProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-type MeasurementType = 'height_width' | 'kg' | 'unit'
+type MeasurementType = "height_width" | "kg" | "unit";
 
 export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
-  const { form, updateField, submit, error, reset } = useAddInventoryForm(() => {
-    reset()
-    onClose()
-  })
+  const { form, updateField, submit, error, reset } = useAddInventoryForm(
+    () => {
+      reset();
+      onClose();
+    },
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const success = submit()
-    if (success) onClose()
-  }
+    e.preventDefault();
+    const success = submit();
+    if (success) onClose();
+  };
 
   const getMeasurementIcon = (type: MeasurementType | undefined) => {
     switch (type) {
-      case 'height_width':
-        return <Ruler className="h-4 w-4" />
-      case 'kg':
-        return <Weight className="h-4 w-4" />
-      case 'unit':
-        return <Hash className="h-4 w-4" />
+      case "height_width":
+        return <Ruler className="h-4 w-4" />;
+      case "kg":
+        return <Weight className="h-4 w-4" />;
+      case "unit":
+        return <Hash className="h-4 w-4" />;
       default:
-        return <Package className="h-4 w-4" />
+        return <Package className="h-4 w-4" />;
     }
-  }
+  };
 
   // ────────────────────────────────────────────────
   //   Price fields – styled like the good-looking version
   // ────────────────────────────────────────────────
   const renderPriceFields = () => {
-    const type = form.measurementType as MeasurementType | undefined
+    const type = form.measurementType as MeasurementType | undefined;
 
-    if (!type) return null
+    if (!type) return null;
 
-    if (type === 'height_width') {
+    if (type === "height_width") {
       return (
         <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
           {/* Dimensions – disabled inputs */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label 
-                htmlFor="height" 
+              <Label
+                htmlFor="height"
                 className="text-sm font-medium text-slate-700 flex items-center gap-1.5"
               >
                 <Ruler className="h-3.5 w-3.5 text-indigo-600" />
@@ -100,8 +102,8 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
             </div>
 
             <div className="space-y-2">
-              <Label 
-                htmlFor="width" 
+              <Label
+                htmlFor="width"
                 className="text-sm font-medium text-slate-700 flex items-center gap-1.5"
               >
                 <Ruler className="h-3.5 w-3.5 text-indigo-600" />
@@ -136,8 +138,8 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
 
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-2">
-                <Label 
-                  htmlFor="pricePerHeight" 
+                <Label
+                  htmlFor="pricePerHeight"
                   className="text-sm font-medium text-slate-700"
                 >
                   Price per Height (ft)
@@ -146,16 +148,18 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
                   id="pricePerHeight"
                   type="number"
                   placeholder="0.00"
-                  value={form.pricePerHeight ?? ''}
-                  onChange={(e) => updateField('pricePerHeight', e.target.value)}
+                  value={form.pricePerHeight ?? ""}
+                  onChange={(e) =>
+                    updateField("pricePerHeight", e.target.value)
+                  }
                   required
                   className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label 
-                  htmlFor="pricePerWidth" 
+                <Label
+                  htmlFor="pricePerWidth"
                   className="text-sm font-medium text-slate-700"
                 >
                   Price per Width (ft)
@@ -164,8 +168,8 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
                   id="pricePerWidth"
                   type="number"
                   placeholder="0.00"
-                  value={form.pricePerWidth ?? ''}
-                  onChange={(e) => updateField('pricePerWidth', e.target.value)}
+                  value={form.pricePerWidth ?? ""}
+                  onChange={(e) => updateField("pricePerWidth", e.target.value)}
                   required
                   className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
                 />
@@ -173,13 +177,18 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
             </div>
           </div>
         </div>
-      )
+      );
     }
 
     // ─── kg or unit ───────────────────────────────────────
-    const label = type === 'kg' ? 'Price per Kg' : 'Price per Unit'
-    const fieldKey = type === 'kg' ? 'pricePerKg' : 'pricePerUnit'
-    const icon = type === 'kg' ? <Weight className="h-4 w-4" /> : <Hash className="h-4 w-4" />
+    const label = type === "kg" ? "Price per Kg" : "Price per Unit";
+    const fieldKey = type === "kg" ? "pricePerKg" : "pricePerUnit";
+    const icon =
+      type === "kg" ? (
+        <Weight className="h-4 w-4" />
+      ) : (
+        <Hash className="h-4 w-4" />
+      );
 
     return (
       <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -194,8 +203,8 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
           </div>
 
           <div className="space-y-2">
-            <Label 
-              htmlFor={fieldKey} 
+            <Label
+              htmlFor={fieldKey}
               className="text-sm font-medium text-slate-700 flex items-center gap-2"
             >
               {icon}
@@ -205,7 +214,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
               id={fieldKey}
               type="number"
               placeholder="0.00"
-              value={form[fieldKey] ?? ''}
+              value={form[fieldKey] ?? ""}
               onChange={(e) => updateField(fieldKey, e.target.value)}
               required
               className="border-slate-300 focus:border-emerald-400 focus:ring-emerald-200"
@@ -213,12 +222,22 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
           </div>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg bg-white border-slate-200">
+      <DialogContent
+        className="
+    sm:max-w-lg
+    max-h-[85vh]
+    overflow-hidden
+    bg-white
+    border-slate-200
+    flex
+    flex-col
+  "
+      >
         <DialogHeader className="pb-5 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-indigo-600 rounded-xl shadow-sm">
@@ -242,11 +261,14 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 pt-2 overflow-y-auto flex-1 pr-1"
+        >
           {/* Name */}
           <div className="space-y-2">
-            <Label 
-              htmlFor="inventoryName" 
+            <Label
+              htmlFor="inventoryName"
               className="text-sm font-medium text-slate-700 flex items-center gap-1.5"
             >
               <Sparkles className="h-4 w-4 text-indigo-600" />
@@ -257,16 +279,37 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
               id="inventoryName"
               placeholder="e.g. Teak Wood Panels, MS Rods, etc."
               value={form.name}
-              onChange={(e) => updateField('name', e.target.value)}
+              onChange={(e) => updateField("name", e.target.value)}
               required
               className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
             />
           </div>
 
+          {/* HSN Code – NEW FIELD */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="hsnCode"
+              className="text-sm font-medium text-slate-700 flex items-center gap-1.5"
+            >
+              <Hash className="h-4 w-4 text-blue-600" />
+              HSN Code
+            </Label>
+            <Input
+              id="hsnCode"
+              placeholder="e.g. 4407 (Wood), 7213 (Steel), etc."
+              value={form.hsnCode ?? ""}
+              onChange={(e) => updateField("hsnCode", e.target.value)}
+              className="border-slate-300 focus:border-blue-400 focus:ring-blue-200"
+            />
+            <p className="text-xs text-slate-500">
+              Enter 4–8 digit HSN code for GST classification (optional)
+            </p>
+          </div>
+
           {/* Measurement Type */}
           <div className="space-y-2">
-            <Label 
-              htmlFor="measurementType" 
+            <Label
+              htmlFor="measurementType"
               className="text-sm font-medium text-slate-700 flex items-center gap-1.5"
             >
               {getMeasurementIcon(form.measurementType as MeasurementType)}
@@ -274,15 +317,15 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
               <span className="text-red-500 text-xs">*</span>
             </Label>
             <Select
-              value={form.measurementType || ''}
+              value={form.measurementType || ""}
               onValueChange={(value) => {
-                updateField('measurementType', value)
-                if (value !== 'height_width') {
-                  updateField('pricePerHeight', '')
-                  updateField('pricePerWidth', '')
+                updateField("measurementType", value);
+                if (value !== "height_width") {
+                  updateField("pricePerHeight", "");
+                  updateField("pricePerWidth", "");
                 }
-                if (value !== 'kg') updateField('pricePerKg', '')
-                if (value !== 'unit') updateField('pricePerUnit', '')
+                if (value !== "kg") updateField("pricePerKg", "");
+                if (value !== "unit") updateField("pricePerUnit", "");
               }}
               required
             >
@@ -320,16 +363,16 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
           {renderPriceFields()}
 
           <DialogFooter className="gap-3 pt-5 border-t border-slate-200">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={onClose}
               className="border-slate-300 hover:bg-slate-50"
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[130px] shadow-sm"
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -339,5 +382,5 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

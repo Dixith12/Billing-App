@@ -12,9 +12,14 @@ import {
   runTransaction,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import type { InvoiceProduct } from "@/lib/firebase/invoices"; // Reuse from invoices
-import { getNextInvoiceNumber } from "@/lib/firebase/invoices"; // Reuse invoice number getter
+import type { InvoiceProduct } from "@/lib/firebase/invoices";
+import { getNextInvoiceNumber } from "@/lib/firebase/invoices";
 import { cleanUndefined } from "@/lib/utils/invoiceUtil";
+
+/* ─────────────────────────────────────────────────────────────── */
+/* TYPES */
+/* ─────────────────────────────────────────────────────────────── */
+
 export interface Quotation {
   id: string;
   quotationNumber: number;
@@ -22,151 +27,213 @@ export interface Quotation {
   customerName: string;
   customerPhone?: string;
   customerGstin?: string;
+  placeOfSupply?: string;
   billingAddress: string;
+
   products: InvoiceProduct[];
+
   subtotal: number;
   discount: number;
   cgst: number;
   sgst: number;
-  igst?: number; // 👈 ADD
+  igst?: number;
   netAmount: number;
-  totalGross?: number; // 👈 ADD
-  quotationDate?: Date
-createdAt?: Date
-updatedAt?: Date
+  totalGross?: number;
 
- // 👈 ADD
+  quotationDate?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
+/* ─────────────────────────────────────────────────────────────── */
+/* REFERENCES */
+/* ─────────────────────────────────────────────────────────────── */
+
 const quotationsRef = collection(db, "quotations");
-// Counter for quotation number
 const quotationCounterRef = doc(db, "counters", "quotationNumber");
+
+/* ─────────────────────────────────────────────────────────────── */
+/* QUOTATION NUMBER */
+/* ─────────────────────────────────────────────────────────────── */
+
 export const getNextQuotationNumber = async (): Promise<number> => {
   return await runTransaction(db, async (transaction) => {
-    const counterSnap = await transaction.get(quotationCounterRef);
-    let newNumber = 1;
-    if (counterSnap.exists()) {
-      const data = counterSnap.data();
-      const current = data?.current ?? 0;
-      newNumber = current + 1;
-    }
+    const snap = await transaction.get(quotationCounterRef);
+    const current = snap.exists() ? snap.data()?.current ?? 0 : 0;
+    const next = current + 1;
+
     transaction.set(
       quotationCounterRef,
-      { current: newNumber },
+      { current: next },
       { merge: true },
     );
-    return newNumber;
+
+    return next;
   });
 };
+
+/* ─────────────────────────────────────────────────────────────── */
+/* CREATE */
+/* ─────────────────────────────────────────────────────────────── */
+
 export const addQuotation = async (
   data: Omit<Quotation, "id" | "quotationNumber" | "createdAt" | "updatedAt">,
 ): Promise<Quotation> => {
-  const nextNumber = await getNextQuotationNumber();
+  const quotationNumber = await getNextQuotationNumber();
   const now = Timestamp.now();
 
-  // ✅ clean ONLY plain JS data
   const safeData = cleanUndefined({
     ...data,
-    quotationNumber: nextNumber,
+    quotationNumber,
   });
 
-  // ✅ add Timestamp AFTER cleaning
- const payload = {
-  ...safeData,
-  totalGross: data.totalGross ?? data.netAmount,
-
-  // ✅ quotationDate comes from form (Date)
-  quotationDate: data.quotationDate
-    ? Timestamp.fromDate(data.quotationDate)
-    : now,
-
-  createdAt: now,
-  updatedAt: now,
-};
-
+  const payload = {
+    ...safeData,
+    totalGross: data.totalGross ?? data.netAmount,
+    quotationDate: data.quotationDate
+      ? Timestamp.fromDate(data.quotationDate)
+      : now,
+    createdAt: now,
+    updatedAt: now,
+  };
 
   const docRef = await addDoc(quotationsRef, payload);
 
   return {
-  id: docRef.id,
-  ...safeData,
-  quotationNumber: nextNumber,
-  quotationDate: data.quotationDate ?? now.toDate(),
-  createdAt: now.toDate(),
-  updatedAt: now.toDate(),
-}
-
+    id: docRef.id,
+    ...safeData,
+    quotationNumber,
+    quotationDate: data.quotationDate ?? now.toDate(),
+    createdAt: now.toDate(),
+    updatedAt: now.toDate(),
+  };
 };
+
+/* ─────────────────────────────────────────────────────────────── */
+/* FETCH (🔥 FIXED UPDATED DATE HERE) */
+/* ─────────────────────────────────────────────────────────────── */
 
 export const getQuotations = async (): Promise<Quotation[]> => {
   const q = query(quotationsRef, orderBy("createdAt", "desc"));
   const snapshot = await getDocs(q);
 
-  console.log("🔥 Firestore quotations count:", snapshot.size);
-
   return snapshot.docs.map((snap) => {
     const data = snap.data();
 
-    console.log("📄 Raw quotation doc:", data);
+    const quotationDate =
+  data.quotationDate instanceof Timestamp
+    ? data.quotationDate.toDate()
+    : typeof data.quotationDate?.seconds === "number"
+      ? new Date(data.quotationDate.seconds * 1000) // ✅ FIX
+      : data.quotationDate instanceof Date
+        ? data.quotationDate
+        : undefined
+
 
     return {
       id: snap.id,
-      ...(data as any),
-      createdAt: data.createdAt?.toDate(),
-      updatedAt: data.updatedAt?.toDate(),
-      quotationDate: data.quotationDate?.toDate(),
+
+      quotationNumber: data.quotationNumber,
+      customerId: data.customerId,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      customerGstin: data.customerGstin,
+      placeOfSupply: data.placeOfSupply,
+      billingAddress: data.billingAddress,
+
+      products: data.products ?? [],
+
+      subtotal: data.subtotal ?? 0,
+      discount: data.discount ?? 0,
+      cgst: data.cgst ?? 0,
+      sgst: data.sgst ?? 0,
+      igst: data.igst ?? 0,
+      netAmount: data.netAmount ?? 0,
+      totalGross: data.totalGross ?? data.netAmount ?? 0,
+
+      quotationDate,
+
+      createdAt:
+        data.createdAt instanceof Timestamp
+          ? data.createdAt.toDate()
+          : data.createdAt instanceof Date
+            ? data.createdAt
+            : undefined,
+
+      updatedAt: // ✅ THIS FIXES "-"
+        data.updatedAt instanceof Timestamp
+          ? data.updatedAt.toDate()
+          : data.updatedAt instanceof Date
+            ? data.updatedAt
+            : undefined,
     };
   });
 };
+
+/* ─────────────────────────────────────────────────────────────── */
+/* UPDATE */
+/* ─────────────────────────────────────────────────────────────── */
 
 export const updateQuotation = async (
   id: string,
   data: Partial<Omit<Quotation, "id" | "createdAt" | "quotationNumber">>,
 ): Promise<void> => {
   const quotationDoc = doc(db, "quotations", id);
+
   const safeUpdates = cleanUndefined({
     ...data,
-    updatedAt: Timestamp.now(), // optional but recommended
+    quotationDate:
+      data.quotationDate instanceof Date
+        ? Timestamp.fromDate(data.quotationDate)
+        : data.quotationDate,
+    updatedAt: Timestamp.now(), // ✅ REQUIRED
   });
 
   await updateDoc(quotationDoc, safeUpdates);
 };
+
+/* ─────────────────────────────────────────────────────────────── */
+/* DELETE */
+/* ─────────────────────────────────────────────────────────────── */
+
 export const deleteQuotation = async (id: string): Promise<void> => {
-  const quotationDoc = doc(db, "quotations", id);
-  await deleteDoc(quotationDoc);
+  await deleteDoc(doc(db, "quotations", id));
 };
 
-// Convert quotation to invoice
+/* ─────────────────────────────────────────────────────────────── */
+/* CONVERT TO INVOICE */
+/* ─────────────────────────────────────────────────────────────── */
+
 export const convertQuotationToInvoice = async (
   quotationId: string,
 ): Promise<string> => {
   return await runTransaction(db, async (transaction) => {
     const quotationDoc = doc(db, "quotations", quotationId);
-    const quotationSnap = await transaction.get(quotationDoc);
-    if (!quotationSnap.exists()) {
+    const snap = await transaction.get(quotationDoc);
+
+    if (!snap.exists()) {
       throw new Error("Quotation not found");
     }
-    const data = quotationSnap.data() as Quotation;
-    const nextInvoiceNumber = await getNextInvoiceNumber(); // From invoices.ts
+
+    const data = snap.data() as any;
+    const invoiceNumber = await getNextInvoiceNumber();
     const invoicesRef = collection(db, "invoices");
     const now = Timestamp.now();
 
     const safeData = cleanUndefined({
       ...data,
-      invoiceNumber: nextInvoiceNumber,
+      invoiceNumber,
       status: "pending",
       mode: "cash",
       paidAmount: 0,
+      createdAt: now,
+      updatedAt: now,
     });
 
-    const invoicePayload = {
-      ...safeData,
-      createdAt: now,
-    };
+    const newInvoiceRef = await addDoc(invoicesRef, safeData);
 
-    const newInvoiceRef = await addDoc(invoicesRef, invoicePayload);
-    // Delete the quotation
     transaction.delete(quotationDoc);
-    return newInvoiceRef.id; // Return new invoice ID if needed
+
+    return newInvoiceRef.id;
   });
 };

@@ -342,19 +342,21 @@ export default function ExpensesPage() {
 
       {/* Modal */}
       <ExpenseModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        initialData={editingExpense}
-        onSave={(data) => {
-          if (editingExpense) {
-            updateExpense(editingExpense.id, data);
-          } else {
-            addExpense(data);
-          }
-          setIsModalOpen(false);
-          setEditingExpense(null);
-        }}
-      />
+  isOpen={isModalOpen}
+  onClose={() => setIsModalOpen(false)}
+  initialData={editingExpense}
+  onSave={(data) => {
+    if (editingExpense) {
+      // edit mode
+      updateExpense(editingExpense.id, data as Partial<Omit<Expense, "id" | "createdAt">>)
+    } else {
+      // create mode
+      addExpense(data as Omit<Expense, "id" | "createdAt" | "updatedAt">)
+    }
+    setIsModalOpen(false)
+    setEditingExpense(null)
+  }}
+/>
     </div>
   );
 }

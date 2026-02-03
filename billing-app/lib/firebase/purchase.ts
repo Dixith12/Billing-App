@@ -32,9 +32,8 @@ export interface Purchase {
   netAmount: number;
   totalGross?: number; // 👈 ADD THIS
 
-
   // ── Added / updated fields for consistency with UI & other documents ──
-  purchaseDate?: Date;     // ← UI sends Date, stored as Date in returned object
+  purchaseDate?: Date; // ← UI sends Date, stored as Date in returned object
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -51,7 +50,11 @@ export const getNextPurchaseNumber = async (): Promise<number> => {
       const current = data?.current ?? 0;
       newNumber = current + 1;
     }
-    transaction.set(purchaseCounterRef, { current: newNumber }, { merge: true });
+    transaction.set(
+      purchaseCounterRef,
+      { current: newNumber },
+      { merge: true },
+    );
     return newNumber;
   });
 };
@@ -65,24 +68,22 @@ export const addPurchase = async (
   const safeData = cleanUndefined({
     ...data,
     purchaseNumber: nextNumber,
-    vendorState:data.vendorState?.trim()||"Karnataka",
+    vendorState: data.vendorState?.trim(),
   });
 
   const payload = {
-  ...safeData,
-  totalGross: data.totalGross ?? data.netAmount,
+    ...safeData,
+    totalGross: data.totalGross ?? data.netAmount,
 
-  // ✅ SAVE USER-SELECTED PURCHASE DATE
-  purchaseDate: data.purchaseDate
-    ? Timestamp.fromDate(new Date(data.purchaseDate))
-    : now,
+    // ✅ SAVE USER-SELECTED PURCHASE DATE
+    purchaseDate: data.purchaseDate
+      ? Timestamp.fromDate(new Date(data.purchaseDate))
+      : now,
 
-  // system metadata
-  createdAt: now,
-  updatedAt: now,
-};
-
-
+    // system metadata
+    createdAt: now,
+    updatedAt: now,
+  };
 
   const docRef = await addDoc(purchasesRef, payload);
 
@@ -109,30 +110,33 @@ export const getPurchases = async (): Promise<Purchase[]> => {
         data.createdAt instanceof Timestamp
           ? data.createdAt.toDate()
           : data.createdAt instanceof Date
-          ? data.createdAt
-          : undefined,
+            ? data.createdAt
+            : undefined,
 
       updatedAt:
         data.updatedAt instanceof Timestamp
           ? data.updatedAt.toDate()
           : data.updatedAt instanceof Date
-          ? data.updatedAt
-          : undefined,
+            ? data.updatedAt
+            : undefined,
 
       purchaseDate:
         data.purchaseDate instanceof Timestamp
           ? data.purchaseDate.toDate()
-          : data.purchaseDate instanceof Date
-          ? data.purchaseDate
-          : undefined,
+          : typeof data.purchaseDate?.seconds === "number"
+            ? new Date(data.purchaseDate.seconds * 1000) // ✅ IMPORTANT
+            : data.purchaseDate instanceof Date
+              ? data.purchaseDate
+              : undefined,
     };
   });
 };
 
-
 export const updatePurchase = async (
   id: string,
-  data: Partial<Omit<Purchase, "id" | "purchaseNumber" | "createdAt" | "updatedAt">>,
+  data: Partial<
+    Omit<Purchase, "id" | "purchaseNumber" | "createdAt" | "updatedAt">
+  >,
 ): Promise<void> => {
   const purchaseDoc = doc(db, "purchases", id);
   const safeUpdates = cleanUndefined({

@@ -1,3 +1,4 @@
+// app/inventory/hooks/useEditInventoryForm.ts
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -19,6 +20,7 @@ export function useEditInventoryForm(
     pricePerWidth: '',
     pricePerKg: '',
     pricePerUnit: '',
+    hsnCode: '',              // ← NEW FIELD
   })
 
   const [error, setError] = useState<string | null>(null)
@@ -26,14 +28,15 @@ export function useEditInventoryForm(
   useEffect(() => {
     if (item) {
       setForm({
-        name: item.name,
-        measurementType: item.measurementType,
+        name: item.name || '',
+        measurementType: item.measurementType || '',
         height: item.height ?? 1,
         width: item.width ?? 1,
         pricePerHeight: item.pricePerHeight?.toString() ?? '',
         pricePerWidth: item.pricePerWidth?.toString() ?? '',
         pricePerKg: item.pricePerKg?.toString() ?? '',
         pricePerUnit: item.pricePerUnit?.toString() ?? '',
+        hsnCode: item.hsnCode || '',      // ← Load existing HSN
       })
       setError(null)
     }
@@ -56,6 +59,7 @@ export function useEditInventoryForm(
     const dataToSave: Partial<Omit<InventoryItem, 'id' | 'createdAt'>> = {
       name: form.name.trim(),
       measurementType: type,
+      hsnCode: form.hsnCode.trim() || null,   // ← Save HSN (null if empty)
     }
 
     if (type === 'height_width') {

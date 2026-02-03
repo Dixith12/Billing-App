@@ -71,6 +71,7 @@ import InvoicePDF from "@/components/dashboard/invoice-pdf";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { exportTransactionsToExcel } from "@/lib/utils/exportToExcel"; // Adjust path to your new utility file
+import { Timestamp } from "firebase/firestore";
 
 interface TransactionsTableProps {
   invoices: Invoice[];
@@ -208,6 +209,22 @@ export function TransactionsTable(props: TransactionsTableProps) {
       }
     };
   }, [pdfBlobUrl]);
+
+  function safeToDate(value: any): Date | undefined {
+    if (!value) return undefined;
+
+    if (value instanceof Date) return value;
+
+    if (value instanceof Timestamp) return value.toDate();
+
+    if (typeof value?.toDate === "function") return value.toDate();
+
+    if (typeof value?.seconds === "number") {
+      return new Date(value.seconds * 1000);
+    }
+
+    return undefined;
+  }
 
   return (
     <div className="space-y-5 ml-3 mt-3 mr-3 mb-3">
@@ -1168,17 +1185,21 @@ export function TransactionsTable(props: TransactionsTableProps) {
               </span>
             </DialogTitle>
             <DialogDescription className="flex items-center gap-2 text-slate-600 mt-1">
-              {selectedPdfInvoice ? (
-                <>
-                  <Calendar className="h-3.5 w-3.5" />
-                  Created: {formatDate(
-                    selectedPdfInvoice.createdAt?.toDate(),
-                  )}{" "}
-                  • {getRelativeTime(selectedPdfInvoice.createdAt?.toDate())}
-                </>
-              ) : (
-                "Loading invoice..."
-              )}
+              {selectedPdfInvoice
+                ? (() => {
+                    const createdAtDate = safeToDate(
+                      selectedPdfInvoice.createdAt,
+                    );
+
+                    return (
+                      <>
+                        <Calendar className="h-3.5 w-3.5" />
+                        Created: {formatDate(createdAtDate)} •{" "}
+                        {getRelativeTime(createdAtDate)}
+                      </>
+                    );
+                  })()
+                : "Loading invoice..."}
             </DialogDescription>
           </DialogHeader>
 

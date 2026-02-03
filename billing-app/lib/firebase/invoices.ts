@@ -89,70 +89,66 @@ const invoiceRef = collection(db, "invoices");
 
 export const addInvoice = async (input: CreateInvoiceInput) => {
   const nextNumber = await getNextInvoiceNumber();
-
   const now = new Date();
 
-  // Handle invoiceDate: current time if today, else midnight
-  let finalInvoiceDate: Timestamp | undefined;
+  // ✅ FINAL invoiceDate (ALWAYS defined)
+  let invoiceDateTs: Timestamp;
   if (input.invoiceDate) {
-    const date = new Date(input.invoiceDate);
-    const isToday =
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth() &&
-      date.getDate() === now.getDate();
-
-    if (!isToday) {
-      date.setHours(0, 0, 0, 0);
+    const d = new Date(input.invoiceDate);
+    if (
+      d.getFullYear() !== now.getFullYear() ||
+      d.getMonth() !== now.getMonth() ||
+      d.getDate() !== now.getDate()
+    ) {
+      d.setHours(0, 0, 0, 0);
     }
-    finalInvoiceDate = Timestamp.fromDate(date);
+    invoiceDateTs = Timestamp.fromDate(d);
+  } else {
+    invoiceDateTs = Timestamp.fromDate(now);
   }
 
-  // Handle dueDate: same logic
-  let finalDueDate: Timestamp | undefined;
+  // ✅ FINAL dueDate (optional)
+  let dueDateTs: Timestamp | undefined;
   if (input.dueDate) {
-    const date = new Date(input.dueDate);
-    const isToday =
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth() &&
-      date.getDate() === now.getDate();
-
-    if (!isToday) {
-      date.setHours(0, 0, 0, 0);
+    const d = new Date(input.dueDate);
+    if (
+      d.getFullYear() !== now.getFullYear() ||
+      d.getMonth() !== now.getMonth() ||
+      d.getDate() !== now.getDate()
+    ) {
+      d.setHours(0, 0, 0, 0);
     }
-    finalDueDate = Timestamp.fromDate(date);
+    dueDateTs = Timestamp.fromDate(d);
   }
 
-  const safeInvoice = cleanUndefined({
+  // ✅ BUILD payload FIRST (no cleaning yet)
+  const payload = {
     ...input,
-    products: input.products.map((product) => ({
-      ...product,
-      wasteAmount: product.wasteEnabled ? (product.wasteAmount ?? 0) : undefined,
-    })),
-    invoiceDate: finalInvoiceDate,
-    dueDate: finalDueDate,
-  });
-
-  if (!finalInvoiceDate) {
-  finalInvoiceDate = Timestamp.fromDate(new Date());
-}
-
-
-  const docRef = await addDoc(invoiceRef, {
-    ...safeInvoice,
     invoiceNumber: nextNumber,
-    status: "pending",
-    mode: "cash",
+    status: "pending" as const,
+    mode: "cash" as const,
     paidAmount: 0,
-    invoiceDate:finalInvoiceDate,
+
+    products: input.products.map((p) => ({
+      ...p,
+      wasteAmount: p.wasteEnabled ? p.wasteAmount ?? 0 : undefined,
+    })),
+
+    invoiceDate: invoiceDateTs,
+    ...(dueDateTs && { dueDate: dueDateTs }),
+
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  });
+  };
+
+  // ✅ CLEAN ONLY AT THE END
+  const safePayload = cleanUndefined(payload);
+
+  const docRef = await addDoc(invoiceRef, safePayload);
 
   return {
     id: docRef.id,
-    invoiceNumber: nextNumber,
-    ...safeInvoice,
-    paidAmount: 0,
+    ...safePayload,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };

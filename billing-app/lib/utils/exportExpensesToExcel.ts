@@ -1,12 +1,12 @@
-import * as XLSX from 'xlsx';
-import type { Expense } from '@/lib/firebase/expenses';
+import * as XLSX from "xlsx";
+import type { Expense } from "@/lib/firebase/expenses";
 
 export function exportExpensesToExcel(
   expenses: Expense[],
-  fileName = 'Expense_Register.xlsx',
+  fileName = "Expense_Register.xlsx",
 ) {
   if (expenses.length === 0) {
-    alert('No expenses to export');
+    alert("No expenses to export");
     return;
   }
 
@@ -15,9 +15,9 @@ export function exportExpensesToExcel(
        STATE CHECK
     ─────────────── */
 
-    const stateValue = exp.state ?? '';
+    const stateValue = exp.state ?? "";
     const stateLower = stateValue.toString().toLowerCase().trim();
-    const isKarnataka = stateLower === 'karnataka';
+    const isKarnataka = stateLower === "karnataka";
 
     /* ───────────────
        BASE VALUES
@@ -35,46 +35,51 @@ export function exportExpensesToExcel(
     const sgstPct = Number(exp.sgstPercent) || 0;
     const igstPct = Number(exp.igstPercent) || 0;
 
-    // Display logic:
     // Karnataka → CGST + SGST
-    // Other state → IGST only
-    const displayCgst = isKarnataka ? `${cgstPct}%` : '0%';
-    const displaySgst = isKarnataka ? `${sgstPct}%` : '0%';
-    const displayIgst = isKarnataka ? '0%' : `${igstPct}%`;
+    // Other State → IGST only
+    const totalGstPct = isKarnataka
+      ? cgstPct + sgstPct
+      : igstPct;
+
+    const displayCgst = isKarnataka ? `${cgstPct}%` : "0%";
+    const displaySgst = isKarnataka ? `${sgstPct}%` : "0%";
+    const displayIgst = isKarnataka ? "0%" : `${igstPct}%`;
 
     /* ───────────────
-       TOTAL AMOUNT
-       (calculated internally)
+       GST AMOUNT
     ─────────────── */
 
-    const gstAmount = isKarnataka
-      ? (taxable * (cgstPct + sgstPct)) / 100
-      : (taxable * igstPct) / 100;
-
+    const gstAmount = (taxable * totalGstPct) / 100;
     const totalAmount = taxable + gstAmount;
 
     return {
-      'Expense Date': exp.date
-        ? new Date(exp.date).toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'numeric',
-            year: 'numeric',
+      "Expense Date": exp.date
+        ? new Date(exp.date).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "numeric",
+            year: "numeric",
           })
-        : '-',
-      'Expense Name': exp.name || '-',
-      'Vendor State': stateValue || '-',
-      Category: exp.category || '-',
+        : "-",
+      "Expense Name": exp.name || "-",
+      "Vendor State": stateValue || "-",
+      Category: exp.category || "-",
       Quantity: quantity,
-      'Unit Price': unitPrice.toFixed(2),
-      'Taxable Amount': taxable.toFixed(2),
+      "Unit Price": unitPrice.toFixed(2),
+      "Taxable Amount": taxable.toFixed(2),
 
-      // ✅ PERCENTAGE COLUMNS ONLY
-      'CGST %': displayCgst,
-      'SGST %': displaySgst,
-      'IGST %': displayIgst,
+      // ✅ NEW COLUMN (TOTAL GST %)
+      "GST %": totalGstPct ? `${totalGstPct}%` : "0%",
 
-      'Total Amount': totalAmount.toFixed(2),
-      'ITC Eligible': 'Yes',
+      // EXISTING GST %
+      "CGST %": displayCgst,
+      "SGST %": displaySgst,
+      "IGST %": displayIgst,
+
+      // ✅ NEW COLUMN (GST AMOUNT)
+      "GST Amount": gstAmount.toFixed(2),
+
+      "Total Amount": totalAmount.toFixed(2),
+      "ITC Eligible": "Yes",
     };
   });
 
@@ -84,11 +89,12 @@ export function exportExpensesToExcel(
 
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+  XLSX.utils.book_append_sheet(wb, ws, "Expenses");
 
   // Auto-size columns
-  ws['!cols'] = [];
-  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  ws["!cols"] = [];
+  const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+
   for (let C = range.s.c; C <= range.e.c; ++C) {
     let maxw = 12;
     for (let R = range.s.r; R <= range.e.r; ++R) {
@@ -97,7 +103,7 @@ export function exportExpensesToExcel(
         maxw = Math.max(maxw, String(cell.v).length + 2);
       }
     }
-    ws['!cols'][C] = { wch: maxw };
+    ws["!cols"][C] = { wch: maxw };
   }
 
   XLSX.writeFile(wb, fileName);

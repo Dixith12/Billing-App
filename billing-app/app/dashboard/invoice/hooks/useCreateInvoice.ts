@@ -15,7 +15,7 @@ export interface BilledProduct {
   id: string;
   name: string;
   quantity: number;
-  hsncode?:string;
+  hsncode?: string;
   measurementType: "height_width" | "kg" | "unit";
   height?: string;
   width?: string;
@@ -35,7 +35,6 @@ export interface BilledProduct {
   grossTotal: number;
   netTotal: number;
 }
-
 
 export interface UseCreateInvoiceReturn {
   // Party
@@ -67,7 +66,7 @@ export interface UseCreateInvoiceReturn {
   updateBilledProduct: (
     id: string,
     field: any,
-    value: string | number | boolean
+    value: string | number | boolean,
   ) => void;
   removeBilledProduct: (id: string) => void;
   setBilledProducts: React.Dispatch<React.SetStateAction<any[]>>;
@@ -94,10 +93,9 @@ export interface UseCreateInvoiceReturn {
   isPurchaseMode: boolean;
 }
 
-
-export function useCreateInvoice(
-  options?: { isPurchaseMode?: boolean }
-): UseCreateInvoiceReturn {
+export function useCreateInvoice(options?: {
+  isPurchaseMode?: boolean;
+}): UseCreateInvoiceReturn {
   const isPurchaseMode = options?.isPurchaseMode ?? false;
 
   const { inventoryItems } = useApp();
@@ -168,7 +166,9 @@ export function useCreateInvoice(
         address: newParty.address.trim(),
         state: newParty.state.trim(),
         openingBalance,
-        ...(newParty.companyName.trim() && { companyName: newParty.companyName.trim() }),
+        ...(newParty.companyName.trim() && {
+          companyName: newParty.companyName.trim(),
+        }),
         ...(newParty.gstin.trim() && { gstin: newParty.gstin.trim() }),
       };
 
@@ -248,9 +248,11 @@ export function useCreateInvoice(
     }
 
     const newProduct: BilledProduct = {
-      id: crypto.randomUUID() || Date.now().toString() + Math.random().toString(36).slice(2),
+      id:
+        crypto.randomUUID() ||
+        Date.now().toString() + Math.random().toString(36).slice(2),
       name: item.name,
-      hsncode:item.hsnCode?? undefined,
+      hsncode: item.hsnCode ?? undefined,
       quantity: 1,
       measurementType: item.measurementType ?? "height_width",
       height:
@@ -311,10 +313,22 @@ export function useCreateInvoice(
       name: customData.name.trim() || "Unnamed Item",
       quantity: 1,
       measurementType: customData.measurementType,
-      height: customData.measurementType === "height_width" ? String(customData.height ?? 1) : undefined,
-      width: customData.measurementType === "height_width" ? String(customData.width ?? 1) : undefined,
-      kg: customData.measurementType === "kg" ? String(customData.kg ?? 1) : undefined,
-      units: customData.measurementType === "unit" ? String(customData.units ?? 1) : undefined,
+      height:
+        customData.measurementType === "height_width"
+          ? String(customData.height ?? 1)
+          : undefined,
+      width:
+        customData.measurementType === "height_width"
+          ? String(customData.width ?? 1)
+          : undefined,
+      kg:
+        customData.measurementType === "kg"
+          ? String(customData.kg ?? 1)
+          : undefined,
+      units:
+        customData.measurementType === "unit"
+          ? String(customData.units ?? 1)
+          : undefined,
       wasteEnabled: false,
       wasteHeight: undefined,
       wasteWidth: undefined,
@@ -331,94 +345,107 @@ export function useCreateInvoice(
     toast.success("Item added to purchase");
   };
 
+  function calculateBaseAmount(
+    p: BilledProduct,
+    inventoryItems: InventoryItem[],
+  ) {
+    const inv = inventoryItems.find((i) => i.name === p.name);
+    if (!inv) return 0;
 
-  function calculateBaseAmount(p: BilledProduct, inventoryItems: InventoryItem[]) {
-  const inv = inventoryItems.find((i) => i.name === p.name);
-  if (!inv) return 0;
+    let base = 0;
 
-  let base = 0;
+    switch (p.measurementType) {
+      case "height_width":
+        base =
+          (parseFloat(p.height || "0") || 0) * (inv.pricePerHeight ?? 0) +
+          (parseFloat(p.width || "0") || 0) * (inv.pricePerWidth ?? 0);
+        break;
 
-  switch (p.measurementType) {
-    case "height_width":
-      base =
-        (parseFloat(p.height || "0") || 0) * (inv.pricePerHeight ?? 0) +
-        (parseFloat(p.width || "0") || 0) * (inv.pricePerWidth ?? 0);
-      break;
+      case "kg":
+        base = (parseFloat(p.kg || "0") || 0) * (inv.pricePerKg ?? 0);
+        break;
 
-    case "kg":
-      base = (parseFloat(p.kg || "0") || 0) * (inv.pricePerKg ?? 0);
-      break;
+      case "unit":
+        base = (parseFloat(p.units || "0") || 0) * (inv.pricePerUnit ?? 0);
+        break;
+    }
 
-    case "unit":
-      base = (parseFloat(p.units || "0") || 0) * (inv.pricePerUnit ?? 0);
-      break;
+    return base * (p.quantity || 1);
   }
 
-  return base * (p.quantity || 1);
-}
+  function calculateWasteAmount(
+    p: BilledProduct,
+    inventoryItems: InventoryItem[],
+  ) {
+    const inv = inventoryItems.find((i) => i.name === p.name);
+    if (!inv) return 0;
 
+    let waste = 0;
 
-function calculateWasteAmount(p: BilledProduct, inventoryItems: InventoryItem[]) {
-  const inv = inventoryItems.find((i) => i.name === p.name);
-  if (!inv) return 0;
+    switch (p.measurementType) {
+      case "height_width":
+        waste =
+          (parseFloat(p.wasteHeight || "0") || 0) * (inv.pricePerHeight ?? 0) +
+          (parseFloat(p.wasteWidth || "0") || 0) * (inv.pricePerWidth ?? 0);
+        break;
 
-  let waste = 0;
+      case "kg":
+        waste = (parseFloat(p.wasteKg || "0") || 0) * (inv.pricePerKg ?? 0);
+        break;
 
-  switch (p.measurementType) {
-    case "height_width":
-      waste =
-        (parseFloat(p.wasteHeight || "0") || 0) * (inv.pricePerHeight ?? 0) +
-        (parseFloat(p.wasteWidth || "0") || 0) * (inv.pricePerWidth ?? 0);
-      break;
+      case "unit":
+        waste =
+          (parseFloat(p.wasteUnits || "0") || 0) * (inv.pricePerUnit ?? 0);
+        break;
+    }
 
-    case "kg":
-      waste = (parseFloat(p.wasteKg || "0") || 0) * (inv.pricePerKg ?? 0);
-      break;
-
-    case "unit":
-      waste = (parseFloat(p.wasteUnits || "0") || 0) * (inv.pricePerUnit ?? 0);
-      break;
+    return waste;
   }
-
-  return waste;
-}
 
   const updateBilledProduct = (
-  id: string,
-  field: keyof BilledProduct,
-  value: string | number | boolean,
-) => {
-  setBilledProducts((prev) =>
-    prev.map((p) => {
-      if (p.id !== id) return p;
+    id: string,
+    field: keyof BilledProduct,
+    value: string | number | boolean,
+  ) => {
+    setBilledProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== id) return p;
 
-      let updated: BilledProduct = { ...p, [field]: value };
+        let updated: BilledProduct = { ...p, [field]: value };
 
-      // Auto-clear waste when disabled
-      if (field === "wasteEnabled" && !value) {
-        updated.wasteHeight = undefined;
-        updated.wasteWidth = undefined;
-        updated.wasteKg = undefined;
-        updated.wasteUnits = undefined;
-        updated.wasteAmount = undefined;
-      }
+        // Auto-clear waste when disabled
+        if (field === "wasteEnabled" && !value) {
+          updated.wasteHeight = undefined;
+          updated.wasteWidth = undefined;
+          updated.wasteKg = undefined;
+          updated.wasteUnits = undefined;
+          updated.wasteAmount = undefined;
+        }
 
-      const baseAmount = calculateBaseAmount(updated, inventoryItems);
+        const baseAmount = calculateBaseAmount(updated, inventoryItems);
 
-      let wasteAmount = 0;
-      if (updated.wasteEnabled) {
-        wasteAmount = calculateWasteAmount(updated, inventoryItems);
-        updated.wasteAmount = wasteAmount;
-      }
+        let wasteAmount = 0;
 
-      updated.grossTotal = baseAmount + wasteAmount;
-      updated.netTotal = updated.grossTotal;
+        if (updated.wasteEnabled) {
+          // 🟢 User is typing in Waste ₹ → respect it
+          if (field === "wasteAmount") {
+            wasteAmount = Number(value) || 0;
+            updated.wasteAmount = wasteAmount;
+          }
+          // 🟢 User changed dimensions → auto calculate
+          else {
+            wasteAmount = calculateWasteAmount(updated, inventoryItems);
+            updated.wasteAmount = wasteAmount;
+          }
+        }
 
-      return updated;
-    }),
-  );
-};
+        updated.grossTotal = baseAmount + wasteAmount;
+        updated.netTotal = updated.grossTotal;
 
+        return updated;
+      }),
+    );
+  };
 
   const removeBilledProduct = (id: string) => {
     setBilledProducts((prev) => prev.filter((p) => p.id !== id));
@@ -452,11 +479,12 @@ function calculateWasteAmount(p: BilledProduct, inventoryItems: InventoryItem[])
 
   const taxableAmount = subtotal - totalDiscount;
 
-  const isKarnatakaParty = selectedParty?.state?.trim().toLowerCase() === "karnataka";
+  const isKarnatakaParty =
+    selectedParty?.state?.trim().toLowerCase() === "karnataka";
 
   const cgstRate = isKarnatakaParty ? gstCgst : 0;
   const sgstRate = isKarnatakaParty ? gstSgst : 0;
-  const igstRate = isKarnatakaParty ? 0 : (gstCgst + gstSgst);
+  const igstRate = isKarnatakaParty ? 0 : gstCgst + gstSgst;
 
   const cgstAmount = taxableAmount * (cgstRate / 100);
   const sgstAmount = taxableAmount * (sgstRate / 100);
@@ -467,14 +495,15 @@ function calculateWasteAmount(p: BilledProduct, inventoryItems: InventoryItem[])
   // ── Save logic (main change here) ──────────────────────────────────────
   const saveDocument = async () => {
     if (!selectedParty) return { success: false, message: "No party selected" };
-    if (billedProducts.length === 0) return { success: false, message: "No products added" };
+    if (billedProducts.length === 0)
+      return { success: false, message: "No products added" };
 
     try {
       const commonData = {
         billingAddress,
         products: billedProducts.map((p) => ({
           name: p.name,
-          hsnCode:p.hsncode??undefined,
+          hsnCode: p.hsncode ?? undefined,
           quantity: p.quantity,
           measurementType: p.measurementType,
           height: p.height,
@@ -504,14 +533,14 @@ function calculateWasteAmount(p: BilledProduct, inventoryItems: InventoryItem[])
         // PURCHASE MODE
         await addPurchase({
           ...commonData,
-           vendorId: selectedParty.id,
-    vendorName: selectedParty.name,
-    vendorPhone: selectedParty.phone,
-    vendorGstin: selectedParty.gstin ?? undefined,
-    vendorState: selectedParty.state?.trim(),
+          vendorId: selectedParty.id,
+          vendorName: selectedParty.name,
+          vendorPhone: selectedParty.phone,
+          vendorGstin: selectedParty.gstin ?? undefined,
+          vendorState: selectedParty.state?.trim(),
 
-    purchaseDate: documentDate,
-  });
+          purchaseDate: documentDate,
+        });
         toast.success("Purchase order saved successfully");
       } else {
         // INVOICE MODE
@@ -521,10 +550,13 @@ function calculateWasteAmount(p: BilledProduct, inventoryItems: InventoryItem[])
           customerName: selectedParty.name,
           customerPhone: selectedParty.phone,
           customerGstin: selectedParty.gstin ?? undefined,
-          placeOfSupply: selectedParty.state?.trim() || "29",
-          invoiceDate: documentDate,
-          dueDate,
+          placeOfSupply: selectedParty.state?.trim() || "Karnataka",
+
+          // ✅ ALWAYS pass clean Date objects
+          invoiceDate: new Date(documentDate),
+          dueDate: new Date(dueDate),
         });
+
         toast.success("Invoice saved successfully");
       }
 
@@ -593,7 +625,7 @@ function calculateWasteAmount(p: BilledProduct, inventoryItems: InventoryItem[])
     igst: igstAmount,
     netAmount,
 
-    saveDocument,          // ← Updated name - use this in your form button
+    saveDocument, // ← Updated name - use this in your form button
     resetForm,
 
     documentDate,
@@ -601,6 +633,6 @@ function calculateWasteAmount(p: BilledProduct, inventoryItems: InventoryItem[])
     dueDate,
     setDueDate,
 
-    isPurchaseMode,        // useful if component needs to know mode
+    isPurchaseMode, // useful if component needs to know mode
   };
 }

@@ -32,6 +32,7 @@ import { db } from "@/lib/firebase";
 import type { Invoice, InvoiceProduct } from "@/lib/firebase/invoices";
 import { addQuotation } from "@/lib/firebase/quotations";
 import { addPurchase, updatePurchase } from "@/lib/firebase/purchase";
+import { addInvoice } from "@/lib/firebase/invoices";
 import { cleanUndefined } from "@/lib/utils/invoiceUtil";
 import { useApp } from "@/lib/app-context";
 import { format } from "date-fns";
@@ -252,228 +253,224 @@ function InvoiceContent() {
 
   // ── Save / Update handler (unchanged – works with custom items) ────────
   const handleSave = async () => {
-    if (isSaving) return;
-    setIsSaving(true);
+  if (isSaving) return;
+  setIsSaving(true);
 
-    try {
-      if (!selectedParty) {
-        toast.error("Party Required", {
-          description: "Please select a customer or vendor before saving.",
-        });
-        return;
-      }
-
-      const partyName = selectedParty.name?.trim() || "Unnamed Party";
-
-      if (billedProducts.length === 0) {
-        toast.error("No Products", {
-          description: "Please add at least one product.",
-        });
-        return;
-      }
-
-      const productsToSave = billedProducts.map((p) => {
-        const inventoryItem = inventoryItems.find((i) => i.name === p.name);
-
-        return cleanUndefined({
-          name: p.name,
-          quantity: p.quantity,
-          measurementType: p.measurementType,
-
-          ...(p.measurementType === "height_width" && {
-            height: p.height,
-            width: p.width,
-          }),
-          ...(p.measurementType === "kg" && { kg: p.kg }),
-          ...(p.measurementType === "unit" && { units: p.units }),
-
-          hsnCode: inventoryItem?.hsnCode ?? null, // ✅ ADD THIS
-
-          wasteEnabled: enableWaste ? p.wasteEnabled : false,
-
-          ...(enableWaste &&
-            p.wasteEnabled && {
-              wasteHeight: p.wasteHeight,
-              wasteWidth: p.wasteWidth,
-              wasteKg: p.wasteKg,
-              wasteUnits: p.wasteUnits,
-            }),
-
-          discount: p.discount,
-          discountType: p.discountType,
-          total: p.netTotal,
-          grossTotal: p.grossTotal ?? p.netTotal,
-        });
+  try {
+    // ── BASIC VALIDATION ─────────────────────────────
+    if (!selectedParty) {
+      toast.error("Party Required", {
+        description: "Please select a customer or vendor.",
       });
+      return;
+    }
 
-      const now = new Date();
-      const finalDocumentDate = new Date(
-        documentDate.getFullYear(),
-        documentDate.getMonth(),
-        documentDate.getDate(),
-        12,
-        0,
-        0, // ⬅️ noon avoids timezone shifts
-      );
+    if (billedProducts.length === 0) {
+      toast.error("No Products", {
+        description: "Please add at least one product.",
+      });
+      return;
+    }
 
-      const finalDueDate = new Date(
-        dueDate.getFullYear(),
-        dueDate.getMonth(),
-        dueDate.getDate(),
-        12,
-        0,
-        0,
-      );
+    const partyName = selectedParty.name?.trim() || "Unnamed Party";
 
-      const commonPayload = cleanUndefined({
-        ...(isPurchaseMode
-          ? { vendorId: selectedParty.id }
-          : { customerId: selectedParty.id }),
-        ...(isPurchaseMode
-          ? { vendorName: partyName }
-          : { customerName: partyName }),
-        ...(isPurchaseMode
-          ? { vendorPhone: selectedParty.phone }
-          : { customerPhone: selectedParty.phone }),
-        ...(selectedParty.gstin && {
-          ...(isPurchaseMode
-            ? { vendorGstin: selectedParty.gstin }
-            : { customerGstin: selectedParty.gstin }),
+    // ── PRODUCTS PAYLOAD ─────────────────────────────
+    const productsToSave = billedProducts.map((p) => {
+      const inventoryItem = inventoryItems.find((i) => i.name === p.name);
+
+      return cleanUndefined({
+        name: p.name,
+        quantity: p.quantity,
+        measurementType: p.measurementType,
+
+        ...(p.measurementType === "height_width" && {
+          height: p.height,
+          width: p.width,
         }),
-        billingAddress,
-        products: productsToSave,
-        subtotal,
-        discount: totalDiscount,
-        cgst,
-        sgst,
-        igst,
-        netAmount,
-      });
+        ...(p.measurementType === "kg" && { kg: p.kg }),
+        ...(p.measurementType === "unit" && { units: p.units }),
 
-      const dateFieldName = isPurchaseMode
-        ? "purchaseDate"
-        : isQuotationMode
-          ? "quotationDate"
-          : "invoiceDate";
+        // ✅ ALWAYS undefined, never null
+        hsnCode: inventoryItem?.hsnCode ?? undefined,
 
-      const payload = cleanUndefined({
-        ...commonPayload,
-        [dateFieldName]: finalDocumentDate,
-        ...(isInvoiceMode && { dueDate: finalDueDate }),
-      });
+        wasteEnabled: enableWaste ? p.wasteEnabled : false,
 
-      let success = false;
-
-      if (isEditMode) {
-        if (!editId) throw new Error("Missing edit ID");
-
-        const collectionName = isPurchaseMode
-          ? "purchases"
-          : isQuotationMode
-            ? "quotations"
-            : "invoices";
-
-        const ref = doc(db, collectionName, editId);
-
-        await updateDoc(
-          ref,
-          cleanUndefined({
-            ...commonPayload,
-
-            ...(isQuotationMode && {
-              quotationDate: Timestamp.fromDate(finalDocumentDate),
-            }),
-
-            ...(isInvoiceMode && {
-              invoiceDate: Timestamp.fromDate(finalDocumentDate),
-              dueDate: finalDueDate
-                ? Timestamp.fromDate(finalDueDate)
-                : undefined,
-            }),
-
-            ...(isPurchaseMode && {
-              purchaseDate: Timestamp.fromDate(finalDocumentDate),
-            }),
-
-            updatedAt: serverTimestamp(),
+        ...(enableWaste &&
+          p.wasteEnabled && {
+            wasteHeight: p.wasteHeight,
+            wasteWidth: p.wasteWidth,
+            wasteKg: p.wasteKg,
+            wasteUnits: p.wasteUnits,
+            wasteAmount: p.wasteAmount ?? 0,
           }),
-        );
 
-        toast.success(
-          `${isPurchaseMode ? "Purchase" : isQuotationMode ? "Quotation" : "Invoice"} Updated`,
-        );
-        success = true;
-      } else {
-        if (isPurchaseMode) {
-          await addPurchase({
+        discount: p.discount,
+        discountType: p.discountType,
+        total: p.netTotal,
+        grossTotal: p.grossTotal ?? p.netTotal,
+      });
+    });
+
+    // ── SAFE DATES (NO TIMEZONE ISSUES) ──────────────
+    const finalDocumentDate = new Date(
+      documentDate.getFullYear(),
+      documentDate.getMonth(),
+      documentDate.getDate(),
+      12, // noon = safe
+      0,
+      0,
+    );
+
+    const finalDueDate =
+      isInvoiceMode && dueDate
+        ? new Date(
+            dueDate.getFullYear(),
+            dueDate.getMonth(),
+            dueDate.getDate(),
+            12,
+            0,
+            0,
+          )
+        : undefined;
+
+    // ── COMMON PAYLOAD ───────────────────────────────
+    const commonPayload = cleanUndefined({
+      billingAddress,
+      products: productsToSave,
+      subtotal,
+      discount: totalDiscount,
+      cgst,
+      sgst,
+      igst,
+      netAmount,
+      totalGross,
+    });
+
+    // ── EDIT MODE ────────────────────────────────────
+    if (isEditMode) {
+      if (!editId) throw new Error("Missing edit ID");
+
+      const collectionName = isPurchaseMode
+        ? "purchases"
+        : isQuotationMode
+          ? "quotations"
+          : "invoices";
+
+      const ref = doc(db, collectionName, editId);
+
+      await updateDoc(
+        ref,
+        cleanUndefined({
+          ...commonPayload,
+
+          ...(isPurchaseMode && {
             vendorId: selectedParty.id,
             vendorName: partyName,
             vendorPhone: selectedParty.phone,
             vendorGstin: selectedParty.gstin,
-            vendorState:selectedParty.state,
-            billingAddress,
-            products: productsToSave,
-            subtotal,
-            discount: totalDiscount,
-            cgst,
-            sgst,
-            igst,
-            netAmount,
-            totalGross,
-            purchaseDate: finalDocumentDate,
-          });
-          success = true;
-        } else if (isQuotationMode) {
-          await addQuotation({
+            vendorState: selectedParty.state,
+            purchaseDate: Timestamp.fromDate(finalDocumentDate),
+          }),
+
+          ...(isQuotationMode && {
             customerId: selectedParty.id,
             customerName: partyName,
             customerPhone: selectedParty.phone,
-            customerGstin: selectedParty.gstin ?? undefined,
+            customerGstin: selectedParty.gstin,
+            placeOfSupply: selectedParty.state?.trim(),
+            quotationDate: Timestamp.fromDate(finalDocumentDate),
+          }),
 
-            placeOfSupply: selectedParty.state?.trim(), // ✅ ADD THIS LINE
+          ...(isInvoiceMode && {
+            customerId: selectedParty.id,
+            customerName: partyName,
+            customerPhone: selectedParty.phone,
+            customerGstin: selectedParty.gstin,
+            placeOfSupply: selectedParty.state?.trim() || "Karnataka",
+            invoiceDate: Timestamp.fromDate(finalDocumentDate),
+            ...(finalDueDate && {
+              dueDate: Timestamp.fromDate(finalDueDate),
+            }),
+          }),
 
-            billingAddress,
-            products: productsToSave,
-            subtotal,
-            discount: totalDiscount,
-            cgst,
-            sgst,
-            igst,
-            netAmount,
-            totalGross,
-            quotationDate: finalDocumentDate,
-          });
-          success = true;
-        }
+          updatedAt: serverTimestamp(),
+        }),
+      );
 
-        if (success) {
-          toast.success(
-            `${isPurchaseMode ? "Purchase" : isQuotationMode ? "Quotation" : "Invoice"} Created`,
-          );
-        } else {
-          toast.error("Save Failed");
-        }
-      }
+      toast.success(
+        `${isPurchaseMode ? "Purchase" : isQuotationMode ? "Quotation" : "Invoice"} Updated`,
+      );
 
-      if (success) {
-        resetForm();
-        router.push(
-          isPurchaseMode
-            ? "/dashboard/purchase"
-            : isQuotationMode
-              ? "/dashboard/quotation"
-              : "/dashboard",
-        );
-      }
-    } catch (err: any) {
-      console.error("Save failed:", err);
-      toast.error("Error", {
-        description: err.message || "Failed to save document.",
-      });
-    } finally {
-      setIsSaving(false);
+      resetForm();
+      router.push(
+        isPurchaseMode
+          ? "/dashboard/purchase"
+          : isQuotationMode
+            ? "/dashboard/quotation"
+            : "/dashboard",
+      );
+      return;
     }
-  };
+
+    // ── CREATE MODE ──────────────────────────────────
+    if (isPurchaseMode) {
+      await addPurchase({
+        ...commonPayload,
+        vendorId: selectedParty.id,
+        vendorName: partyName,
+        vendorPhone: selectedParty.phone,
+        vendorGstin: selectedParty.gstin,
+        vendorState: selectedParty.state,
+        purchaseDate: finalDocumentDate,
+      });
+
+      toast.success("Purchase Created");
+    } else if (isQuotationMode) {
+      await addQuotation({
+        ...commonPayload,
+        customerId: selectedParty.id,
+        customerName: partyName,
+        customerPhone: selectedParty.phone,
+        customerGstin: selectedParty.gstin,
+        placeOfSupply: selectedParty.state?.trim(),
+        quotationDate: finalDocumentDate,
+      });
+
+      toast.success("Quotation Created");
+    } else {
+      // ✅ INVOICE CREATE (THIS WAS MISSING BEFORE)
+      await addInvoice({
+        ...commonPayload,
+        customerId: selectedParty.id,
+        customerName: partyName,
+        customerPhone: selectedParty.phone,
+        customerGstin: selectedParty.gstin,
+        placeOfSupply: selectedParty.state?.trim() || "Karnataka",
+        invoiceDate: finalDocumentDate,
+        dueDate: finalDueDate,
+      });
+
+      toast.success("Invoice Created");
+    }
+
+    resetForm();
+    router.push(
+      isPurchaseMode
+        ? "/dashboard/purchase"
+        : isQuotationMode
+          ? "/dashboard/quotation"
+          : "/dashboard",
+    );
+  } catch (err: any) {
+    console.error("Save failed:", err);
+    toast.error("Save Failed", {
+      description: err.message || "Something went wrong.",
+    });
+  } finally {
+    setIsSaving(false);
+  }
+};
+
 
   // ── Loading / Error UI ─────────────────────────────────────────────────
   if (loading) {

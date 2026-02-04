@@ -1258,28 +1258,31 @@ export function TransactionsTable(props: TransactionsTableProps) {
               <AlertCircle className="h-6 w-6 text-red-600" />
               Are you absolutely sure?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-600 space-y-2 pt-2">
-              <p>
-                This will permanently delete invoice{" "}
-                <span className="font-semibold text-slate-900">
-                  #
-                  {props.invoiceToDelete?.invoiceNumber
-                    ? String(props.invoiceToDelete.invoiceNumber).padStart(
-                        4,
-                        "0",
-                      )
-                    : "draft"}
-                </span>{" "}
-                for{" "}
-                <span className="font-semibold text-slate-900">
-                  {props.invoiceToDelete?.customerName || "this customer"}
-                </span>
-                .
-              </p>
-              <p className="flex items-center gap-1.5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-medium">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                This action cannot be undone.
-              </p>
+            <AlertDialogDescription className="text-slate-600 pt-2">
+              <div className="space-y-2">
+                <div>
+                  This will permanently delete invoice{" "}
+                  <span className="font-semibold text-slate-900">
+                    #
+                    {props.invoiceToDelete?.invoiceNumber
+                      ? String(props.invoiceToDelete.invoiceNumber).padStart(
+                          4,
+                          "0",
+                        )
+                      : "draft"}
+                  </span>{" "}
+                  for{" "}
+                  <span className="font-semibold text-slate-900">
+                    {props.invoiceToDelete?.customerName || "this customer"}
+                  </span>
+                  .
+                </div>
+
+                <div className="flex items-center gap-1.5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-medium">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  This action cannot be undone.
+                </div>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">

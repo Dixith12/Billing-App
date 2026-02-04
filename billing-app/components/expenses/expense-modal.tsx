@@ -121,6 +121,27 @@ export function ExpenseModal({
   const isKarnataka = state.toLowerCase() === "karnataka";
   const showGstFields = gstApplicable && !!state;
 
+  // ---------- Total Amount Calculation (UI only) ----------
+  const qtyNum = parseFloat(quantity) || 1;
+  const amountNum = parseFloat(amount) || 0;
+  const cgstNum = parseFloat(cgstPercent) || 0;
+  const sgstNum = parseFloat(sgstPercent) || 0;
+  const igstNum = parseFloat(igstPercent) || 0;
+
+  let totalAmount = 0;
+
+  if (gstApplicable && amountNum > 0) {
+    if (isKarnataka) {
+      // CGST + SGST
+      const gstValue = (amountNum * (cgstNum + sgstNum)) / 100;
+      totalAmount = (amountNum + gstValue) * qtyNum;
+    } else {
+      // IGST
+      const gstValue = (amountNum * igstNum) / 100;
+      totalAmount = (amountNum + gstValue) * qtyNum;
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -535,6 +556,25 @@ export function ExpenseModal({
               className="border-slate-300 focus:border-emerald-400 focus:ring-emerald-200 h-11 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
+
+          {/* Total Amount (Readonly – only when GST is enabled) */}
+          {gstApplicable && (
+            <div className="space-y-2">
+              <Label
+                htmlFor="totalAmount"
+                className="text-sm font-medium text-slate-700 flex items-center gap-2"
+              >
+                <IndianRupee className="h-4 w-4 text-indigo-600" />
+                Total Amount (₹)
+              </Label>
+              <Input
+                id="totalAmount"
+                value={totalAmount.toFixed(2)}
+                readOnly
+                className="bg-slate-100 border-slate-300 text-slate-800 font-semibold cursor-not-allowed h-11"
+              />
+            </div>
+          )}
 
           {/* Date */}
           <div className="space-y-2">

@@ -3,7 +3,7 @@ import type { Expense } from "@/lib/firebase/expenses";
 
 export function exportExpensesToExcel(
   expenses: Expense[],
-  fileName = "Expense_Register.xlsx",
+  fileName = `Expense_Register_${new Date().toISOString().split("T")[0]}.xlsx`,
 ) {
   if (expenses.length === 0) {
     alert("No expenses to export");
@@ -71,12 +71,12 @@ export function exportExpensesToExcel(
       "Taxable Amount": taxable.toFixed(2),
 
       // GST summary
-      "GST %": gstApplicable ? `${totalGstPct}%` : "0%",
+      "GST Percentage": gstApplicable ? `${totalGstPct}` : "0",
 
       // Individual GST columns
-      "CGST %": gstApplicable && isKarnataka ? `${cgstPct}%` : "0%",
-      "SGST %": gstApplicable && isKarnataka ? `${sgstPct}%` : "0%",
-      "IGST %": gstApplicable && !isKarnataka ? `${igstPct}%` : "0%",
+      "CGST Percentage": gstApplicable && isKarnataka ? `${cgstPct}` : "0",
+      "SGST Percentage": gstApplicable && isKarnataka ? `${sgstPct}` : "0",
+      "IGST Percentage": gstApplicable && !isKarnataka ? `${igstPct}` : "0",
 
       "GST Amount": gstApplicable ? gstAmount.toFixed(2) : "0.00",
       "Total Amount": totalAmount.toFixed(2),

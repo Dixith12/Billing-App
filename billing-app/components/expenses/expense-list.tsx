@@ -178,7 +178,7 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
               : "",
           )}
           onClick={() =>
-            exportExpensesToExcel(filteredExpenses, "Expense_Register.xlsx")
+            exportExpensesToExcel(filteredExpenses)
           }
           disabled={filteredExpenses.length === 0}
         >

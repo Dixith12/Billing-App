@@ -88,10 +88,11 @@ export function exportPurchasesToExcel(purchases: Purchase[]) {
         "Discount Amount": discountAmount.toFixed(2),
         "Taxable Amount": taxableAmount.toFixed(2),
 
+        
+        "GST Percentage": totalGstPct,
         "CGST Percentage": cgstPct,
         "SGST Percentage": sgstPct,
         "IGST Percentage": igstPct,
-        "Total Percentage": totalGstPct,
 
         "GST Amount": gstAmount.toFixed(2),
         "Total Amount": invoiceTotal.toFixed(2),
@@ -125,10 +126,11 @@ export function exportPurchasesToExcel(purchases: Purchase[]) {
         "Discount Amount": discountAmount.toFixed(2),
         "Taxable Amount": taxableAmount.toFixed(2),
 
+        
+        "GST Percentage": totalGstPct,
         "CGST Percentage": cgstPct,
         "SGST Percentage": sgstPct,
         "IGST Percentage": igstPct,
-        "Total Percentage": totalGstPct,
 
         "GST Amount": gstAmount.toFixed(2),
         "Total Amount": invoiceTotal.toFixed(2),

@@ -87,6 +87,7 @@ export function BilledProductsTable({
                           parseInt(e.target.value) || 1,
                         )
                       }
+                      onWheel={(e)=>e.currentTarget.blur()}
                       min={1}
                       className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
                     />
@@ -105,6 +106,8 @@ export function BilledProductsTable({
                           onUpdate(p.id, "discount", e.target.value)
                         }
                         min={0}
+                                              onWheel={(e)=>e.currentTarget.blur()}
+
                         step="any"
                         className="w-20 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
                       />
@@ -222,6 +225,8 @@ function renderMeasurementInputs(
               placeholder="Height"
               value={p.height ?? ""}
               onChange={(e) => onUpdate(p.id, "height", e.target.value)}
+                                    onWheel={(e)=>e.currentTarget.blur()}
+
               className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
             />
           </div>
@@ -247,6 +252,7 @@ function renderMeasurementInputs(
             placeholder="Kg"
             value={p.kg ?? ""}
             onChange={(e) => onUpdate(p.id, "kg", e.target.value)}
+            onWheel={(e)=>e.currentTarget.blur()}
             className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
           />
         </div>
@@ -261,6 +267,7 @@ function renderMeasurementInputs(
             placeholder="Units"
             value={p.units ?? ""}
             onChange={(e) => onUpdate(p.id, "units", e.target.value)}
+            onWheel={(e)=>e.currentTarget.blur()}
             className="w-24 border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
           />
         </div>

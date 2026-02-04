@@ -113,7 +113,6 @@ useEffect(() => {
     try {
       const newVendor = await addVendor(data);
       setVendors((prev) => [...prev, newVendor]);
-      toast.success("Vendor added successfully");
       return newVendor;
     } catch (err: any) {
       setError(err.message);

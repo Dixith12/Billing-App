@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Dialog,
   DialogContent,
@@ -30,7 +29,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Expense } from "@/lib/firebase/expenses";
-import { addExpense, updateExpense } from "@/lib/firebase/expenses";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 
@@ -50,6 +48,7 @@ export function ExpenseModal({
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [state, setState] = useState("");
+  const [gstApplicable, setGstApplicable] = useState(false);
   const [cgstPercent, setCgstPercent] = useState("");
   const [sgstPercent, setSgstPercent] = useState("");
   const [igstPercent, setIgstPercent] = useState("");
@@ -59,12 +58,12 @@ export function ExpenseModal({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // IMPORTANT: Sync form state when modal opens or initialData changes
+  // Sync form state when modal opens or initialData changes
   useEffect(() => {
     if (!isOpen) return;
 
     if (initialData) {
-      // Edit mode - fill with existing values
+      // Edit mode
       setName(initialData.name || "");
       setCategory(initialData.category || "");
       setState(initialData.state || "");
@@ -75,31 +74,58 @@ export function ExpenseModal({
           ? new Date(initialData.date).toISOString().split("T")[0]
           : new Date().toISOString().split("T")[0],
       );
-      setCgstPercent(initialData.cgstPercent?.toString() || "");
-      setSgstPercent(initialData.sgstPercent?.toString() || "");
-      setIgstPercent(initialData.igstPercent?.toString() || "");
+
+      // Try to detect if GST was previously saved
+      const hasGstData =
+        initialData.cgstPercent != null ||
+        initialData.sgstPercent != null ||
+        initialData.igstPercent != null;
+
+      setGstApplicable(hasGstData);
+
+      if (hasGstData) {
+        setCgstPercent(initialData.cgstPercent?.toString() || "");
+        setSgstPercent(initialData.sgstPercent?.toString() || "");
+        setIgstPercent(initialData.igstPercent?.toString() || "");
+      } else {
+        setCgstPercent("");
+        setSgstPercent("");
+        setIgstPercent("");
+      }
     } else {
-      // Add new mode - reset to defaults
+      // Add new mode - reset everything
       setName("");
       setCategory("");
       setState("");
+      setGstApplicable(false);
+      setCgstPercent("");
+      setSgstPercent("");
+      setIgstPercent("");
       setQuantity("1");
       setAmount("");
       setDate(new Date().toISOString().split("T")[0]);
+      setError(null);
+    }
+  }, [isOpen, initialData]);
+
+  // Clear GST fields when toggle turned off or state cleared
+  useEffect(() => {
+    if (!gstApplicable || !state) {
       setCgstPercent("");
       setSgstPercent("");
       setIgstPercent("");
     }
-  }, [isOpen, initialData]);
+  }, [gstApplicable, state]);
 
   const isEdit = !!initialData;
   const isKarnataka = state.toLowerCase() === "karnataka";
+  const showGstFields = gstApplicable && !!state;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
     if (isSaving) return;
+
     setIsSaving(true);
 
     try {
@@ -112,62 +138,74 @@ export function ExpenseModal({
       if (!name.trim()) throw new Error("Bill / Expense name is required");
       if (!category) throw new Error("Please select a category");
       if (!state) throw new Error("Please select a state");
-
-      if (isKarnataka) {
-        if (cgstPercent === "" || sgstPercent === "") {
-          throw new Error(
-            "CGST and SGST percentages are required for Karnataka",
-          );
-        }
-      } else {
-        if (igstPercent === "") {
-          throw new Error("IGST percentage is required for other states");
-        }
-      }
-
       if (isNaN(amountNum) || amountNum <= 0)
         throw new Error("Please enter a valid amount greater than zero");
       if (qtyNum <= 0) throw new Error("Quantity must be greater than zero");
       if (!date) throw new Error("Date is required");
 
+      // GST validation only when toggle is ON
+      if (gstApplicable) {
+        if (isKarnataka) {
+          if (cgstPercent === "" || sgstPercent === "") {
+            throw new Error(
+              "CGST and SGST percentages are required when GST is applicable in Karnataka",
+            );
+          }
+        } else {
+          if (igstPercent === "") {
+            throw new Error(
+              "IGST percentage is required when GST is applicable (non-Karnataka)",
+            );
+          }
+        }
+      }
+
       const expenseData: any = {
         name: name.trim(),
         category,
         state,
+        gstApplicable,
         quantity: qtyNum,
         amount: amountNum,
         date,
       };
 
-      if (isKarnataka) {
-        expenseData.cgstPercent = cgst;
-        expenseData.sgstPercent = sgst;
-      } else {
-        expenseData.igstPercent = igst;
-      }
-
-      if (isEdit && initialData?.id) {
-        await updateExpense(initialData.id, expenseData);
-        toast.success("Expense updated successfully");
-      } else {
-        await addExpense(expenseData);
-        toast.success("Expense added successfully");
-      }
-
-      if (onSave) {
-        if (onSave) {
-          onSave({
-            ...(initialData || {}), // keep original fields if editing
-            ...expenseData, // override with new values
-            // No need to force id: 'new'
-          } as Expense);
+      if (gstApplicable) {
+        if (isKarnataka) {
+          expenseData.cgstPercent = cgst;
+          expenseData.sgstPercent = sgst;
+          expenseData.igstPercent = null; // clean up
+        } else {
+          expenseData.igstPercent = igst;
+          expenseData.cgstPercent = null;
+          expenseData.sgstPercent = null;
         }
+      } else {
+        // Explicitly clear GST fields when not applicable
+        expenseData.cgstPercent = null;
+        expenseData.sgstPercent = null;
+        expenseData.igstPercent = null;
       }
+
+      if (!onSave) {
+        throw new Error("Save handler not provided");
+      }
+
+      await onSave({
+        ...(initialData || {}),
+        ...expenseData,
+        gstApplicable,
+      } as Expense);
+
+      toast.success(
+        isEdit ? "Expense updated successfully" : "Expense added successfully",
+      );
 
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to save expense");
-      toast.error(err.message || "Failed to save expense");
+      const msg = err.message || "Failed to save expense";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsSaving(false);
     }
@@ -187,7 +225,6 @@ export function ExpenseModal({
                 />
               </div>
             </div>
-
             <div>
               <DialogTitle className="text-2xl font-bold text-slate-800">
                 {isEdit ? "Edit Expense" : "Add New Expense"}
@@ -234,7 +271,7 @@ export function ExpenseModal({
             />
           </div>
 
-          {/* Category Dropdown */}
+          {/* Category */}
           <div className="space-y-2">
             <Label
               htmlFor="category"
@@ -278,7 +315,7 @@ export function ExpenseModal({
             </Select>
           </div>
 
-          {/* State Dropdown */}
+          {/* State */}
           <div className="space-y-2">
             <Label
               htmlFor="state"
@@ -343,9 +380,42 @@ export function ExpenseModal({
             </Select>
           </div>
 
-          {/* Conditional GST Fields */}
+          {/* GST Applicable Toggle – only shown after state is selected */}
           {state && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between py-1.5">
+              <div className="flex items-center gap-2">
+                <ReceiptIndianRupee className="h-4 w-4 text-amber-600" />
+                <Label className="text-sm font-medium text-slate-700">
+                  GST Applicable?
+                </Label>
+              </div>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={gstApplicable}
+                onClick={() => setGstApplicable((prev) => !prev)}
+                disabled={isSaving}
+                className={cn(
+                  "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2",
+                  gstApplicable ? "bg-indigo-600" : "bg-slate-300",
+                  isSaving && "opacity-60 cursor-not-allowed",
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                    gstApplicable ? "translate-x-5" : "translate-x-0",
+                  )}
+                />
+              </button>
+            </div>
+          )}
+
+          {/* GST Fields – only when toggle ON + state selected */}
+          {showGstFields && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
               {isKarnataka ? (
                 <>
                   <div className="space-y-2">
@@ -497,7 +567,6 @@ export function ExpenseModal({
           >
             Cancel
           </Button>
-
           <Button
             type="button"
             onClick={handleSubmit}

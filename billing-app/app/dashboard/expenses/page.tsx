@@ -91,10 +91,32 @@ export default function ExpensesPage() {
     return result;
   }, [expenses, datePreset, dateFrom, dateTo]);
 
+
+  function calculateTotalWithGst(exp: Expense): number {
+  const taxable = Number(exp.amount) || 0;
+
+  if (!exp.gstApplicable) return taxable;
+
+  const isKarnataka = (exp.state || "").toLowerCase() === "karnataka";
+
+  let gstPercent = 0;
+
+  if (isKarnataka) {
+    gstPercent =
+      (Number(exp.cgstPercent) || 0) +
+      (Number(exp.sgstPercent) || 0);
+  } else {
+    gstPercent = Number(exp.igstPercent) || 0;
+  }
+
+  return taxable + (taxable * gstPercent) / 100;
+}
+
   const filteredTotal = filteredExpenses.reduce(
-    (sum, exp) => sum + exp.amount,
-    0,
-  );
+  (sum, exp) => sum + calculateTotalWithGst(exp),
+  0,
+);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">

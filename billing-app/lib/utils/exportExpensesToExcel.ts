@@ -12,12 +12,13 @@ export function exportExpensesToExcel(
 
   const data = expenses.map((exp) => {
     /* ───────────────
-       STATE CHECK
+       STATE + GST FLAG
     ─────────────── */
 
     const stateValue = exp.state ?? "";
-    const stateLower = stateValue.toString().toLowerCase().trim();
+    const stateLower = stateValue.toLowerCase().trim();
     const isKarnataka = stateLower === "karnataka";
+    const gstApplicable = !!exp.gstApplicable;
 
     /* ───────────────
        BASE VALUES
@@ -28,22 +29,23 @@ export function exportExpensesToExcel(
     const unitPrice = quantity > 0 ? taxable / quantity : 0;
 
     /* ───────────────
-       GST %
+       GST % (STRICT)
     ─────────────── */
 
-    const cgstPct = Number(exp.cgstPercent) || 0;
-    const sgstPct = Number(exp.sgstPercent) || 0;
-    const igstPct = Number(exp.igstPercent) || 0;
+    let cgstPct = 0;
+    let sgstPct = 0;
+    let igstPct = 0;
 
-    // Karnataka → CGST + SGST
-    // Other State → IGST only
-    const totalGstPct = isKarnataka
-      ? cgstPct + sgstPct
-      : igstPct;
+    if (gstApplicable) {
+      if (isKarnataka) {
+        cgstPct = Number(exp.cgstPercent) || 0;
+        sgstPct = Number(exp.sgstPercent) || 0;
+      } else {
+        igstPct = Number(exp.igstPercent) || 0;
+      }
+    }
 
-    const displayCgst = isKarnataka ? `${cgstPct}%` : "0%";
-    const displaySgst = isKarnataka ? `${sgstPct}%` : "0%";
-    const displayIgst = isKarnataka ? "0%" : `${igstPct}%`;
+    const totalGstPct = cgstPct + sgstPct + igstPct;
 
     /* ───────────────
        GST AMOUNT
@@ -60,6 +62,7 @@ export function exportExpensesToExcel(
             year: "numeric",
           })
         : "-",
+
       "Expense Name": exp.name || "-",
       "Vendor State": stateValue || "-",
       Category: exp.category || "-",
@@ -67,19 +70,18 @@ export function exportExpensesToExcel(
       "Unit Price": unitPrice.toFixed(2),
       "Taxable Amount": taxable.toFixed(2),
 
-      // ✅ NEW COLUMN (TOTAL GST %)
-      "GST %": totalGstPct ? `${totalGstPct}%` : "0%",
+      // GST summary
+      "GST %": gstApplicable ? `${totalGstPct}%` : "0%",
 
-      // EXISTING GST %
-      "CGST %": displayCgst,
-      "SGST %": displaySgst,
-      "IGST %": displayIgst,
+      // Individual GST columns
+      "CGST %": gstApplicable && isKarnataka ? `${cgstPct}%` : "0%",
+      "SGST %": gstApplicable && isKarnataka ? `${sgstPct}%` : "0%",
+      "IGST %": gstApplicable && !isKarnataka ? `${igstPct}%` : "0%",
 
-      // ✅ NEW COLUMN (GST AMOUNT)
-      "GST Amount": gstAmount.toFixed(2),
-
+      "GST Amount": gstApplicable ? gstAmount.toFixed(2) : "0.00",
       "Total Amount": totalAmount.toFixed(2),
-      "ITC Eligible": "Yes",
+
+      "GST Applicable": gstApplicable ? "Yes" : "No",
     };
   });
 

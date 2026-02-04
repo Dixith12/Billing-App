@@ -131,9 +131,11 @@ export default function VendorsPage() {
 
       {/* Add Modal */}
       <AddVendorModal
-        isOpen={isAddVendorOpen}
-        onClose={() => setIsAddVendorOpen(false)}
-      />
+  isOpen={isAddVendorOpen}
+  onClose={() => setIsAddVendorOpen(false)}
+  onSuccess={refreshVendors}   // 👈 THIS LINE
+/>
+
     </div>
   );
 }

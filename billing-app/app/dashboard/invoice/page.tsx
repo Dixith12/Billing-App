@@ -190,6 +190,7 @@ function InvoiceContent() {
           phone: data.customerPhone || data.vendorPhone || "",
           gstin: data.customerGstin || data.vendorGstin || "",
           address: data.billingAddress || "",
+          state:data.placeOfSupply||data.vendorState,
         } as any);
 
         setBillingAddress(data.billingAddress || "");

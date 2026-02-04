@@ -9,30 +9,32 @@ import {
   query,
   orderBy,
   Timestamp,
+  deleteField
 } from "firebase/firestore";
 import { db } from "../firebase";
 
 export interface Expense {
   id: string;
   name: string;
-  category: string;           // e.g. "Office Supplies", "Rent (Office/Warehouse)", etc.
-  state: string;              // e.g. "Karnataka", "Maharashtra", "Tamil Nadu"
-  cgstPercent?: number;       // only for Karnataka
-  sgstPercent?: number;       // only for Karnataka
-  igstPercent?: number;       // only for other states
-  quantity: number;           // default 1 if not provided
-  amount: number;             // total amount before GST (or including, depending on your logic)
-  date: string;               // YYYY-MM-DD
+  category: string;
+  state: string;
+  gstApplicable: boolean;       // ← NEW - required
+  cgstPercent?: number;         // only when gstApplicable && Karnataka
+  sgstPercent?: number;         // only when gstApplicable && Karnataka
+  igstPercent?: number;         // only when gstApplicable && not Karnataka
+  quantity: number;
+  amount: number;
+  date: string;                 // YYYY-MM-DD
   createdAt?: Timestamp;
-  updatedAt?: Timestamp;      // optional, good practice
+  updatedAt?: Timestamp;
 }
 
 const expensesRef = collection(db, "expenses");
 
-function removeUndefined<T extends object>(obj: T): T {
+function cleanObject<T extends object>(obj: Partial<T>): Partial<T> {
   return Object.fromEntries(
-    Object.entries(obj).filter(([_, v]) => v !== undefined)
-  ) as T;
+    Object.entries(obj).filter(([_, value]) => value !== undefined && value !== null)
+  ) as Partial<T>;
 }
 
 export const addExpense = async (
@@ -40,26 +42,59 @@ export const addExpense = async (
 ): Promise<Expense> => {
   const now = Timestamp.now();
 
-  const rawData = {
-    ...data,
-    quantity: data.quantity ?? 1,
-    cgstPercent: data.cgstPercent !== undefined ? Number(data.cgstPercent) : undefined,
-    sgstPercent: data.sgstPercent !== undefined ? Number(data.sgstPercent) : undefined,
-    igstPercent: data.igstPercent !== undefined ? Number(data.igstPercent) : undefined,
+  const isKarnataka = (data.state || "").toLowerCase() === "karnataka";
+
+  // Base fields - always present
+  const baseData = {
+    name: (data.name || "").trim(),
+    category: data.category || "",
+    state: data.state || "",
+    gstApplicable: !!data.gstApplicable,
+    quantity: Number(data.quantity ?? 1),
+    amount: Number(data.amount),
+    date: data.date || "",
     createdAt: now,
     updatedAt: now,
   };
 
-  const safeData = removeUndefined(rawData);
+  const finalData: any = { ...baseData };
+
+  // Handle GST fields conditionally
+  if (data.gstApplicable === true) {
+    if (isKarnataka) {
+      if (data.cgstPercent !== undefined) {
+        finalData.cgstPercent = Number(data.cgstPercent);
+      }
+      if (data.sgstPercent !== undefined) {
+        finalData.sgstPercent = Number(data.sgstPercent);
+      }
+      // optional: explicitly null out IGST
+      finalData.igstPercent = null;
+    } else {
+      if (data.igstPercent !== undefined) {
+        finalData.igstPercent = Number(data.igstPercent);
+      }
+      // optional: explicitly null out CGST/SGST
+      finalData.cgstPercent = null;
+      finalData.sgstPercent = null;
+    }
+  } else {
+    // When GST is not applicable → clear all GST fields
+    finalData.cgstPercent = null;
+    finalData.sgstPercent = null;
+    finalData.igstPercent = null;
+  }
+
+  const safeData = cleanObject(finalData);
 
   const docRef = await addDoc(expensesRef, safeData);
 
   return {
     id: docRef.id,
-    ...(safeData as Omit<Expense, "id">),
-  };
+    ...safeData,
+    gstApplicable: baseData.gstApplicable, // ensure boolean
+  } as Expense;
 };
-
 
 export const getExpenses = async (): Promise<Expense[]> => {
   const q = query(expensesRef, orderBy("createdAt", "desc"));
@@ -71,34 +106,87 @@ export const getExpenses = async (): Promise<Expense[]> => {
     return {
       id: snap.id,
       ...data,
-      // Optional: convert Timestamp back to string if needed in UI
-      date: data.date, // already string (YYYY-MM-DD)
+      gstApplicable: !!data.gstApplicable, // ensure boolean even if corrupted
+      quantity: Number(data.quantity ?? 1),
+      amount: Number(data.amount ?? 0),
+      date: data.date || "",
       createdAt: data.createdAt instanceof Timestamp ? data.createdAt : undefined,
       updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt : undefined,
-    };
+    } as Expense;
   });
 };
 
 export const updateExpense = async (
   id: string,
-  data: Partial<Omit<Expense, "id" | "createdAt" | "updatedAt">>
+  updates: Partial<Omit<Expense, "id" | "createdAt" | "updatedAt">>
 ): Promise<void> => {
   const expenseDoc = doc(db, "expenses", id);
 
-  const rawUpdates = {
-    ...data,
-    quantity: data.quantity !== undefined ? Number(data.quantity) : undefined,
-    cgstPercent: data.cgstPercent !== undefined ? Number(data.cgstPercent) : undefined,
-    sgstPercent: data.sgstPercent !== undefined ? Number(data.sgstPercent) : undefined,
-    igstPercent: data.igstPercent !== undefined ? Number(data.igstPercent) : undefined,
+  const isKarnataka = (updates.state || "").toLowerCase() === "karnataka";
+
+  const finalUpdates: any = {
     updatedAt: Timestamp.now(),
   };
 
-  const safeUpdates = removeUndefined(rawUpdates);
+  // Copy provided fields
+  if ("name" in updates) finalUpdates.name = (updates.name || "").trim();
+  if ("category" in updates) finalUpdates.category = updates.category;
+  if ("state" in updates) finalUpdates.state = updates.state;
+  if ("quantity" in updates) finalUpdates.quantity = Number(updates.quantity);
+  if ("amount" in updates) finalUpdates.amount = Number(updates.amount);
+  if ("date" in updates) finalUpdates.date = updates.date;
 
-  await updateDoc(expenseDoc, safeUpdates);
+ // 🔥 FINAL GST NORMALIZATION LOGIC (CORRECT)
+const gstOn =
+  "gstApplicable" in updates ? !!updates.gstApplicable : undefined;
+
+if (gstOn === false) {
+  // GST turned OFF → remove all GST fields
+  finalUpdates.gstApplicable = false;
+  finalUpdates.cgstPercent = deleteField();
+  finalUpdates.sgstPercent = deleteField();
+  finalUpdates.igstPercent = deleteField();
+}
+
+if (gstOn === true) {
+  finalUpdates.gstApplicable = true;
+
+  if (isKarnataka) {
+    finalUpdates.cgstPercent =
+      updates.cgstPercent != null
+        ? Number(updates.cgstPercent)
+        : deleteField();
+
+    finalUpdates.sgstPercent =
+      updates.sgstPercent != null
+        ? Number(updates.sgstPercent)
+        : deleteField();
+
+    // 🚨 MUST REMOVE IGST
+    finalUpdates.igstPercent = deleteField();
+  } else {
+    finalUpdates.igstPercent =
+      updates.igstPercent != null
+        ? Number(updates.igstPercent)
+        : deleteField();
+
+    // 🚨 MUST REMOVE CGST + SGST
+    finalUpdates.cgstPercent = deleteField();
+    finalUpdates.sgstPercent = deleteField();
+  }
+}
+
+
+
+  // If state changed but gstApplicable not provided → we don't auto-change GST status
+  // (modal should always send gstApplicable when state changes)
+
+  const safeUpdates = cleanObject(finalUpdates);
+
+  if (Object.keys(safeUpdates).length > 0) {
+    await updateDoc(expenseDoc, safeUpdates);
+  }
 };
-
 
 export const deleteExpense = async (id: string): Promise<void> => {
   const expenseDoc = doc(db, "expenses", id);

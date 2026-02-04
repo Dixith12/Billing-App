@@ -186,6 +186,12 @@ export function TransactionsTable(props: TransactionsTableProps) {
     clearDateFilter,
   } = props;
 
+
+  // ✅ SORT BY INVOICE NUMBER (LATEST FIRST)
+const sortedInvoices = [...filteredInvoices].sort((a, b) => {
+  return (b.invoiceNumber || 0) - (a.invoiceNumber || 0);
+});
+
   // PDF modal states
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [selectedPdfInvoice, setSelectedPdfInvoice] = useState<Invoice | null>(
@@ -696,7 +702,8 @@ export function TransactionsTable(props: TransactionsTableProps) {
           </TableHeader>
 
           <TableBody>
-            {filteredInvoices.map((invoice, index) => (
+            {sortedInvoices.map((invoice, index) => (
+
               <TableRow
                 key={invoice.id}
                 className={cn(
@@ -1258,31 +1265,23 @@ export function TransactionsTable(props: TransactionsTableProps) {
               <AlertCircle className="h-6 w-6 text-red-600" />
               Are you absolutely sure?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-600 pt-2">
-              <div className="space-y-2">
-                <div>
-                  This will permanently delete invoice{" "}
-                  <span className="font-semibold text-slate-900">
-                    #
-                    {props.invoiceToDelete?.invoiceNumber
-                      ? String(props.invoiceToDelete.invoiceNumber).padStart(
-                          4,
-                          "0",
-                        )
-                      : "draft"}
-                  </span>{" "}
-                  for{" "}
-                  <span className="font-semibold text-slate-900">
-                    {props.invoiceToDelete?.customerName || "this customer"}
-                  </span>
-                  .
-                </div>
+            <AlertDialogDescription className="text-slate-600 pt-2 space-y-2">
+              <span className="block">
+                This will permanently delete invoice{" "}
+                <span className="font-semibold text-slate-900">
+                  #{props.invoiceToDelete?.invoiceNumber}
+                </span>{" "}
+                for{" "}
+                <span className="font-semibold text-slate-900">
+                  {props.invoiceToDelete?.customerName}
+                </span>
+                .
+              </span>
 
-                <div className="flex items-center gap-1.5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-medium">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  This action cannot be undone.
-                </div>
-              </div>
+              <span className="flex items-center gap-1.5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-medium">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                This action cannot be undone.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">

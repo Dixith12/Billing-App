@@ -278,10 +278,9 @@ export function VendorList({ items, onRefresh, onDelete }: VendorListProps) {
                         size="sm"
                         className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                         onClick={() => {
-  setVendorToDelete(vendor);
-  setDeleteDialogOpen(true);
-}}
-
+                          setVendorToDelete(vendor);
+                          setDeleteDialogOpen(true);
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -571,18 +570,20 @@ export function VendorList({ items, onRefresh, onDelete }: VendorListProps) {
               Are you absolutely sure?
             </AlertDialogTitle>
 
-            <AlertDialogDescription className="text-slate-600 space-y-2 pt-2">
-              <div>
-                This will permanently delete vendor{" "}
-                <span className="font-semibold text-slate-900">
-                  {vendorToDelete?.name}
-                </span>
-                .
-              </div>
+            <AlertDialogDescription asChild>
+              <div className="text-slate-600 space-y-2 pt-2">
+                <div>
+                  This will permanently delete vendor{" "}
+                  <span className="font-semibold text-slate-900">
+                    {vendorToDelete?.name}
+                  </span>
+                  .
+                </div>
 
-              <div className="flex items-center gap-1.5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-medium">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                This action cannot be undone.
+                <div className="flex items-center gap-1.5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-medium">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  This action cannot be undone.
+                </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>

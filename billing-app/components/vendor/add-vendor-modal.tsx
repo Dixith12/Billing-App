@@ -32,9 +32,10 @@ import { toast } from 'sonner'
 interface AddVendorModalProps {
   isOpen: boolean
   onClose: () => void
+  onSuccess:()=>Promise<void>
 }
 
-export function AddVendorModal({ isOpen, onClose }: AddVendorModalProps) {
+export function AddVendorModal({ isOpen, onClose, onSuccess}: AddVendorModalProps) {
   const { useVendorForm } = useVendors()
 
   const {
@@ -45,7 +46,8 @@ export function AddVendorModal({ isOpen, onClose }: AddVendorModalProps) {
     formError: error,
     isSubmitting: isLoading,
     resetForm,
-  } = useVendorForm(() => {
+  } = useVendorForm(async () => {
+    await onSuccess()
     resetForm()
     onClose()
     toast.success("Vendor created successfully", {

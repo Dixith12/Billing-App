@@ -35,10 +35,22 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { InventoryItem } from "@/lib/types";
 import { useInventory} from "@/app/dashboard/inventory/hooks/useInventory";
 import { calculateTotalPrice, formatINR } from "@/lib/utils/inventory";
 import { useEditInventoryForm } from "@/app/dashboard/inventory/hooks/useEditInventoryForm";
+
 
 interface InventoryListProps {
   items: InventoryItem[];
@@ -49,6 +61,12 @@ export function InventoryList({ items }: InventoryListProps) {
 
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+const [isDeleting, setIsDeleting] = useState(false);
+
 
   const { form, updateField, submit, error } = useEditInventoryForm(
     editingItem,
@@ -162,10 +180,10 @@ export function InventoryList({ items }: InventoryListProps) {
                       size="sm"
                       className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                       onClick={() => {
-                        if (confirm("Delete this item? This cannot be undone.")) {
-                          deleteItem(item.id);
-                        }
-                      }}
+  setItemToDelete(item);
+  setDeleteDialogOpen(true);
+}}
+
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -366,6 +384,65 @@ export function InventoryList({ items }: InventoryListProps) {
           </form>
         </DialogContent>
       </Dialog>
+
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+  <AlertDialogContent className="bg-white border-slate-200 max-w-md">
+    <AlertDialogHeader>
+      <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900">
+        <AlertCircle className="h-6 w-6 text-red-600" />
+        Delete inventory item?
+      </AlertDialogTitle>
+
+      {/* 🔥 asChild FIX to avoid hydration error */}
+      <AlertDialogDescription asChild>
+        <div className="text-slate-600 space-y-3 pt-2">
+          <div>
+            This will permanently delete{" "}
+            <span className="font-semibold text-slate-900">
+              {itemToDelete?.name}
+            </span>
+            .
+          </div>
+
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-medium">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            This action cannot be undone.
+          </div>
+        </div>
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+
+    <AlertDialogFooter className="gap-2">
+      <AlertDialogCancel
+        disabled={isDeleting}
+        className="hover:bg-slate-100"
+      >
+        Cancel
+      </AlertDialogCancel>
+
+      <AlertDialogAction
+        disabled={isDeleting}
+        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white min-w-[140px]"
+        onClick={async () => {
+          if (!itemToDelete) return;
+
+          try {
+            setIsDeleting(true);
+            await deleteItem(itemToDelete.id);
+          } finally {
+            setIsDeleting(false);
+            setDeleteDialogOpen(false);
+            setItemToDelete(null);
+          }
+        }}
+      >
+        {isDeleting ? "Deleting..." : "Delete Item"}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+
     </div>
   );
 }

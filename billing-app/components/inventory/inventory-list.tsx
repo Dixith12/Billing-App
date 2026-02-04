@@ -276,6 +276,7 @@ export function InventoryList({ items }: InventoryListProps) {
                         step="0.01"
                         value={form.pricePerHeight ?? ""}
                         onChange={(e) => updateField("pricePerHeight", e.target.value)}
+                        onWheel={(e)=>e.currentTarget.blur()}
                         className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200 h-11"
                       />
                     </div>
@@ -286,6 +287,7 @@ export function InventoryList({ items }: InventoryListProps) {
                         step="0.01"
                         value={form.pricePerWidth ?? ""}
                         onChange={(e) => updateField("pricePerWidth", e.target.value)}
+                        onWheel={(e)=>e.currentTarget.blur()}
                         className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200 h-11"
                       />
                     </div>
@@ -312,6 +314,7 @@ export function InventoryList({ items }: InventoryListProps) {
                     step="0.01"
                     value={form.pricePerKg ?? ""}
                     onChange={(e) => updateField("pricePerKg", e.target.value)}
+                    onWheel={(e)=>e.currentTarget.blur()}
                     className="border-slate-300 focus:border-emerald-400 focus:ring-emerald-200 h-11"
                   />
                 </div>
@@ -336,6 +339,7 @@ export function InventoryList({ items }: InventoryListProps) {
                     step="0.01"
                     value={form.pricePerUnit ?? ""}
                     onChange={(e) => updateField("pricePerUnit", e.target.value)}
+                    onWheel={(e)=>e.currentTarget.blur()}
                     className="border-slate-300 focus:border-blue-400 focus:ring-blue-200 h-11"
                   />
                 </div>

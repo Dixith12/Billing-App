@@ -32,6 +32,19 @@ export function useCustomers() {
     fetchCustomers();
   }, []);
 
+  const refreshCustomers = async () => {
+  try {
+    setLoading(true);
+    const data = await getCustomers();
+    setCustomers(data);
+  } catch (err: any) {
+    setError(err.message || "Failed to refresh customers");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
   const handleAddCustomer = async (
     data: Omit<Customer, "id" | "createdAt">,
   ): Promise<Customer> => {
@@ -71,13 +84,15 @@ export function useCustomers() {
   };
 
   return {
-    customers,
-    loading,
-    error,
-    addCustomer: handleAddCustomer,
-    updateCustomer: handleUpdateCustomer,
-    deleteCustomer: handleDeleteCustomer,
-  };
+  customers,
+  loading,
+  error,
+  addCustomer: handleAddCustomer,
+  updateCustomer: handleUpdateCustomer,
+  deleteCustomer: handleDeleteCustomer,
+  refreshCustomers, // 👈 ADD THIS LINE
+};
+
 }
 
 export function useAddCustomerForm(
@@ -205,6 +220,8 @@ export function useEditCustomerForm(
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  
+
   useEffect(() => {
     if (initial) {
       const bal = initial.openingBalance ?? 0;
@@ -220,6 +237,7 @@ export function useEditCustomerForm(
       });
     }
   }, [initial]);
+  
 
   const updateField = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -291,6 +309,8 @@ export function useEditCustomerForm(
       setIsLoading(false);
     }
   };
+
+  
 
   return {
     form,

@@ -32,9 +32,10 @@ import { toast } from 'sonner'
 interface AddCustomerModalProps {
   isOpen: boolean
   onClose: () => void
+  onSuccess:()=>Promise<void>
 }
 
-export function AddCustomerModal({ isOpen, onClose }: AddCustomerModalProps) {
+export function AddCustomerModal({ isOpen, onClose,onSuccess }: AddCustomerModalProps) {
     const { addCustomer } = useCustomers()
 
   const { 
@@ -47,7 +48,8 @@ export function AddCustomerModal({ isOpen, onClose }: AddCustomerModalProps) {
   isLoading
 } = useAddCustomerForm(
   addCustomer,   // ✅ PASS addCustomer HERE
-  () => {
+  async () => {
+    await onSuccess();
     reset()
     onClose()
     toast.success("Customer created successfully", {

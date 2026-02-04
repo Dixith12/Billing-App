@@ -48,6 +48,17 @@ import {
   Pencil,
   ReceiptIndianRupee,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
 import { cn } from "@/lib/utils";
 import type { Quotation } from "@/lib/firebase/quotations";
 import { pdf } from "@react-pdf/renderer";
@@ -88,6 +99,11 @@ export function QuotationTable({
     useState<Quotation | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+const [quotationToDelete, setQuotationToDelete] = useState<Quotation | null>(null)
+const [isDeleting, setIsDeleting] = useState(false)
+
 
   useEffect(() => {
     return () => {
@@ -150,6 +166,20 @@ export function QuotationTable({
       setIsGenerating(false);
     }
   };
+
+  const handleDeleteQuotation = async () => {
+  if (!quotationToDelete) return
+
+  try {
+    setIsDeleting(true)
+    await onDelete(quotationToDelete.id)
+  } finally {
+    setIsDeleting(false)
+    setDeleteDialogOpen(false)
+    setQuotationToDelete(null)
+  }
+}
+
 
   const filteredQuotations = useMemo(() => {
     let result = quotations.filter((q) => {
@@ -689,7 +719,11 @@ if (datePreset) {
 
                           <DropdownMenuItem
                             className="cursor-pointer text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors group"
-                            onClick={() => onDelete(quotation.id)}
+                            onClick={() => 
+                              {
+                                setQuotationToDelete(quotation)
+                                setDeleteDialogOpen(true)
+                              }}
                           >
                             <Trash2 className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
                             <span className="font-medium">Delete</span>
@@ -764,6 +798,65 @@ if (datePreset) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+  <AlertDialogContent className="bg-white border-slate-200">
+    <AlertDialogHeader>
+      <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900">
+        <AlertCircle className="h-6 w-6 text-red-600" />
+        Are you absolutely sure?
+      </AlertDialogTitle>
+
+      <AlertDialogDescription className="text-slate-600 space-y-2 pt-2">
+        <p>
+          This will permanently delete quotation{" "}
+          <span className="font-semibold text-slate-900">
+            {quotationToDelete
+              ? formatQuotationNumber(quotationToDelete.quotationNumber)
+              : ""}
+          </span>{" "}
+          for{" "}
+          <span className="font-semibold text-slate-900">
+            {quotationToDelete?.customerName || "this customer"}
+          </span>.
+        </p>
+
+        <p className="flex items-center gap-1.5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-medium">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          This action cannot be undone.
+        </p>
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+
+    <AlertDialogFooter className="gap-2">
+      <AlertDialogCancel
+        disabled={isDeleting}
+        className="hover:bg-slate-100"
+      >
+        Cancel
+      </AlertDialogCancel>
+
+      <AlertDialogAction
+        onClick={handleDeleteQuotation}
+        disabled={isDeleting}
+        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:ring-red-600 text-white shadow-lg min-w-[140px]"
+      >
+        {isDeleting ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Deleting...
+          </>
+        ) : (
+          <>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Quotation
+          </>
+        )}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+
     </div>
   );
 }

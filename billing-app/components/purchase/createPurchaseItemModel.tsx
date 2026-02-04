@@ -112,6 +112,7 @@ export function CreatePurchaseItemModal({
                 onChange={(e) =>
                   updateField("height", Number(e.target.value) || undefined)
                 }
+                onWheel={(e) => e.currentTarget.blur()}
                 required
                 className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
               />
@@ -134,6 +135,7 @@ export function CreatePurchaseItemModal({
                 onChange={(e) =>
                   updateField("width", Number(e.target.value) || undefined)
                 }
+                onWheel={(e) => e.currentTarget.blur()}
                 required
                 className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
               />
@@ -172,6 +174,7 @@ export function CreatePurchaseItemModal({
                       Number(e.target.value) || undefined,
                     )
                   }
+                  onWheel={(e) => e.currentTarget.blur()}
                   required
                   className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
                 />
@@ -197,6 +200,7 @@ export function CreatePurchaseItemModal({
                       Number(e.target.value) || undefined,
                     )
                   }
+                  onWheel={(e) => e.currentTarget.blur()}
                   required
                   className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
                 />

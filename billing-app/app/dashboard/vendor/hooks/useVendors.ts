@@ -89,20 +89,22 @@ export function useVendors() {
   const [error, setError] = useState<string | null>(null);
 
   // Load vendors on mount
-  useEffect(() => {
-    async function fetchVendors() {
-      try {
-        setLoading(true);
-        const data = await getVendors();
-        setVendors(data);
-      } catch (err: any) {
-        setError(err.message || "Failed to load vendors");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchVendors();
-  }, []);
+  const fetchVendors = async () => {
+  try {
+    setLoading(true);
+    const data = await getVendors();
+    setVendors(data);
+  } catch (err: any) {
+    setError(err.message || "Failed to load vendors");
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  fetchVendors();
+}, []);
+
 
   // ── CRUD Handlers ───────────────────────────────────────────────
   const handleAddVendor = async (
@@ -275,6 +277,7 @@ export function useVendors() {
     addVendor: handleAddVendor,
     updateVendor: handleUpdateVendor,
     deleteVendor: handleDeleteVendor,
+    refreshVendors:fetchVendors,
     useVendorForm, // ← use this in your modal / form component
   };
 }

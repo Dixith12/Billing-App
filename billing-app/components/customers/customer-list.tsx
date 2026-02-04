@@ -34,12 +34,24 @@ import {
   Phone,
   Landmark,
   Briefcase,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Customer } from '@/lib/firebase/customers'
 import { useCustomers, useEditCustomerForm } from '@/app/dashboard/customer/hooks/useCustomers'
 import { INDIAN_STATES_AND_UTS } from '@/lib/utils/india'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+
 
 // State codes mapping (unchanged)
 const STATE_CODES: Record<string, string> = {
@@ -83,14 +95,21 @@ const STATE_CODES: Record<string, string> = {
 
 interface CustomerListProps {
   items: Customer[]
+  onRefresh: () => Promise<void>
 }
 
-export function CustomerList({ items }: CustomerListProps) {
+
+export function CustomerList({ items, onRefresh }: CustomerListProps) {
 const { deleteCustomer, updateCustomer } = useCustomers()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
+const [isDeleting, setIsDeleting] = useState(false)
+
 
   const { 
   form, 
@@ -102,7 +121,8 @@ const { deleteCustomer, updateCustomer } = useCustomers()
 } = useEditCustomerForm(
   updateCustomer,     // ✅ PASS updateCustomer
   editingCustomer,
-  () => {
+  async () => {
+    await onRefresh();
     setIsEditDialogOpen(false)
     setEditingCustomer(null)
     toast.success("Customer updated successfully", {
@@ -136,6 +156,27 @@ const { deleteCustomer, updateCustomer } = useCustomers()
     e.preventDefault()
     await submit()
   }
+
+
+  const handleDeleteCustomer = async () => {
+  if (!customerToDelete) return
+
+  try {
+    setIsDeleting(true)
+    await deleteCustomer(customerToDelete.id)
+    await onRefresh()
+    toast.success("Customer deleted", {
+      description: "The customer has been permanently removed.",
+    })
+  } catch (err) {
+    toast.error("Failed to delete customer")
+  } finally {
+    setIsDeleting(false)
+    setDeleteDialogOpen(false)
+    setCustomerToDelete(null)
+  }
+}
+
 
   return (
     <div className="space-y-6 ml-3 mr-3 mb-3">
@@ -213,10 +254,10 @@ const { deleteCustomer, updateCustomer } = useCustomers()
                         size="sm"
                         className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                         onClick={() => {
-                          if (confirm('Delete this customer? This cannot be undone.')) {
-                            deleteCustomer(customer.id)
-                          }
-                        }}
+  setCustomerToDelete(customer)
+  setDeleteDialogOpen(true)
+}}
+
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -493,6 +534,61 @@ const { deleteCustomer, updateCustomer } = useCustomers()
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog
+  open={deleteDialogOpen}
+  onOpenChange={setDeleteDialogOpen}
+>
+  <AlertDialogContent className="bg-white border-slate-200">
+    <AlertDialogHeader>
+      <AlertDialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900">
+        <AlertCircle className="h-6 w-6 text-red-600" />
+        Are you absolutely sure?
+      </AlertDialogTitle>
+
+      <AlertDialogDescription className="text-slate-600 space-y-2 pt-2">
+        <p>
+          This will permanently delete customer{" "}
+          <span className="font-semibold text-slate-900">
+            {customerToDelete?.name}
+          </span>.
+        </p>
+
+        <p className="flex items-center gap-1.5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 font-medium">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          This action cannot be undone.
+        </p>
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+
+    <AlertDialogFooter className="gap-2">
+      <AlertDialogCancel
+        disabled={isDeleting}
+        className="hover:bg-slate-100"
+      >
+        Cancel
+      </AlertDialogCancel>
+
+      <AlertDialogAction
+        onClick={handleDeleteCustomer}
+        disabled={isDeleting}
+        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:ring-red-600 text-white shadow-lg min-w-[140px]"
+      >
+        {isDeleting ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Deleting...
+          </>
+        ) : (
+          <>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Customer
+          </>
+        )}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+
     </div>
   )
 }

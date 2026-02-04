@@ -1,18 +1,18 @@
 // app/dashboard/vendor/page.tsx
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { AddVendorModal } from '@/components/vendor/add-vendor-modal'   // adjust path
-import { VendorList } from '@/components/vendor/vendor-list'         // adjust path
-import { useVendors } from '@/app/dashboard/vendor/hooks/useVendors'
-import { Plus, Building2, Sparkles, CheckCircle2 } from 'lucide-react'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { AddVendorModal } from "@/components/vendor/add-vendor-modal"; // adjust path
+import { VendorList } from "@/components/vendor/vendor-list"; // adjust path
+import { useVendors } from "@/app/dashboard/vendor/hooks/useVendors";
+import { Plus, Building2, Sparkles, CheckCircle2 } from "lucide-react";
 
 export default function VendorsPage() {
-  const { vendors } = useVendors()
-  const [isAddVendorOpen, setIsAddVendorOpen] = useState(false)
+  const { vendors, refreshVendors, deleteVendor} = useVendors();
+  const [isAddVendorOpen, setIsAddVendorOpen] = useState(false);
 
-  const totalVendors = vendors.length
+  const totalVendors = vendors.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
@@ -90,7 +90,8 @@ export default function VendorsPage() {
                     No vendors yet
                   </h3>
                   <p className="text-slate-600 max-w-md mx-auto">
-                    Start building your vendor list by adding your first supplier
+                    Start building your vendor list by adding your first
+                    supplier
                   </p>
                 </div>
                 <Button
@@ -102,7 +103,11 @@ export default function VendorsPage() {
                 </Button>
               </div>
             ) : (
-              <VendorList items={vendors} />
+<VendorList
+  items={vendors}
+  onRefresh={refreshVendors}
+  onDelete={deleteVendor}
+/>
             )}
           </div>
         </div>
@@ -113,7 +118,8 @@ export default function VendorsPage() {
             <div className="flex items-center gap-3 text-sm text-cyan-900">
               <CheckCircle2 className="h-5 w-5 text-teal-600 flex-shrink-0" />
               <span className="font-medium">
-                You have {totalVendors} vendor{totalVendors !== 1 ? 's' : ''} in your system
+                You have {totalVendors} vendor{totalVendors !== 1 ? "s" : ""} in
+                your system
               </span>
             </div>
             <div className="text-xs text-cyan-700" suppressHydrationWarning>
@@ -129,5 +135,5 @@ export default function VendorsPage() {
         onClose={() => setIsAddVendorOpen(false)}
       />
     </div>
-  )
+  );
 }

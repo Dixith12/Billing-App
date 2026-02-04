@@ -8,7 +8,7 @@ import { useCustomers } from '@/app/dashboard/customer/hooks/useCustomers'
 import { Plus, Users, Sparkles, CheckCircle2 } from 'lucide-react'
 
 export default function CustomersPage() {
-  const { customers } = useCustomers()
+const { customers, refreshCustomers } = useCustomers()
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
 
   const totalCustomers = customers.length
@@ -101,7 +101,10 @@ export default function CustomersPage() {
                 </Button>
               </div>
             ) : (
-              <CustomerList items={customers} />
+<CustomerList
+  items={customers}
+  onRefresh={refreshCustomers}
+/>
             )}
           </div>
         </div>
@@ -124,9 +127,11 @@ export default function CustomersPage() {
 
       {/* Add Modal */}
       <AddCustomerModal
-        isOpen={isAddCustomerOpen}
-        onClose={() => setIsAddCustomerOpen(false)}
-      />
+  isOpen={isAddCustomerOpen}
+  onClose={() => setIsAddCustomerOpen(false)}
+  onSuccess={refreshCustomers}
+ />
+
     </div>
   )
 }

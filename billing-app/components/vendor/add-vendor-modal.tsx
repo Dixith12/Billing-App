@@ -263,6 +263,7 @@ export function AddVendorModal({ isOpen, onClose }: AddVendorModalProps) {
                       placeholder="0.00"
                       value={form.openingBalanceAmount}
                       onChange={(e) => updateField('openingBalanceAmount', e.target.value)}
+                      onWheel={(e)=> e.currentTarget.blur()}
                       className="border-0 focus:ring-0 h-full rounded-none bg-transparent px-3"
                       min="0"
                       step="0.01"

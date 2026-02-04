@@ -152,6 +152,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
                   onChange={(e) =>
                     updateField("pricePerHeight", e.target.value)
                   }
+                  onWheel={(e)=>e.currentTarget.blur()}
                   required
                   className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
                 />
@@ -170,6 +171,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
                   placeholder="0.00"
                   value={form.pricePerWidth ?? ""}
                   onChange={(e) => updateField("pricePerWidth", e.target.value)}
+                  onWheel={(e)=>e.currentTarget.blur()}
                   required
                   className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
                 />
@@ -216,6 +218,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
               placeholder="0.00"
               value={form[fieldKey] ?? ""}
               onChange={(e) => updateField(fieldKey, e.target.value)}
+              onWheel={(e)=>e.currentTarget.blur()}
               required
               className="border-slate-300 focus:border-emerald-400 focus:ring-emerald-200"
             />
@@ -280,6 +283,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
               placeholder="e.g. Teak Wood Panels, MS Rods, etc."
               value={form.name}
               onChange={(e) => updateField("name", e.target.value)}
+              onWheel={(e)=>e.currentTarget.blur()}
               required
               className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
             />

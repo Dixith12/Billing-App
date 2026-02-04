@@ -430,8 +430,8 @@ export function ExpenseModal({
             <Input
               id="quantity"
               type="number"
-              step="0.01"
-              min="0.01"
+              step="1"
+              min="1"
               placeholder="1"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}

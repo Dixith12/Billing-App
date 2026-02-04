@@ -22,6 +22,12 @@ export interface BilledProduct {
   kg?: string;
   units?: string;
 
+  pricePerHeight?: number;
+  pricePerWidth?: number;
+  pricePerKg?: number;
+  pricePerUnit?: number;
+
+
   wasteEnabled: boolean;
   wasteHeight?: string;
   wasteWidth?: string;
@@ -329,6 +335,10 @@ export function useCreateInvoice(options?: {
         customData.measurementType === "unit"
           ? String(customData.units ?? 1)
           : undefined,
+          pricePerHeight: customData.pricePerHeight,
+  pricePerWidth: customData.pricePerWidth,
+  pricePerKg: customData.pricePerKg,
+  pricePerUnit: customData.pricePerUnit,
       wasteEnabled: false,
       wasteHeight: undefined,
       wasteWidth: undefined,
@@ -345,33 +355,57 @@ export function useCreateInvoice(options?: {
     toast.success("Item added to purchase");
   };
 
-  function calculateBaseAmount(
-    p: BilledProduct,
-    inventoryItems: InventoryItem[],
-  ) {
-    const inv = inventoryItems.find((i) => i.name === p.name);
-    if (!inv) return 0;
+  function calculateInvoiceBaseAmount(
+  p: BilledProduct,
+  inventoryItems: InventoryItem[],
+) {
+  const inv = inventoryItems.find((i) => i.name === p.name);
+  if (!inv) return 0;
 
-    let base = 0;
+  let base = 0;
 
-    switch (p.measurementType) {
-      case "height_width":
-        base =
-          (parseFloat(p.height || "0") || 0) * (inv.pricePerHeight ?? 0) +
-          (parseFloat(p.width || "0") || 0) * (inv.pricePerWidth ?? 0);
-        break;
+  switch (p.measurementType) {
+    case "height_width":
+      base =
+        (Number(p.height) || 0) * (inv.pricePerHeight ?? 0) +
+        (Number(p.width) || 0) * (inv.pricePerWidth ?? 0);
+      break;
 
-      case "kg":
-        base = (parseFloat(p.kg || "0") || 0) * (inv.pricePerKg ?? 0);
-        break;
+    case "kg":
+      base = (Number(p.kg) || 0) * (inv.pricePerKg ?? 0);
+      break;
 
-      case "unit":
-        base = (parseFloat(p.units || "0") || 0) * (inv.pricePerUnit ?? 0);
-        break;
-    }
-
-    return base * (p.quantity || 1);
+    case "unit":
+      base = (Number(p.units) || 0) * (inv.pricePerUnit ?? 0);
+      break;
   }
+
+  return base * (p.quantity || 1);
+}
+
+
+  function calculatePurchaseBaseAmount(p: BilledProduct) {
+  let base = 0;
+
+  switch (p.measurementType) {
+    case "height_width":
+      base =
+        (Number(p.height) || 0) * (p.pricePerHeight || 0) +
+        (Number(p.width) || 0) * (p.pricePerWidth || 0);
+      break;
+
+    case "kg":
+      base = (Number(p.kg) || 0) * (p.pricePerKg || 0);
+      break;
+
+    case "unit":
+      base = (Number(p.units) || 0) * (p.pricePerUnit || 0);
+      break;
+  }
+
+  return base * (p.quantity || 1);
+}
+
 
   function calculateWasteAmount(
     p: BilledProduct,
@@ -422,22 +456,25 @@ export function useCreateInvoice(options?: {
           updated.wasteAmount = undefined;
         }
 
-        const baseAmount = calculateBaseAmount(updated, inventoryItems);
+const baseAmount = isPurchaseMode
+  ? calculatePurchaseBaseAmount(updated)
+  : calculateInvoiceBaseAmount(updated, inventoryItems);
 
         let wasteAmount = 0;
 
-        if (updated.wasteEnabled) {
-          // 🟢 User is typing in Waste ₹ → respect it
-          if (field === "wasteAmount") {
-            wasteAmount = Number(value) || 0;
-            updated.wasteAmount = wasteAmount;
-          }
-          // 🟢 User changed dimensions → auto calculate
-          else {
-            wasteAmount = calculateWasteAmount(updated, inventoryItems);
-            updated.wasteAmount = wasteAmount;
-          }
-        }
+if (updated.wasteEnabled) {
+  // 🟢 User is typing in Waste ₹ → respect it
+  if (field === "wasteAmount") {
+    wasteAmount = Number(value) || 0;
+    updated.wasteAmount = wasteAmount;
+  }
+  // 🟢 User changed dimensions → auto calculate
+  else {
+    wasteAmount = calculateWasteAmount(updated, inventoryItems);
+    updated.wasteAmount = wasteAmount;
+  }
+}
+
 
         updated.grossTotal = baseAmount + wasteAmount;
         updated.netTotal = updated.grossTotal;

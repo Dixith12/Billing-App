@@ -153,18 +153,19 @@ export default function PurchasePDF({ purchase }: PurchasePDFProps) {
 
   const products = purchase.products || [];
 
-  const subtotal    = purchase.subtotal    ?? 0;
-  const discount    = purchase.discount    ?? 0;
-  const cgst        = purchase.cgst        ?? 0;
-  const sgst        = purchase.sgst        ?? 0;
-  const igst        = purchase.igst        ?? 0;
-  const netAmount   = purchase.netAmount   ?? 0;
+  const subtotal = purchase.subtotal ?? 0;
+  const discount = purchase.discount ?? 0;
+  const cgst = purchase.cgst ?? 0;
+  const sgst = purchase.sgst ?? 0;
+  const igst = purchase.igst ?? 0;
+  const netAmount = purchase.netAmount ?? 0;
 
   const formatINR = (num: number) => {
-    return `₹ ${new Intl.NumberFormat("en-IN", {
+    const value = Number(num || 0);
+    return `Rs. ${new Intl.NumberFormat("en-IN", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(num)}`;
+    }).format(value)}`;
   };
 
   const getMeasurementText = (p: any) => {
@@ -211,8 +212,12 @@ export default function PurchasePDF({ purchase }: PurchasePDFProps) {
                 <Text style={styles.label}>VENDOR</Text>
                 <Text>{purchase.vendorName || "—"}</Text>
                 <Text>{purchase.billingAddress || "—"}</Text>
-                {purchase.vendorPhone && <Text>Phone: {purchase.vendorPhone}</Text>}
-                {purchase.vendorGstin && <Text>GSTIN: {purchase.vendorGstin}</Text>}
+                {purchase.vendorPhone && (
+                  <Text>Phone: {purchase.vendorPhone}</Text>
+                )}
+                {purchase.vendorGstin && (
+                  <Text>GSTIN: {purchase.vendorGstin}</Text>
+                )}
               </View>
 
               <View style={styles.rightCol}>
@@ -248,7 +253,13 @@ export default function PurchasePDF({ purchase }: PurchasePDFProps) {
 
             {pageProducts.length === 0 && pageIndex === 0 && (
               <View style={styles.tableRow}>
-                <Text style={{ ...styles.colProduct, textAlign: "center", width: "100%" }}>
+                <Text
+                  style={{
+                    ...styles.colProduct,
+                    textAlign: "center",
+                    width: "100%",
+                  }}
+                >
                   No items in this purchase order
                 </Text>
               </View>
@@ -267,27 +278,38 @@ export default function PurchasePDF({ purchase }: PurchasePDFProps) {
                 {discount > 0 && (
                   <View style={styles.totalRow}>
                     <Text>Discount</Text>
-                    <Text style={styles.rupeeLarge}>-{formatINR(discount)}</Text>
+                    <Text style={styles.rupeeLarge}>
+                      -{formatINR(discount)}
+                    </Text>
                   </View>
                 )}
 
                 {cgst > 0 && (
                   <View style={styles.totalRow}>
-                    <Text>CGST ({((cgst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)</Text>
+                    <Text>
+                      CGST (
+                      {((cgst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)
+                    </Text>
                     <Text style={styles.rupeeLarge}>{formatINR(cgst)}</Text>
                   </View>
                 )}
 
                 {sgst > 0 && (
                   <View style={styles.totalRow}>
-                    <Text>SGST ({((sgst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)</Text>
+                    <Text>
+                      SGST (
+                      {((sgst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)
+                    </Text>
                     <Text style={styles.rupeeLarge}>{formatINR(sgst)}</Text>
                   </View>
                 )}
 
                 {igst > 0 && (
                   <View style={styles.totalRow}>
-                    <Text>IGST ({((igst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)</Text>
+                    <Text>
+                      IGST (
+                      {((igst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)
+                    </Text>
                     <Text style={styles.rupeeLarge}>{formatINR(igst)}</Text>
                   </View>
                 )}
@@ -301,9 +323,17 @@ export default function PurchasePDF({ purchase }: PurchasePDFProps) {
 
               <View style={styles.termsSection}>
                 <Text style={styles.termsTitle}>TERMS & CONDITIONS</Text>
-                <Text>• This purchase order is valid for 30 days from the date of issue.</Text>
-                <Text>• Supply should strictly adhere to specifications and delivery schedule.</Text>
-                <Text>• Payment terms: 30 days from receipt of invoice and material.</Text>
+                <Text>
+                  • This purchase order is valid for 30 days from the date of
+                  issue.
+                </Text>
+                <Text>
+                  • Supply should strictly adhere to specifications and delivery
+                  schedule.
+                </Text>
+                <Text>
+                  • Payment terms: 30 days from receipt of invoice and material.
+                </Text>
                 <Text style={{ marginTop: 8 }}>Hanover & Tyke</Text>
               </View>
             </>

@@ -8,6 +8,31 @@ export function exportTransactionsToExcel(invoices: Invoice[]) {
     return;
   }
 
+  function safeToDate(value: any): Date | null {
+    if (!value) return null;
+
+    // Firestore Timestamp (toDate)
+    if (typeof value.toDate === "function") {
+      const d = value.toDate();
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // Firestore { seconds }
+    if (typeof value.seconds === "number") {
+      const d = new Date(value.seconds * 1000);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // JS Date
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+
+    // ISO / string fallback
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   /* ───────────────
      FILE NAME (DATE BASED)
   ─────────────── */
@@ -21,9 +46,7 @@ export function exportTransactionsToExcel(invoices: Invoice[]) {
        DATE & NUMBER
     ─────────────── */
 
-    const invDate = invoice.invoiceDate
-      ? new Date(invoice.invoiceDate.seconds * 1000)
-      : null;
+    const invDate = safeToDate(invoice.invoiceDate);
 
     const formattedInvDate = invDate
       ? invDate.toLocaleDateString("en-IN")
@@ -55,7 +78,8 @@ export function exportTransactionsToExcel(invoices: Invoice[]) {
     const igstAmt = Number(invoice.igst) || 0;
 
     const totalGstAmt = cgstAmt + sgstAmt + igstAmt;
-    const invoiceTotal = Number(invoice.netAmount) || taxableAmount + totalGstAmt;
+    const invoiceTotal =
+      Number(invoice.netAmount) || taxableAmount + totalGstAmt;
 
     /* ───────────────
        GST %
@@ -99,7 +123,6 @@ export function exportTransactionsToExcel(invoices: Invoice[]) {
         "Discount Amount": discountAmount.toFixed(2),
         "Taxable Amount": taxableAmount.toFixed(2),
 
-        
         "GST Percentage": totalGstPct,
         "CGST Percentage": cgstPct,
         "SGST Percentage": sgstPct,
@@ -138,7 +161,6 @@ export function exportTransactionsToExcel(invoices: Invoice[]) {
         "Discount Amount": discountAmount.toFixed(2),
         "Taxable Amount": taxableAmount.toFixed(2),
 
-        
         "GST Percentage": totalGstPct,
         "CGST Percentage": cgstPct,
         "SGST Percentage": sgstPct,

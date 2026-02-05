@@ -149,13 +149,12 @@ const toJSDate = (ts?: { seconds: number }) =>
 export default function QuotationPDF({ quotation }: QuotationPDFProps) {
   const quotationNumber = quotation.quotationNumber;
   const quotationDate = quotation.quotationDate
-  ? new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(quotation.quotationDate)
-  : "—"
-
+    ? new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(quotation.quotationDate)
+    : "—";
 
   const products = quotation.products || [];
 
@@ -163,6 +162,8 @@ export default function QuotationPDF({ quotation }: QuotationPDFProps) {
   const discount = quotation.discount || 0;
   const sgst = quotation.sgst || 0;
   const cgst = quotation.cgst || 0;
+  const igst = quotation.igst || 0;
+
   const grandTotal = quotation.netAmount || 0;
 
   const formatINR = (num: number) => {
@@ -277,21 +278,36 @@ export default function QuotationPDF({ quotation }: QuotationPDFProps) {
                   </View>
                 )}
 
-                <View style={styles.totalRow}>
-                  <Text>
-                    CGST (
-                    {((cgst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)
-                  </Text>
-                  <Text style={styles.rupeeLarge}>{formatINR(cgst)}</Text>
-                </View>
+                {/* GST BREAKUP */}
+                {igst > 0 ? (
+                  <View style={styles.totalRow}>
+                    <Text>
+                      IGST (
+                      {((igst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)
+                    </Text>
+                    <Text style={styles.rupeeLarge}>{formatINR(igst)}</Text>
+                  </View>
+                ) : (
+                  <>
+                    <View style={styles.totalRow}>
+                      <Text>
+                        CGST (
+                        {((cgst / (subtotal - discount)) * 100 || 0).toFixed(1)}
+                        %)
+                      </Text>
+                      <Text style={styles.rupeeLarge}>{formatINR(cgst)}</Text>
+                    </View>
 
-                <View style={styles.totalRow}>
-                  <Text>
-                    SGST (
-                    {((sgst / (subtotal - discount)) * 100 || 0).toFixed(1)}%)
-                  </Text>
-                  <Text style={styles.rupeeLarge}>{formatINR(sgst)}</Text>
-                </View>
+                    <View style={styles.totalRow}>
+                      <Text>
+                        SGST (
+                        {((sgst / (subtotal - discount)) * 100 || 0).toFixed(1)}
+                        %)
+                      </Text>
+                      <Text style={styles.rupeeLarge}>{formatINR(sgst)}</Text>
+                    </View>
+                  </>
+                )}
 
                 <View style={styles.totalHighlight}>
                   <Text style={styles.totalHighlightText}>

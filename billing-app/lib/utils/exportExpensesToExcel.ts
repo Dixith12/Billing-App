@@ -1,10 +1,11 @@
 import * as XLSX from "xlsx";
 import type { Expense } from "@/lib/firebase/expenses";
 
-export function exportExpensesToExcel(
-  expenses: Expense[],
-  fileName = `Expense_Register_${new Date().toISOString().split("T")[0]}.xlsx`,
-) {
+export function exportExpensesToExcel(expenses: Expense[]) {
+
+const today = new Date().toISOString().split("T")[0];
+const fileName = `Expense_Register_${today}.xlsx`;
+
   if (expenses.length === 0) {
     alert("No expenses to export");
     return;
@@ -81,7 +82,7 @@ export function exportExpensesToExcel(
       "GST Amount": gstApplicable ? gstAmount.toFixed(2) : "0.00",
       "Total Amount": totalAmount.toFixed(2),
 
-      "GST Applicable": gstApplicable ? "Yes" : "No",
+      "ITC Eligible": gstApplicable ? "Yes" : "No",
     };
   });
 

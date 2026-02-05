@@ -186,11 +186,10 @@ export function TransactionsTable(props: TransactionsTableProps) {
     clearDateFilter,
   } = props;
 
-
   // ✅ SORT BY INVOICE NUMBER (LATEST FIRST)
-const sortedInvoices = [...filteredInvoices].sort((a, b) => {
-  return (b.invoiceNumber || 0) - (a.invoiceNumber || 0);
-});
+  const sortedInvoices = [...filteredInvoices].sort((a, b) => {
+    return (b.invoiceNumber || 0) - (a.invoiceNumber || 0);
+  });
 
   // PDF modal states
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
@@ -703,7 +702,6 @@ const sortedInvoices = [...filteredInvoices].sort((a, b) => {
 
           <TableBody>
             {sortedInvoices.map((invoice, index) => (
-
               <TableRow
                 key={invoice.id}
                 className={cn(
@@ -994,41 +992,51 @@ const sortedInvoices = [...filteredInvoices].sort((a, b) => {
                 </div>
 
                 {/* Enhanced Real-time preview */}
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600 font-medium">
-                      Pending after payment:
-                    </span>
-                    <span
-                      className={cn(
-                        "font-bold text-sm",
-                        (() => {
-                          const remaining =
-                            selectedInvoice.netAmount -
-                            (selectedInvoice.paidAmount || 0);
-                          const entered = Number(paymentAmount) || 0;
-                          if (entered > remaining) return "text-red-600";
-                          if (entered === remaining) return "text-emerald-600";
-                          return "text-orange-600";
-                        })(),
-                      )}
-                    >
-                      {formatCurrency(
-                        Math.max(
-                          0,
-                          selectedInvoice.netAmount -
-                            (selectedInvoice.paidAmount || 0) -
-                            (Number(paymentAmount) || 0),
-                        ),
-                      )}
-                    </span>
-                  </div>
-                </div>
+                {/* Enhanced Real-time preview */}
+                {(() => {
+                  const remaining = Number(
+                    (
+                      selectedInvoice.netAmount -
+                      (selectedInvoice.paidAmount || 0)
+                    ).toFixed(2),
+                  );
+
+                  const pendingAfter = Math.max(
+                    0,
+                    Number((remaining - Number(paymentAmount)).toFixed(2)),
+                  );
+
+                  return (
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600 font-medium">
+                          Pending after payment:
+                        </span>
+                        <span
+                          className={cn(
+                            "font-bold text-sm",
+                            pendingAfter === 0
+                              ? "text-emerald-600"
+                              : Number(paymentAmount) > remaining
+                                ? "text-red-600"
+                                : "text-orange-600",
+                          )}
+                        >
+                          {formatCurrency(pendingAfter)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Enhanced Overpayment warning */}
                 {Number(paymentAmount) >
-                  selectedInvoice.netAmount -
-                    (selectedInvoice.paidAmount || 0) && (
+                  Number(
+                    (
+                      selectedInvoice.netAmount -
+                      (selectedInvoice.paidAmount || 0)
+                    ).toFixed(2),
+                  ) && (
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 animate-in fade-in slide-in-from-top-2">
                     <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
                     <span className="text-xs font-medium text-red-700">
@@ -1141,8 +1149,12 @@ const sortedInvoices = [...filteredInvoices].sort((a, b) => {
                     !paymentDate ||
                     !selectedPaymentMode ||
                     Number(paymentAmount) >
-                      selectedInvoice.netAmount -
-                        (selectedInvoice.paidAmount || 0)
+                      Number(
+                        (
+                          selectedInvoice.netAmount -
+                          (selectedInvoice.paidAmount || 0)
+                        ).toFixed(2),
+                      )
                   }
                   className="min-w-[160px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
                 >
@@ -1195,14 +1207,13 @@ const sortedInvoices = [...filteredInvoices].sort((a, b) => {
               {selectedPdfInvoice
                 ? (() => {
                     const createdAtDate = safeToDate(
-                      selectedPdfInvoice.createdAt,
+                      selectedPdfInvoice.invoiceDate,
                     );
 
                     return (
                       <>
                         <Calendar className="h-3.5 w-3.5" />
-                        Created: {formatDate(createdAtDate)} •{" "}
-                        {getRelativeTime(createdAtDate)}
+                        Created: {formatDate(createdAtDate)}
                       </>
                     );
                   })()

@@ -59,14 +59,10 @@ const quotationCounterRef = doc(db, "counters", "quotationNumber");
 export const getNextQuotationNumber = async (): Promise<number> => {
   return await runTransaction(db, async (transaction) => {
     const snap = await transaction.get(quotationCounterRef);
-    const current = snap.exists() ? snap.data()?.current ?? 0 : 0;
+    const current = snap.exists() ? (snap.data()?.current ?? 0) : 0;
     const next = current + 1;
 
-    transaction.set(
-      quotationCounterRef,
-      { current: next },
-      { merge: true },
-    );
+    transaction.set(quotationCounterRef, { current: next }, { merge: true });
 
     return next;
   });
@@ -121,14 +117,13 @@ export const getQuotations = async (): Promise<Quotation[]> => {
     const data = snap.data();
 
     const quotationDate =
-  data.quotationDate instanceof Timestamp
-    ? data.quotationDate.toDate()
-    : typeof data.quotationDate?.seconds === "number"
-      ? new Date(data.quotationDate.seconds * 1000) // ✅ FIX
-      : data.quotationDate instanceof Date
-        ? data.quotationDate
-        : undefined
-
+      data.quotationDate instanceof Timestamp
+        ? data.quotationDate.toDate()
+        : typeof data.quotationDate?.seconds === "number"
+          ? new Date(data.quotationDate.seconds * 1000) // ✅ FIX
+          : data.quotationDate instanceof Date
+            ? data.quotationDate
+            : undefined;
 
     return {
       id: snap.id,
@@ -160,7 +155,8 @@ export const getQuotations = async (): Promise<Quotation[]> => {
             ? data.createdAt
             : undefined,
 
-      updatedAt: // ✅ THIS FIXES "-"
+      // ✅ THIS FIXES "-"
+      updatedAt:
         data.updatedAt instanceof Timestamp
           ? data.updatedAt.toDate()
           : data.updatedAt instanceof Date
@@ -222,12 +218,24 @@ export const convertQuotationToInvoice = async (
 
     const safeData = cleanUndefined({
       ...data,
+
+      // ✅ IMPORTANT FIX
+      invoiceDate:
+        data.quotationDate instanceof Timestamp
+          ? data.quotationDate
+          : data.quotationDate
+            ? Timestamp.fromDate(new Date(data.quotationDate))
+            : now,
+
       invoiceNumber,
       status: "pending",
       mode: "cash",
       paidAmount: 0,
       createdAt: now,
       updatedAt: now,
+
+      // ❌ optional but recommended: remove quotation-only field
+      quotationDate: undefined,
     });
 
     const newInvoiceRef = await addDoc(invoicesRef, safeData);

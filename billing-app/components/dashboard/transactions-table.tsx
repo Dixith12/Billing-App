@@ -715,15 +715,20 @@ export function TransactionsTable(props: TransactionsTableProps) {
                     <div className="font-semibold text-slate-900">
                       {formatCurrency(invoice.netAmount)}
                     </div>
-                    {invoice.status === "partially paid" && (
-                      <div className="text-xs font-medium text-orange-700 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Pending:{" "}
-                        {formatCurrency(
-                          invoice.netAmount - (invoice.paidAmount || 0),
-                        )}
-                      </div>
-                    )}
+                    {(() => {
+                      const pending = Number(
+                        (invoice.netAmount - (invoice.paidAmount || 0)).toFixed(
+                          2,
+                        ),
+                      );
+
+                      return pending > 0 ? (
+                        <div className="text-xs font-medium text-orange-700 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Pending: {formatCurrency(pending)}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 </TableCell>
 

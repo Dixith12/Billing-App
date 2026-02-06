@@ -24,7 +24,7 @@ export interface InvoiceProduct {
   width?: string;
   kg?: string;
   units?: string;
-  hsnCode?:string;
+  hsnCode?: string;
 
   wasteEnabled: boolean;
   wasteHeight?: string;
@@ -82,7 +82,7 @@ export type CreateInvoiceInput = Omit<
 > & {
   invoiceDate?: Date;
   dueDate?: Date;
-  placeOfSupply?:String,
+  placeOfSupply?: String;
 };
 
 const invoiceRef = collection(db, "invoices");
@@ -131,7 +131,7 @@ export const addInvoice = async (input: CreateInvoiceInput) => {
 
     products: input.products.map((p) => ({
       ...p,
-      wasteAmount: p.wasteEnabled ? p.wasteAmount ?? 0 : undefined,
+      wasteAmount: p.wasteEnabled ? (p.wasteAmount ?? 0) : undefined,
     })),
 
     invoiceDate: invoiceDateTs,
@@ -253,15 +253,16 @@ export const recordInvoicePayment = async (
 
     const data = invoiceSnap.data() as Invoice;
 
-    const currentPaid = data.paidAmount || 0;
-    const total = data.netAmount;
+    const currentPaid = Number((data.paidAmount || 0).toFixed(2));
+    const total = Number(data.netAmount.toFixed(2));
 
-    const newPaid = currentPaid + payment.amount;
-    const remaining = total - newPaid;
+    // ✅ FIX floating precision
+    const newPaid = Number((currentPaid + payment.amount).toFixed(2));
+    const remaining = Number((total - newPaid).toFixed(2));
 
     let newStatus: Invoice["status"];
 
-    if (newPaid >= total) {
+    if (newPaid >= total || remaining <= 0) {
       newStatus = "paid";
     } else if (newPaid > 0) {
       newStatus = "partially paid";
@@ -270,8 +271,8 @@ export const recordInvoicePayment = async (
     }
 
     transaction.update(invoiceRef, {
-      paidAmount: newPaid,
-      status: newStatus,
+      paidAmount: newPaid, // ✅ always clean value like 159.30
+      status: newStatus, // ✅ will now become "paid"
       mode: payment.mode,
       updatedAt: serverTimestamp(),
     });

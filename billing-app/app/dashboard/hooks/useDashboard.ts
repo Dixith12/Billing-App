@@ -275,8 +275,10 @@ export function useDashboard(
   };
 
   const handleRecordPayment = (invoice: Invoice) => {
-    const pending = invoice.netAmount - (invoice.paidAmount || 0);
+const pendingRaw =
+  invoice.netAmount - (invoice.paidAmount || 0);
 
+const pending = Number(pendingRaw.toFixed(2));
     setSelectedInvoice(invoice);
     setPaymentAmount(pending.toFixed(2)); // pre-fill with what's left
     setPaymentDate(new Date().toISOString().split("T")[0]); // today YYYY-MM-DD

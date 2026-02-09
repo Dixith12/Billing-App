@@ -86,7 +86,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
                   type="number"
                   value={form.height ?? 1}
                   disabled
-                  className="bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed"
+                  className="bg-slate-50 border-slate-200 text-slate-500 selection:bg-slate-300 cursor-not-allowed"
                 />
               </div>
               <p className="text-xs text-slate-500 flex items-center gap-1">
@@ -109,7 +109,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
                   type="number"
                   value={form.width ?? 1}
                   disabled
-                  className="bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed"
+                  className="bg-slate-50 border-slate-200 text-slate-500 selection:bg-slate-300 cursor-not-allowed"
                 />
               </div>
               <p className="text-xs text-slate-500 flex items-center gap-1">
@@ -148,7 +148,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
                   }
                   onWheel={(e) => e.currentTarget.blur()}
                   required
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20"
+                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
                 />
               </div>
 
@@ -167,7 +167,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
                   onChange={(e) => updateField("pricePerWidth", e.target.value)}
                   onWheel={(e) => e.currentTarget.blur()}
                   required
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20"
+                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -271,7 +271,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
               onChange={(e) => updateField("name", e.target.value)}
               onWheel={(e) => e.currentTarget.blur()}
               required
-              className="border-slate-300 focus:border-primary focus:ring-primary/20"
+              className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
             />
           </div>
 
@@ -289,7 +289,7 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
               placeholder="e.g. 4407 (Wood), 7213 (Steel), etc."
               value={form.hsnCode ?? ""}
               onChange={(e) => updateField("hsnCode", e.target.value)}
-              className="border-slate-300 focus:border-primary focus:ring-primary/20"
+              className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
             />
             <p className="text-xs text-slate-500">
               Enter 4–8 digit HSN code for GST classification (optional)

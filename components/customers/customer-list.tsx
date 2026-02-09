@@ -324,7 +324,7 @@ export function CustomerList({ items, onRefresh }: CustomerListProps) {
                 <Input
                   value={form.name}
                   onChange={(e) => updateField("name", e.target.value)}
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
                 />
               </div>
 
@@ -338,7 +338,7 @@ export function CustomerList({ items, onRefresh }: CustomerListProps) {
                 <Input
                   value={form.companyName || ""}
                   onChange={(e) => updateField("companyName", e.target.value)}
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
                 />
               </div>
 
@@ -352,7 +352,7 @@ export function CustomerList({ items, onRefresh }: CustomerListProps) {
                   type="tel"
                   value={form.phone}
                   onChange={(e) => updateField("phone", e.target.value)}
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
                 />
               </div>
 
@@ -366,7 +366,7 @@ export function CustomerList({ items, onRefresh }: CustomerListProps) {
                 <Input
                   value={form.gstin || ""}
                   onChange={(e) => updateField("gstin", e.target.value)}
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
                 />
               </div>
 
@@ -379,7 +379,7 @@ export function CustomerList({ items, onRefresh }: CustomerListProps) {
                 <Textarea
                   value={form.address}
                   onChange={(e) => updateField("address", e.target.value)}
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20 min-h-25 resize-none"
+                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 min-h-25 resize-none"
                 />
               </div>
 
@@ -428,7 +428,7 @@ export function CustomerList({ items, onRefresh }: CustomerListProps) {
                           name="balanceType-edit"
                           checked={form.openingBalanceType === "debit"}
                           onChange={() => setBalanceType("debit")}
-                          className="h-4 w-4 text-primary border-slate-300 focus:ring-primary"
+                          className="h-4 w-4 text-primary border-slate-300 selection:bg-slate-300 focus:ring-primary"
                         />
                         <Label
                           htmlFor="debit-edit"
@@ -445,7 +445,7 @@ export function CustomerList({ items, onRefresh }: CustomerListProps) {
                           name="balanceType-edit"
                           checked={form.openingBalanceType === "credit"}
                           onChange={() => setBalanceType("credit")}
-                          className="h-4 w-4 text-primary border-slate-300 focus:ring-primary"
+                          className="h-4 w-4 text-primary border-slate-300 selection:bg-slate-300 focus:ring-primary"
                         />
                         <Label
                           htmlFor="credit-edit"
@@ -469,7 +469,7 @@ export function CustomerList({ items, onRefresh }: CustomerListProps) {
                         onChange={(e) =>
                           updateField("openingBalanceAmount", e.target.value)
                         }
-                        className="border-0 focus:ring-0 h-full rounded-none bg-transparent"
+                        className="border-0 focus:ring-0 h-full selection:bg-slate-300 rounded-none bg-transparent"
                         min="0"
                         step="0.01"
                       />

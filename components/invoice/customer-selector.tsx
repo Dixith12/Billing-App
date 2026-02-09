@@ -177,7 +177,7 @@ export function CustomerSelector(props: PartySelectorProps) {
             <Search className="absolute left-3 h-5 w-5 text-slate-400" />
             <Input
               placeholder={searchPlaceholder}
-              className="pl-10 border-slate-300 focus:border-primary focus:ring-primary/20 bg-white"
+              className="pl-10 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 bg-white"
               value={partySearch}
               onChange={(e) => setPartySearch(e.target.value)}
             />
@@ -305,7 +305,7 @@ export function CustomerSelector(props: PartySelectorProps) {
                     setNewParty({ ...newParty, companyName: e.target.value })
                   }
                   placeholder="Company / Firm name"
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
                 />
               </div>
 
@@ -322,7 +322,7 @@ export function CustomerSelector(props: PartySelectorProps) {
                     setNewParty({ ...newParty, phone: e.target.value })
                   }
                   placeholder="10-digit mobile / landline"
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
                 />
               </div>
 
@@ -404,7 +404,7 @@ export function CustomerSelector(props: PartySelectorProps) {
                           openingBalanceType: "debit",
                         })
                       }
-                      className="h-5 w-5 text-primary focus:ring-primary border-slate-300"
+                      className="h-5 w-5 text-primary selection:bg-slate-300 focus:ring-primary border-slate-300"
                     />
                     <label htmlFor="debit" className="text-sm cursor-pointer">
                       Debit
@@ -423,7 +423,7 @@ export function CustomerSelector(props: PartySelectorProps) {
                           openingBalanceType: "credit",
                         })
                       }
-                      className="h-5 w-5 text-primary focus:ring-primary border-slate-300"
+                      className="h-5 w-5 text-primary selection:bg-slate-300 focus:ring-primary border-slate-300"
                     />
                     <label htmlFor="credit" className="text-sm cursor-pointer">
                       Credit
@@ -446,7 +446,7 @@ export function CustomerSelector(props: PartySelectorProps) {
                           openingBalanceAmount: e.target.value,
                         })
                       }
-                      className="border-0 focus:ring-0 h-full rounded-none bg-transparent px-3"
+                      className="border-0 focus:ring-0 h-full selection:bg-slate-300 rounded-none bg-transparent px-3"
                       min="0"
                       step="0.01"
                     />

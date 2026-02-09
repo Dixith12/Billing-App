@@ -250,7 +250,7 @@ export function InventoryList({ items }: InventoryListProps) {
               <Input
                 value={form.name}
                 onChange={(e) => updateField("name", e.target.value)}
-                className="border-slate-300 focus:border-primary focus:ring-primary/20"
+                className="border-slate-300 focus:border-primary focus:ring-primary/20 selection:bg-slate-300"
               />
             </div>
 

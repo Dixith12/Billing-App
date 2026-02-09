@@ -105,7 +105,7 @@ export function AddCustomerModal({
                 value={form.name}
                 onChange={(e) => updateField("name", e.target.value)}
                 required
-                className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+                className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
               />
             </div>
 
@@ -124,7 +124,7 @@ export function AddCustomerModal({
                 placeholder="Company / Business name"
                 value={form.companyName || ""}
                 onChange={(e) => updateField("companyName", e.target.value)}
-                className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+                className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
               />
             </div>
 
@@ -144,7 +144,7 @@ export function AddCustomerModal({
                 value={form.phone}
                 onChange={(e) => updateField("phone", e.target.value)}
                 required
-                className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+                className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
               />
             </div>
 
@@ -162,7 +162,7 @@ export function AddCustomerModal({
                 placeholder="15-digit GST number (if applicable)"
                 value={form.gstin || ""}
                 onChange={(e) => updateField("gstin", e.target.value)}
-                className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+                className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
               />
             </div>
 
@@ -181,7 +181,7 @@ export function AddCustomerModal({
                 value={form.address}
                 onChange={(e) => updateField("address", e.target.value)}
                 required
-                className="border-slate-300 focus:border-primary focus:ring-primary/20 min-h-25 resize-none"
+                className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 min-h-25 resize-none"
               />
             </div>
 
@@ -234,7 +234,7 @@ export function AddCustomerModal({
                         name="balanceType"
                         checked={form.openingBalanceType === "debit"}
                         onChange={() => setBalanceType("debit")}
-                        className="h-4 w-4 text-primary border-slate-300 focus:ring-primary"
+                        className="h-4 w-4 text-primary border-slate-300 selection:bg-slate-300 focus:ring-primary"
                       />
                       <Label
                         htmlFor="debit"
@@ -251,7 +251,7 @@ export function AddCustomerModal({
                         name="balanceType"
                         checked={form.openingBalanceType === "credit"}
                         onChange={() => setBalanceType("credit")}
-                        className="h-4 w-4 text-primary border-slate-300 focus:ring-primary"
+                        className="h-4 w-4 text-primary border-slate-300 selection:bg-slate-300 focus:ring-primary"
                       />
                       <Label
                         htmlFor="credit"

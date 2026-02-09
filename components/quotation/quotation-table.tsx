@@ -289,7 +289,7 @@ export function QuotationTable({
             placeholder="Search by customer, phone, GSTIN or quotation #..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 border-slate-300 focus:border-primary focus:ring-primary/20"
+            className="pl-10 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
         </div>

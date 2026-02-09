@@ -112,7 +112,7 @@ export function CreatePurchaseItemModal({
                 }
                 onWheel={(e) => e.currentTarget.blur()}
                 required
-                className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
+                className="border-slate-300 focus:border-indigo-400 selection:bg-slate-300 focus:ring-indigo-200"
               />
             </div>
 
@@ -135,7 +135,7 @@ export function CreatePurchaseItemModal({
                 }
                 onWheel={(e) => e.currentTarget.blur()}
                 required
-                className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
+                className="border-slate-300 focus:border-indigo-400 selection:bg-slate-300 focus:ring-indigo-200"
               />
             </div>
           </div>
@@ -174,7 +174,7 @@ export function CreatePurchaseItemModal({
                   }
                   onWheel={(e) => e.currentTarget.blur()}
                   required
-                  className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
+                  className="border-slate-300 focus:border-indigo-400 selection:bg-slate-300 focus:ring-indigo-200"
                 />
               </div>
 
@@ -200,7 +200,7 @@ export function CreatePurchaseItemModal({
                   }
                   onWheel={(e) => e.currentTarget.blur()}
                   required
-                  className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
+                  className="border-slate-300 focus:border-indigo-400 selection:bg-slate-300 focus:ring-indigo-200"
                 />
               </div>
             </div>
@@ -250,7 +250,7 @@ export function CreatePurchaseItemModal({
                 updateField(fieldKey, Number(e.target.value) || undefined)
               }
               required
-              className="border-slate-300 focus:border-emerald-400 focus:ring-emerald-200"
+              className="border-slate-300 focus:border-emerald-400 selection:bg-slate-300 focus:ring-emerald-200"
             />
           </div>
         </div>
@@ -294,7 +294,7 @@ export function CreatePurchaseItemModal({
               value={itemData.name}
               onChange={(e) => updateField("name", e.target.value)}
               required
-              className="border-slate-300 focus:border-indigo-400 focus:ring-indigo-200"
+              className="border-slate-300 focus:border-indigo-400 selection:bg-slate-300 focus:ring-indigo-200"
             />
           </div>
 

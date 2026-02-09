@@ -282,7 +282,7 @@ export function ExpenseModal({
               onChange={(e) => setName(e.target.value)}
               required
               disabled={isSaving}
-              className="border-slate-300 focus:border-primary focus:ring-primary/20"
+              className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
             />
           </div>
 
@@ -451,7 +451,7 @@ export function ExpenseModal({
                       onWheel={(e) => e.currentTarget.blur()}
                       required
                       disabled={isSaving}
-                      className="border-slate-300 focus:border-primary focus:ring-primary/20  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
 
@@ -473,7 +473,7 @@ export function ExpenseModal({
                       onWheel={(e) => e.currentTarget.blur()}
                       required
                       disabled={isSaving}
-                      className="border-slate-300 focus:border-primary focus:ring-primary/20  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                 </>
@@ -496,7 +496,7 @@ export function ExpenseModal({
                     onWheel={(e) => e.currentTarget.blur()}
                     required
                     disabled={isSaving}
-                    className="border-slate-300 focus:border-primary focus:ring-primary/20  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               )}
@@ -523,7 +523,7 @@ export function ExpenseModal({
               onWheel={(e) => e.currentTarget.blur()}
               required
               disabled={isSaving}
-              className="border-slate-300 focus:border-primary focus:ring-primary/20  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
 
@@ -547,7 +547,7 @@ export function ExpenseModal({
               onWheel={(e) => e.currentTarget.blur()}
               required
               disabled={isSaving}
-              className="border-slate-300 focus:border-primary focus:ring-primary/20  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
 
@@ -565,7 +565,7 @@ export function ExpenseModal({
                 id="totalAmount"
                 value={totalAmount.toFixed(2)}
                 readOnly
-                className="bg-slate-100 border-slate-300 text-slate-800 font-semibold cursor-not-allowed "
+                className="bg-slate-100 border-slate-300 text-slate-800 selection:bg-slate-300 font-semibold cursor-not-allowed "
               />
             </div>
           )}
@@ -586,7 +586,7 @@ export function ExpenseModal({
               onChange={(e) => setDate(e.target.value)}
               required
               disabled={isSaving}
-              className="border-slate-300 focus:border-primary focus:ring-primary/20 "
+              className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 "
             />
           </div>
         </form>

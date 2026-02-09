@@ -263,7 +263,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
           placeholder="Search by phone, customer, GST number..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 bg-white border-slate-200 focus:border-primary focus:ring-primary/20"
+          className="pl-10 bg-white border-slate-200 selection:bg-slate-300 focus:border-primary focus:ring-primary/20"
         />
       </div>
 
@@ -926,7 +926,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                     setPaymentError(null);
                   }}
                   placeholder="0.00"
-                  className="text-lg h-12 font-semibold bg-white border-slate-300 focus:border-primary focus:ring-primary/20"
+                  className="text-lg h-12 font-semibold bg-white border-slate-300 selection:bg-slate-300 focus:border-primary focus:ring-primary/20"
                   min="0.01"
                   max={Math.max(
                     0,
@@ -1005,7 +1005,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
                     setPaymentError(null);
                   }}
                   disabled={isSavingPayment}
-                  className="bg-white border-slate-300 focus:border-primary focus:ring-primary/20"
+                  className="bg-white border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
                 />
               </div>
 

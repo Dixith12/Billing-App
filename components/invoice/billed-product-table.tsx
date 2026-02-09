@@ -94,7 +94,7 @@ export function BilledProductsTable({
                       }
                       onWheel={(e) => e.currentTarget.blur()}
                       min={1}
-                      className="w-24 border-slate-300 focus:border-primary focus:ring-primary/20"
+                      className="w-24 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
                     />
                   </td>
 
@@ -109,7 +109,7 @@ export function BilledProductsTable({
                         min={0}
                         onWheel={(e) => e.currentTarget.blur()}
                         step="any"
-                        className="w-20 border-slate-300 focus:border-primary focus:ring-primary/20"
+                        className="w-20 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
                       />
                       <Select
                         value={p.discountType}
@@ -218,7 +218,7 @@ function renderMeasurementInputs(
               value={p.height ?? ""}
               onChange={(e) => onUpdate(p.id, "height", e.target.value)}
               onWheel={(e) => e.currentTarget.blur()}
-              className="w-24 border-slate-300 focus:border-primary focus:ring-primary/20"
+              className="w-24 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
             />
           </div>
           <div className="flex items-center gap-1.5">
@@ -229,7 +229,7 @@ function renderMeasurementInputs(
               value={p.width ?? ""}
               onChange={(e) => onUpdate(p.id, "width", e.target.value)}
               onWheel={(e) => e.currentTarget.blur()}
-              className="w-24 border-slate-300 focus:border-primary focus:ring-primary/20"
+              className="w-24 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
             />
           </div>
         </div>
@@ -245,7 +245,7 @@ function renderMeasurementInputs(
             value={p.kg ?? ""}
             onChange={(e) => onUpdate(p.id, "kg", e.target.value)}
             onWheel={(e) => e.currentTarget.blur()}
-            className="w-24 border-slate-300 focus:border-primary focus:ring-primary/20"
+            className="w-24 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
           />
         </div>
       );
@@ -260,7 +260,7 @@ function renderMeasurementInputs(
             value={p.units ?? ""}
             onChange={(e) => onUpdate(p.id, "units", e.target.value)}
             onWheel={(e) => e.currentTarget.blur()}
-            className="w-24 border-slate-300 focus:border-primary focus:ring-primary/20"
+            className="w-24 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
           />
         </div>
       );
@@ -290,7 +290,7 @@ function renderWasteInputs(
               placeholder="Waste H"
               value={p.wasteHeight ?? ""}
               onChange={(e) => onUpdate(p.id, "wasteHeight", e.target.value)}
-              className="w-24 border-slate-300 focus:border-primary focus:ring-primary/20"
+              className="w-24 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
             />
           </div>
           <div className="flex items-center gap-1.5">
@@ -299,7 +299,7 @@ function renderWasteInputs(
               placeholder="Waste W"
               value={p.wasteWidth ?? ""}
               onChange={(e) => onUpdate(p.id, "wasteWidth", e.target.value)}
-              className="w-24 border-slate-300 focus:border-primary focus:ring-primary/20"
+              className="w-24 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
             />
           </div>
         </div>
@@ -314,7 +314,7 @@ function renderWasteInputs(
             placeholder="Waste Kg"
             value={p.wasteKg ?? ""}
             onChange={(e) => onUpdate(p.id, "wasteKg", e.target.value)}
-            className="w-24 border-slate-300 focus:border-primary focus:ring-primary/20"
+            className="w-24 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
           />
         </div>
       );
@@ -328,7 +328,7 @@ function renderWasteInputs(
             placeholder="Waste Units"
             value={p.wasteUnits ?? ""}
             onChange={(e) => onUpdate(p.id, "wasteUnits", e.target.value)}
-            className="w-24 border-slate-300 focus:border-primary focus:ring-primary/20"
+            className="w-24 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
           />
         </div>
       );
@@ -345,7 +345,7 @@ function renderWasteInputs(
         placeholder="Waste ₹"
         value={p.wasteAmount ?? ""}
         onChange={(e) => onUpdate(p.id, "wasteAmount", e.target.value)}
-        className="w-32 border-slate-300 focus:border-primary focus:ring-primary/20"
+        className="w-32 border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
       />
     </div>
   );

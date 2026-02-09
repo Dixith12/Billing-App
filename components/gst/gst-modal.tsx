@@ -105,7 +105,7 @@ export function GstEditModal({
                 setError(null);
               }}
               required
-              className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+              className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
             />
             <p className="text-xs text-slate-500 flex items-center gap-1.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/60" />
@@ -135,7 +135,7 @@ export function GstEditModal({
                 setError(null);
               }}
               required
-              className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
+              className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
             />
             <p className="text-xs text-slate-500 flex items-center gap-1.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/60" />

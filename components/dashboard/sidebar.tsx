@@ -11,6 +11,10 @@ import {
   X,
   User2,
   Printer,
+  BarChart,
+  TrendingUp,
+  LineChart,
+  PieChart,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,6 +34,7 @@ const navItems = [
   { label: "Quotation", href: "/dashboard/quotation", icon: FilePlus2 },
   { label: "Vendors", href: "/dashboard/vendor", icon: User2 },
   { label: "Purchase", href: "/dashboard/purchase", icon: Printer },
+  { label: "Insight", href :"/dashboard/insight", icon:BarChart}
 ];
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {

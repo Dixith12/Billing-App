@@ -1,38 +1,68 @@
 "use client";
 
 import { useMemo } from "react";
-import { Timestamp } from "firebase/firestore";
 import type { Invoice } from "@/lib/firebase/invoices";
 import type { Expense } from "@/lib/firebase/expenses";
 import type { Purchase } from "@/lib/firebase/purchase";
 
 /* -------------------- HELPERS -------------------- */
 
-// Convert Firestore Timestamp / Date / string → Date
-function toDate(
-  value?: Timestamp | Date | string | null
-): Date | null {
-  if (!value) return null;
-  if (value instanceof Timestamp) return value.toDate();
-  if (value instanceof Date) return value;
-  if (typeof value === "string") return new Date(value);
-  return null;
-}
-
-// Check if date belongs to given month
-function isSameMonth(date: Date, month: number, year: number) {
-  return (
-    date.getMonth() === month &&
-    date.getFullYear() === year
-  );
-}
-
-// Format month label (e.g. "Feb 2026")
-function formatMonth(date: Date) {
+function formatMonth(date: Date): string {
   return date.toLocaleString("en-US", {
     month: "short",
     year: "numeric",
   });
+}
+
+function safeParseDate(raw: any): Date | null {
+  if (!raw) return null;
+
+  // ── Firestore Timestamp as plain object (most common when coming from hooks/serialization)
+  if (
+    raw &&
+    typeof raw === "object" &&
+    typeof raw.seconds === "number" &&
+    (typeof raw.nanoseconds === "number" || raw.nanoseconds == null)
+  ) {
+    const seconds = raw.seconds;
+    const nanos = raw.nanoseconds ?? 0;
+    const ms = seconds * 1000 + Math.floor(nanos / 1_000_000);
+    const date = new Date(ms);
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  // ── Real Firestore Timestamp object (if .toDate exists)
+  if (raw?.toDate && typeof raw.toDate === "function") {
+    const d = raw.toDate();
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // ── ISO string or other standard string
+  if (typeof raw === "string") {
+    const date = new Date(raw.trim());
+    if (!isNaN(date.getTime())) return date;
+
+    // Fallback: try common dd/mm/yyyy, mm-dd-yyyy, etc.
+    const parts = raw.split(/[-/T ]/);
+    if (parts.length >= 3) {
+      if (parts[0].length === 4) {
+        // YYYY-MM-DD
+        return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      } else if (parts[2].length === 4) {
+        // DD/MM/YYYY or DD-MM-YYYY
+        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+      }
+    }
+  }
+
+  // ── Number (milliseconds or seconds)
+  if (typeof raw === "number") {
+    const ms = raw < 1_000_000_000_000 ? raw * 1000 : raw;
+    const d = new Date(ms);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  return null;
 }
 
 /* -------------------- TYPES -------------------- */
@@ -41,126 +71,114 @@ interface UseInsightsInput {
   invoices: Invoice[];
   expenses: Expense[];
   purchases: Purchase[];
-  selectedMonth?: Date; // defaults to current month
 }
 
 export function useInsights({
   invoices,
   expenses,
   purchases,
-  selectedMonth = new Date(),
 }: UseInsightsInput) {
   return useMemo(() => {
-    const month = selectedMonth.getMonth();
-    const year = selectedMonth.getFullYear();
+    /* ===================== HELPERS ===================== */
+    const toFixedNumber = (value: number) => Number(value.toFixed(2));
 
-    /* ===================== SALES ===================== */
+    /* ===================== KPI CALCULATIONS ===================== */
 
-    const validInvoices = invoices.filter(
-      (inv) => inv.status !== "cancelled"
+    const totalSales = toFixedNumber(
+      invoices.reduce((sum, inv) => sum + Number(inv.netAmount || 0), 0)
     );
 
-    const monthlyInvoices = validInvoices.filter((inv) => {
-      const date = toDate(inv.invoiceDate);
-      return date ? isSameMonth(date, month, year) : false;
-    });
-
-    const totalSales = monthlyInvoices.reduce(
-      (sum, inv) => sum + inv.netAmount,
-      0
+    const totalExpenses = toFixedNumber(
+      expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0)
     );
 
-    /* ===================== EXPENSES ===================== */
-
-    const monthlyExpenses = expenses.filter((exp) => {
-      const date = toDate(exp.date);
-      return date ? isSameMonth(date, month, year) : false;
-    });
-
-    const totalExpenses = monthlyExpenses.reduce(
-      (sum, exp) => sum + exp.amount,
-      0
+    const totalPurchase = toFixedNumber(
+      purchases.reduce((sum, pur) => sum + Number(pur.netAmount || 0), 0)
     );
 
-    /* ===================== PURCHASES ===================== */
+    const netProfit = toFixedNumber(totalSales - totalExpenses - totalPurchase);
 
-    const monthlyPurchases = purchases.filter((pur) => {
-      const date = toDate(pur.purchaseDate);
-      return date ? isSameMonth(date, month, year) : false;
-    });
+    /* ===================== SALES TREND – LAST 6 MONTHS ===================== */
 
-    const totalPurchase = monthlyPurchases.reduce(
-      (sum, pur) => sum + pur.netAmount,
-      0
-    );
+    const today = new Date();
+    const monthKeys: string[] = [];
 
-    /* ===================== NET PROFIT ===================== */
-
-    const netProfit =
-      totalSales - totalExpenses - totalPurchase;
-
-    /* ===================== SALES TREND (LAST 6 MONTHS) ===================== */
-
-    const salesTrendMap = new Map<string, number>();
-
+    // Generate last 6 months (oldest to newest)
     for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      salesTrendMap.set(formatMonth(d), 0);
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      monthKeys.push(formatMonth(d));
     }
 
-    validInvoices.forEach((inv) => {
-      const date = toDate(inv.invoiceDate);
-      if (!date) return;
+    monthKeys.reverse(); // Sep → Feb order
 
-      const label = formatMonth(date);
-      if (salesTrendMap.has(label)) {
-        salesTrendMap.set(
-          label,
-          (salesTrendMap.get(label) || 0) + inv.netAmount
-        );
+    const salesTrendMap = new Map<string, number>();
+    monthKeys.forEach(key => salesTrendMap.set(key, 0));
+
+  
+    let matched = 0;
+    let skipped = 0;
+
+    invoices.forEach((inv, idx) => {
+      const rawDate = inv.invoiceDate ?? inv.createdAt ?? null;
+      const date = safeParseDate(rawDate);
+
+      if (!date) {
+        skipped++;
+        return;
+      }
+
+      const monthKey = formatMonth(date);
+      const amount = Number(inv.netAmount || 0);
+
+      console.log(
+        `[${idx + 1}] ${monthKey.padEnd(12)} | amount: ${amount.toFixed(2)} | id: ${inv.id || "?"}`
+      );
+
+      if (salesTrendMap.has(monthKey)) {
+        const current = salesTrendMap.get(monthKey) || 0;
+        salesTrendMap.set(monthKey, toFixedNumber(current + amount));
+        matched++;
+      } else {
+        console.log(`       └─ outside range`);
       }
     });
 
-    const salesTrend = Array.from(
-      salesTrendMap,
-      ([month, amount]) => ({ month, amount })
-    );
+    const salesTrend = monthKeys.map(month => ({
+      month,
+      amount: salesTrendMap.get(month) || 0,
+    }));
+
 
     /* ===================== EXPENSE BREAKDOWN ===================== */
 
     const expenseMap = new Map<string, number>();
 
-    monthlyExpenses.forEach((exp) => {
+    expenses.forEach((exp) => {
       const key = exp.category || "Other";
-      expenseMap.set(
-        key,
-        (expenseMap.get(key) || 0) + exp.amount
-      );
+      const current = expenseMap.get(key) || 0;
+      expenseMap.set(key, toFixedNumber(current + Number(exp.amount || 0)));
     });
 
-    const expenseBreakdown = Array.from(
-      expenseMap,
-      ([category, amount]) => ({ category, amount })
-    );
+    const expenseBreakdown = Array.from(expenseMap, ([category, amount]) => ({
+      category,
+      amount,
+    }));
 
-    /* ===================== TOP 5 PRODUCTS ===================== */
+    /* ===================== TOP PRODUCTS ===================== */
 
     const productMap = new Map<
       string,
       { revenue: number; quantity: number }
     >();
 
-    validInvoices.forEach((inv) => {
-      inv.products.forEach((p) => {
-        const existing = productMap.get(p.name) || {
-          revenue: 0,
-          quantity: 0,
-        };
+    invoices.forEach((inv) => {
+      inv.products?.forEach((p) => {
+        const name = p.name?.trim() || "Unnamed";
+        const existing = productMap.get(name) || { revenue: 0, quantity: 0 };
 
-        productMap.set(p.name, {
-          revenue: existing.revenue + p.total,
-          quantity: existing.quantity + p.quantity,
+        productMap.set(name, {
+          revenue: toFixedNumber(existing.revenue + Number(p.total || 0)),
+          quantity: existing.quantity + Number(p.quantity || 0),
         });
       });
     });
@@ -174,8 +192,6 @@ export function useInsights({
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    /* ===================== RETURN ===================== */
-
     return {
       kpis: {
         totalSales,
@@ -187,5 +203,5 @@ export function useInsights({
       expenseBreakdown,
       topProducts,
     };
-  }, [invoices, expenses, purchases, selectedMonth]);
+  }, [invoices, expenses, purchases]);
 }

@@ -183,18 +183,7 @@ const trends = {
                   {formatINR(card.value)}
                 </p>
 
-                {/* Bottom trend text */}
-                <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                  <span
-                    className={cn(
-                      "inline-block w-1.5 h-1.5 rounded-full",
-                      isPositive ? "bg-emerald-500" : "bg-rose-500"
-                    )}
-                  />
-                  <span>
-                    {isPositive ? "Up" : "Down"} from last month
-                  </span>
-                </div>
+                
               </div>
             </div>
 

@@ -230,7 +230,7 @@ export function ExpenseBreakdownCard({ data }: Props) {
       <div className="flex items-start justify-between mb-6">
         <div className="space-y-1">
           <h3 className="font-bold text-xl text-slate-800 flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl shadow-lg shadow-purple-200/50 group-hover:scale-110 transition-transform">
+  <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-md shadow-indigo-200 group-hover:scale-110 transition-transform duration-300">
               <PieChartIcon className="h-5 w-5 text-white" />
             </div>
             Expense Breakdown
@@ -319,7 +319,20 @@ export function ExpenseBreakdownCard({ data }: Props) {
               </PieChart>
             </ResponsiveContainer>
 
-            
+            {/* Center total
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-center">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Total
+                </p>
+                <p
+                  className="text-3xl font-extrabold text-slate-800 mt-1"
+                  title={`₹${total.toLocaleString("en-IN")}`}
+                >
+                  ₹{(total / 1000).toFixed(0)}k
+                </p>
+              </div>
+            </div> */}
           </div>
 
           {/* Legend */}

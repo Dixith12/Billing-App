@@ -26,14 +26,14 @@ interface SidebarProps {
 }
 
 const navItems = [
+  { label: "Quotation", href: "/dashboard/quotation", icon: FilePlus2 },
   { label: "Invoices", href: "/dashboard", icon: FileText },
   { label: "Inventory", href: "/dashboard/inventory", icon: Package },
   { label: "Customers", href: "/dashboard/customer", icon: Users },
-  { label: "GST", href: "/dashboard/gst", icon: Calculator },
   { label: "Expenses", href: "/dashboard/expenses", icon: ReceiptText },
-  { label: "Quotation", href: "/dashboard/quotation", icon: FilePlus2 },
   { label: "Vendors", href: "/dashboard/vendor", icon: User2 },
   { label: "Purchase", href: "/dashboard/purchase", icon: Printer },
+  { label: "GST", href: "/dashboard/gst", icon: Calculator },
   { label: "Insight", href :"/dashboard/insight", icon:BarChart}
 ];
 

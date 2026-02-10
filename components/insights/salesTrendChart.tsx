@@ -101,7 +101,7 @@ export function SalesTrendCard({ data }: Props) {
       <div className="flex items-start justify-between mb-6">
         <div className="space-y-1">
           <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2.5">
-            <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-md shadow-indigo-200 group-hover:scale-110 transition-transform duration-300">
+  <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-md shadow-indigo-200 group-hover:scale-110 transition-transform duration-300">
               <TrendingUp className="h-5 w-5 text-white" />
             </div>
             Sales Trend

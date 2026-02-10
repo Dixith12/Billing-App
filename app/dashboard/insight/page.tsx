@@ -63,10 +63,7 @@ export default function InsightPage() {
                 <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-slate-900">
                   Business Insights
                 </h1>
-                <p className="text-sm text-slate-600 mt-0.5 flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-                  Track performance, expenses and profitability
-                </p>
+               
               </div>
             </div>
           </div>

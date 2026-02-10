@@ -319,20 +319,7 @@ export function ExpenseBreakdownCard({ data }: Props) {
               </PieChart>
             </ResponsiveContainer>
 
-            {/* Center total */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Total
-                </p>
-                <p
-                  className="text-3xl font-extrabold text-slate-800 mt-1"
-                  title={`₹${total.toLocaleString("en-IN")}`}
-                >
-                  ₹{(total / 1000).toFixed(0)}k
-                </p>
-              </div>
-            </div>
+            
           </div>
 
           {/* Legend */}

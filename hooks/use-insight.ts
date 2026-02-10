@@ -14,6 +14,9 @@ function formatMonth(date: Date): string {
   });
 }
 
+const isBetween = (date: Date, start: Date, end: Date) =>
+  date >= start && date <= end;
+
 function safeParseDate(raw: any): Date | null {
   if (!raw) return null;
 
@@ -65,6 +68,8 @@ function safeParseDate(raw: any): Date | null {
   return null;
 }
 
+
+
 /* -------------------- TYPES -------------------- */
 
 interface UseInsightsInput {
@@ -98,6 +103,64 @@ export function useInsights({
 
     const netProfit = toFixedNumber(totalSales - totalExpenses - totalPurchase);
 
+/* ===================== PREVIOUS MONTH KPI CALCULATIONS ===================== */
+
+const now = new Date();
+
+
+// Last month range
+const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+// ---- Previous Sales ----
+let prevSales = 0;
+
+invoices.forEach(inv => {
+  const date = safeParseDate(inv.invoiceDate ?? inv.createdAt);
+  if (!date) return;
+
+  if (isBetween(date, startOfLastMonth, endOfLastMonth)) {
+    prevSales += Number(inv.netAmount || 0);
+  }
+});
+
+prevSales = toFixedNumber(prevSales);
+
+// ---- Previous Expenses ----
+let prevExpenses = 0;
+
+expenses.forEach(exp => {
+  const date = safeParseDate(exp.createdAt);
+  if (!date) return;
+
+  if (isBetween(date, startOfLastMonth, endOfLastMonth)) {
+    prevExpenses += Number(exp.amount || 0);
+  }
+});
+
+prevExpenses = toFixedNumber(prevExpenses);
+
+// ---- Previous Purchases ----
+let prevPurchase = 0;
+
+purchases.forEach(pur => {
+  const date = safeParseDate(pur.createdAt);
+  if (!date) return;
+
+  if (isBetween(date, startOfLastMonth, endOfLastMonth)) {
+    prevPurchase += Number(pur.netAmount || 0);
+  }
+});
+
+prevPurchase = toFixedNumber(prevPurchase);
+
+// ---- Previous Net Profit ----
+const prevProfit = toFixedNumber(
+  prevSales - prevExpenses - prevPurchase
+);
+
+
+
     /* ===================== SALES TREND – LAST 6 MONTHS ===================== */
 
     const today = new Date();
@@ -108,8 +171,8 @@ export function useInsights({
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       monthKeys.push(formatMonth(d));
     }
-
     monthKeys.reverse(); // Sep → Feb order
+
 
     const salesTrendMap = new Map<string, number>();
     monthKeys.forEach(key => salesTrendMap.set(key, 0));
@@ -194,11 +257,19 @@ export function useInsights({
 
     return {
       kpis: {
-        totalSales,
-        totalExpenses,
-        totalPurchase,
-        netProfit,
-      },
+  totalSales,
+  prevSales,
+
+  totalExpenses,
+  prevExpenses,
+
+  totalPurchase,
+  prevPurchase,
+
+  netProfit,
+  prevProfit,
+},
+
       salesTrend,
       expenseBreakdown,
       topProducts,

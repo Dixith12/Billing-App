@@ -13,10 +13,18 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   totalSales: number;
+  prevSales: number;
+
   totalExpenses: number;
+  prevExpenses: number;
+
   totalPurchase: number;
+  prevPurchase: number;
+
   netProfit: number;
+  prevProfit: number;
 }
+
 
 const formatINR = (n: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -36,20 +44,55 @@ const formatCompactINR = (n: number) =>
 
 export function InsightKpiCards({
   totalSales,
+  prevSales,
+
   totalExpenses,
+  prevExpenses,
+
   totalPurchase,
+  prevPurchase,
+
   netProfit,
+  prevProfit,
 }: Props) {
   const profitPositive = netProfit >= 0;
 
-  // You can compute real changes later (from previous period)
-  // For now using dummy values – replace with real logic
-  const dummyTrends = {
-    sales: { value: 8.4, positive: true },
-    expenses: { value: 3.2, positive: false },
-    purchase: { value: 12.1, positive: false },
-    profit: { value: 15.7, positive: profitPositive },
+  const calculateTrend = (current: number, previous: number) => {
+  // 🔒 hard safety
+  if (
+    typeof current !== "number" ||
+    typeof previous !== "number" ||
+    isNaN(current) ||
+    isNaN(previous) ||
+    previous === 0
+  ) {
+    return {
+      value: 0,
+      positive: true,
+      hasData: false,
+    };
+  }
+
+  const diff = current - previous;
+  const percent = (diff / previous) * 100;
+
+  return {
+    value: Math.abs(percent),
+    positive: percent >= 0,
+    hasData: true,
   };
+};
+
+
+
+const trends = {
+  sales: calculateTrend(totalSales, prevSales),
+  expenses: calculateTrend(totalExpenses, prevExpenses),
+  purchase: calculateTrend(totalPurchase, prevPurchase),
+  profit: calculateTrend(netProfit, prevProfit),
+};
+
+
 
   const cards = [
     {
@@ -61,7 +104,7 @@ export function InsightKpiCards({
       iconBgHover: "group-hover:shadow-indigo-200",
       border: "border-indigo-100/60 hover:border-indigo-200/80",
       accentColor: "bg-indigo-500",
-      trend: dummyTrends.sales,
+      trend:trends.sales,
     },
     {
       label: "Expenses",
@@ -72,7 +115,7 @@ export function InsightKpiCards({
       iconBgHover: "group-hover:shadow-rose-200",
       border: "border-rose-100/60 hover:border-rose-200/80",
       accentColor: "bg-rose-500",
-      trend: dummyTrends.expenses,
+      trend: trends.expenses,
     },
     {
       label: "Purchases",
@@ -83,7 +126,7 @@ export function InsightKpiCards({
       iconBgHover: "group-hover:shadow-amber-200",
       border: "border-amber-100/60 hover:border-amber-200/80",
       accentColor: "bg-amber-500",
-      trend: dummyTrends.purchase,
+      trend: trends.purchase,
     },
   ];
 
@@ -128,23 +171,6 @@ export function InsightKpiCards({
                   )}
                 >
                   <Icon className="h-6 w-6" strokeWidth={2.5} />
-                </div>
-
-                {/* Trend badge */}
-                <div
-                  className={cn(
-                    "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold",
-                    isPositive
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-rose-50 text-rose-700"
-                  )}
-                >
-                  {isPositive ? (
-                    <ArrowUpRight className="h-3 w-3" />
-                  ) : (
-                    <ArrowDownRight className="h-3 w-3" />
-                  )}
-                  {card.trend.value.toFixed(1)}%
                 </div>
               </div>
 
@@ -226,22 +252,7 @@ export function InsightKpiCards({
               )}
             </div>
 
-            {/* Large trend badge */}
-            <div
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold shadow-sm",
-                profitPositive
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-rose-100 text-rose-700"
-              )}
-            >
-              {profitPositive ? (
-                <ArrowUpRight className="h-4 w-4" />
-              ) : (
-                <ArrowDownRight className="h-4 w-4" />
-              )}
-              {dummyTrends.profit.value.toFixed(1)}%
-            </div>
+            
           </div>
 
           {/* Content */}
@@ -264,26 +275,7 @@ export function InsightKpiCards({
               {formatINR(netProfit)}
             </p>
 
-            {/* Bottom status */}
-            <div className="mt-3 flex items-center gap-2">
-              <div
-                className={cn(
-                  "flex-1 h-1.5 rounded-full overflow-hidden",
-                  profitPositive ? "bg-emerald-100" : "bg-rose-100"
-                )}
-              >
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all duration-1000 ease-out",
-                    profitPositive ? "bg-emerald-500" : "bg-rose-500"
-                  )}
-                  style={{ width: `${Math.min(dummyTrends.profit.value * 5, 100)}%` }}
-                />
-              </div>
-              <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
-                {profitPositive ? "Healthy" : "Review"}
-              </span>
-            </div>
+            
           </div>
         </div>
 

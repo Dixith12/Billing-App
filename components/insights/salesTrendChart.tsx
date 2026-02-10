@@ -118,15 +118,7 @@ export function SalesTrendCard({ data }: Props) {
               Last 6 months
             </span>
           </div>
-          {growth !== null && (
-            <div
-              className={`text-xs font-semibold ${
-                growth >= 0 ? "text-emerald-600" : "text-rose-600"
-              }`}
-            >
-              {growth >= 0 ? "↗" : "↘"} {Math.abs(growth).toFixed(1)}% vs prev
-            </div>
-          )}
+  
         </div>
       </div>
 

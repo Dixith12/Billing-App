@@ -79,6 +79,21 @@ export default function InsightPage() {
                 {getMonthLabel()}
               </span>
             </div>
+
+            {/* <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl opacity-0 group-hover:opacity-100 blur transition-opacity duration-300" />
+              <input
+                type="month"
+                value={`${selectedMonth.getFullYear()}-${String(
+                  selectedMonth.getMonth() + 1,
+                ).padStart(2, "0")}`}
+                onChange={(e) => {
+                  const [year, month] = e.target.value.split("-");
+                  setSelectedMonth(new Date(Number(year), Number(month) - 1));
+                }}
+                className="relative border border-slate-200 bg-white rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 focus:outline-none transition-all cursor-pointer hover:border-indigo-200"
+              />
+            </div> */}
           </div>
         </div>
 
@@ -87,11 +102,19 @@ export default function InsightPage() {
             {/* ================= KPI CARDS ================= */}
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
               <InsightKpiCards
-                totalSales={kpis.totalSales}
-                totalExpenses={kpis.totalExpenses}
-                totalPurchase={kpis.totalPurchase}
-                netProfit={kpis.netProfit}
-              />
+  totalSales={kpis.totalSales}
+  prevSales={kpis.prevSales}
+
+  totalExpenses={kpis.totalExpenses}
+  prevExpenses={kpis.prevExpenses}
+
+  totalPurchase={kpis.totalPurchase}
+  prevPurchase={kpis.prevPurchase}
+
+  netProfit={kpis.netProfit}
+  prevProfit={kpis.prevProfit}
+/>
+
             </section>
 
             {/* ================= CHARTS SECTION ================= */}
@@ -104,57 +127,6 @@ export default function InsightPage() {
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
               <TopProductsCard data={topProducts} />
             </section>
-
-            {/* ================= FOOTER STATS ================= */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-              <div className="group p-4 rounded-2xl bg-white border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all duration-300">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Total Invoices
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-slate-900">
-                  {invoices.length}
-                </p>
-              </div>
-
-              <div className="group p-4 rounded-2xl bg-white border border-slate-100 hover:border-rose-200 hover:shadow-md transition-all duration-300">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-rose-500" />
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Total Expenses
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-slate-900">
-                  {expenses.length}
-                </p>
-              </div>
-
-              <div className="group p-4 rounded-2xl bg-white border border-slate-100 hover:border-amber-200 hover:shadow-md transition-all duration-300">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-amber-500" />
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Total Purchases
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-slate-900">
-                  {purchases.length}
-                </p>
-              </div>
-
-              <div className="group p-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 hover:border-indigo-200 hover:shadow-md transition-all duration-300">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-3.5 h-3.5 text-indigo-600" />
-                  <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
-                    Categories
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-indigo-700">
-                  {expenseBreakdown.length}
-                </p>
-              </div>
-            </div>
           </>
         ) : (
           /* ================= EMPTY STATE ================= */

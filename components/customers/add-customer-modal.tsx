@@ -51,12 +51,14 @@ export function AddCustomerModal({
     });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const success = await submit();
-    if (!success) {
-      // Error toast is already handled in the hook
-    }
-  };
+  e.preventDefault();
+  try {
+    await submit();
+  } catch {
+    // 🔕 swallow expected business error (duplicate phone)
+  }
+};
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -142,9 +144,18 @@ export function AddCustomerModal({
                 type="tel"
                 placeholder="10-digit mobile number"
                 value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 10);
+                  updateField("phone", digitsOnly);
+                }}
                 required
-                className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
+                className={cn(
+                  "border-slate-300 focus:border-primary focus:ring-primary/20 h-11",
+                  error?.toLowerCase().includes("phone") &&
+                    "border-red-500 focus:border-red-500 focus:ring-red-200",
+                )}
               />
             </div>
 

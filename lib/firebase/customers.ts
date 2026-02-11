@@ -11,6 +11,7 @@ import {
   updateDoc,
   deleteDoc,
   DocumentData,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -28,6 +29,23 @@ export interface Customer {
 
 const customersRef = collection(db, "customers");
 
+const isPhoneExists = async (
+  phone: string,
+  excludeId?: string
+): Promise<boolean> => {
+  const q = query(customersRef, where("phone", "==", phone));
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) return false;
+
+  // If updating, allow same document
+  if (excludeId) {
+    return snapshot.docs.some((doc) => doc.id !== excludeId);
+  }
+
+  return true;
+};
+
 // Helper: removes undefined fields (Firestore hates undefined)
 function removeUndefinedFields<T extends Record<string, any>>(obj: T): Partial<T> {
   return Object.fromEntries(
@@ -40,14 +58,21 @@ export const addCustomer = async (
 ): Promise<Customer> => {
   const now = Timestamp.now();
 
-  // Prepare clean data
+  // 🔒 CHECK DUPLICATE PHONE
+  const phoneExists = await isPhoneExists(data.phone);
+  if (phoneExists) {
+    throw new Error("CUSTOMER_PHONE_EXISTS");
+  }
+
   const preparedData = {
     ...data,
-    openingBalance: data.openingBalance !== undefined ? Number(data.openingBalance) : undefined,
+    openingBalance:
+      data.openingBalance !== undefined
+        ? Number(data.openingBalance)
+        : undefined,
     createdAt: now,
   };
 
-  // Remove any undefined fields (companyName, gstin, etc.)
   const safeData = removeUndefinedFields(preparedData);
 
   try {
@@ -55,13 +80,14 @@ export const addCustomer = async (
 
     return {
       id: docRef.id,
-      ...preparedData, // we return the version with possible undefined (for local state)
+      ...preparedData,
     };
   } catch (err) {
     console.error("Failed to add customer:", err);
     throw err;
   }
 };
+
 
 export const getCustomers = async (): Promise<Customer[]> => {
   try {
@@ -89,7 +115,14 @@ export const updateCustomer = async (
 ): Promise<void> => {
   const customerDoc = doc(db, "customers", id);
 
-  // Clean updates
+  // 🔒 If phone is being updated, check uniqueness
+  if (data.phone) {
+    const phoneExists = await isPhoneExists(data.phone, id);
+    if (phoneExists) {
+      throw new Error("CUSTOMER_PHONE_EXISTS");
+    }
+  }
+
   const preparedUpdates = {
     ...data,
     ...(data.openingBalance !== undefined && {
@@ -97,7 +130,6 @@ export const updateCustomer = async (
     }),
   };
 
-  // Remove undefined fields
   const safeUpdates = removeUndefinedFields(preparedUpdates);
 
   try {
@@ -107,6 +139,7 @@ export const updateCustomer = async (
     throw err;
   }
 };
+
 
 export const deleteCustomer = async (id: string): Promise<void> => {
   const customerDoc = doc(db, "customers", id);

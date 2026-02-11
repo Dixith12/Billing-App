@@ -194,10 +194,18 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
       toast.success("Party added successfully");
       return true;
     } catch (err: any) {
-      console.error("Failed to add party:", err);
-      toast.error("Could not add party", { description: err.message });
-      return false;
-    }
+  if (err?.message === "CUSTOMER_PHONE_EXISTS") {
+    // 🔕 expected business validation error
+    toast.error("Customer with this phone number already exists");
+    return false;
+  }
+
+  // unexpected error
+  console.error("Failed to add party:", err);
+  toast.error("Could not add party");
+  return false;
+}
+
   };
 
   const filteredCustomers = useMemo(() => {

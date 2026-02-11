@@ -349,11 +349,19 @@ export function CustomerList({ items, onRefresh }: CustomerListProps) {
                   Phone Number <span className="text-red-500 text-xs">*</span>
                 </Label>
                 <Input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => updateField("phone", e.target.value)}
-                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
-                />
+  type="tel"
+  value={form.phone}
+  onChange={(e) => {
+    const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
+    updateField("phone", digitsOnly);
+  }}
+  className={cn(
+    "border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11",
+    error?.toLowerCase().includes("phone") &&
+      "border-red-500 focus:border-red-500 focus:ring-red-200"
+  )}
+/>
+
               </div>
 
               {/* GSTIN */}

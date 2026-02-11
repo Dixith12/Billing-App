@@ -134,6 +134,12 @@ export function CustomerSelector(props: PartySelectorProps) {
   const validateForm = () => {
     if (!newParty.name.trim()) return `${nameLabel} is required`;
     if (!newParty.phone.trim()) return "Phone Number is required";
+
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(newParty.phone.trim())) {
+      return "Enter a valid 10-digit mobile number";
+    }
+
     if (!newParty.address.trim()) return "Address is required";
     return null;
   };
@@ -146,9 +152,13 @@ export function CustomerSelector(props: PartySelectorProps) {
     }
     setFormError(null);
     const success = await addNewParty();
-    if (success) {
-      setIsAddPartyOpen(false);
+
+    if (!success) {
+      setFormError("Customer with this phone number already exists");
+      return;
     }
+
+    setIsAddPartyOpen(false);
   };
 
   return (
@@ -318,11 +328,18 @@ export function CustomerSelector(props: PartySelectorProps) {
                 <Input
                   type="tel"
                   value={newParty.phone}
-                  onChange={(e) =>
-                    setNewParty({ ...newParty, phone: e.target.value })
-                  }
-                  placeholder="10-digit mobile / landline"
-                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11"
+                  onChange={(e) => {
+                    const digitsOnly = e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 10);
+                    setNewParty({ ...newParty, phone: digitsOnly });
+                  }}
+                  className={cn(
+                    "border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11",
+                    formError?.toLowerCase().includes("phone") &&
+                      "border-red-500 focus:border-red-500 focus:ring-red-200",
+                  )}
+                  placeholder="10-digit mobile number"
                 />
               </div>
 

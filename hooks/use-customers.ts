@@ -52,7 +52,11 @@ export function useCustomers() {
       setCustomers((prev) => [...prev, newCust]);
       return newCust; // IMPORTANT
     } catch (err: any) {
-      setError(err.message);
+      if (err.message === "CUSTOMER_PHONE_EXISTS") {
+        setError("Customer with this phone number already exists");
+      } else {
+        setError("Failed to add customer");
+      }
       throw err;
     }
   };
@@ -68,8 +72,12 @@ export function useCustomers() {
       );
       return true;
     } catch (err: any) {
-      setError(err.message);
-      return false;
+      if (err.message === "CUSTOMER_PHONE_EXISTS") {
+        setError("Another customer already uses this phone number");
+      } else {
+        setError("Failed to update customer");
+      }
+      throw err;
     }
   };
 
@@ -131,6 +139,12 @@ export function useAddCustomerForm(
       return false;
     }
 
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(form.phone.trim())) {
+      setError("Enter a valid 10-digit mobile number");
+      return false;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -142,7 +156,6 @@ export function useAddCustomerForm(
         state: form.state.trim(),
       };
 
-      // Only add optional fields if they have real content
       if (form.companyName.trim()) {
         submitData.companyName = form.companyName.trim();
       }
@@ -150,21 +163,23 @@ export function useAddCustomerForm(
         submitData.gstin = form.gstin.trim();
       }
 
-      // Opening balance (your existing logic)
       const amount = Number(form.openingBalanceAmount) || 0;
       if (amount > 0) {
         submitData.openingBalance =
           form.openingBalanceType === "debit" ? amount : -amount;
       }
 
-      await addCustomer(submitData);
+      await addCustomer(submitData); // 🔴 this may throw
       onSuccess();
       reset();
       return true;
     } catch (err: any) {
-      console.error("Add failed:", err);
-      setError(err.message || "Failed to add customer");
-      return false;
+      if (err?.message === "CUSTOMER_PHONE_EXISTS") {
+        setError("Customer with this phone number already exists");
+      } else {
+        setError("Failed to add customer");
+      }
+      return false; // ✅ swallow error HERE
     } finally {
       setIsLoading(false);
     }
@@ -257,6 +272,14 @@ export function useEditCustomerForm(
       setError("Phone is required");
       return false;
     }
+
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(form.phone.trim())) {
+      setError("Enter a valid 10-digit mobile number");
+      setIsLoading(false);
+      return false;
+    }
+
     if (!form.address.trim()) {
       setError("Address is required");
       return false;
@@ -292,14 +315,19 @@ export function useEditCustomerForm(
 
       console.log("Updating customer with:", submitData); // ← Debug log
 
-      await updateCustomer(initial.id, submitData);
+      await updateCustomer(initial.id, submitData); // may throw
       onSuccess();
       return true;
     } catch (err: any) {
-      const msg = err.message || "Failed to update customer";
+      let msg = "Failed to update customer";
+
+      if (err?.message === "CUSTOMER_PHONE_EXISTS") {
+        msg = "Another customer already uses this phone number";
+      }
+
       setError(msg);
       toast.error("Update failed", { description: msg });
-      return false;
+      return false; // ✅ swallow error here
     } finally {
       setIsLoading(false);
     }

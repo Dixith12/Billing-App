@@ -59,9 +59,12 @@ export function AddVendorModal({
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await submit();
-  };
+  e.preventDefault();
+
+  const success = await submit();
+  if (!success) return; // ⛔ don't close or toast
+};
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -127,13 +130,23 @@ export function AddVendorModal({
                 Phone Number <span className="text-red-500 text-xs">*</span>
               </Label>
               <Input
-                type="tel"
-                placeholder="10-digit mobile / landline"
-                value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
-                required
-                className="border-slate-300 focus:border-primary focus:ring-primary/20"
-              />
+  type="tel"
+  placeholder="10-digit mobile number"
+  value={form.phone}
+  onChange={(e) =>
+    updateField(
+      "phone",
+      e.target.value.replace(/\D/g, "").slice(0, 10)
+    )
+  }
+  required
+  className={cn(
+    "border-slate-300 focus:border-primary focus:ring-primary/20",
+    error?.toLowerCase().includes("phone") &&
+      "border-red-500 focus:border-red-500 focus:ring-red-200"
+  )}
+/>
+
             </div>
 
             {/* GSTIN */}
@@ -170,7 +183,7 @@ export function AddVendorModal({
               <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
                 <Landmark className="h-4 w-4 text-primary" />
                 State / UT{" "}
-                <span className="text-xs text-slate-500">(optional)</span>
+                <span className="text-xs text-red-500">*</span>
               </Label>
               <select
                 value={form.state || ""}

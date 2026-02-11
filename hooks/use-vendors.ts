@@ -11,6 +11,7 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase"; // adjust path if needed
 import { toast } from "sonner";
@@ -30,10 +31,30 @@ export interface Vendor {
 
 const vendorsRef = collection(db, "vendors");
 
+const isVendorPhoneExists = async (phone: string): Promise<boolean> => {
+  const q = query(vendorsRef, where("phone", "==", phone));
+  const snap = await getDocs(q);
+  return !snap.empty;
+};
+
+const isVendorPhoneUsedByAnother = async (
+  phone: string,
+  currentId: string,
+): Promise<boolean> => {
+  const q = query(vendorsRef, where("phone", "==", phone));
+  const snap = await getDocs(q);
+  return snap.docs.some((d) => d.id !== currentId);
+};
+
 // ── Firebase CRUD Helpers ─────────────────────────────────────────
 const addVendor = async (
   data: Omit<Vendor, "id" | "createdAt">,
 ): Promise<Vendor> => {
+  const phoneExists = await isVendorPhoneExists(data.phone);
+  if (phoneExists) {
+    throw new Error("VENDOR_PHONE_EXISTS");
+  }
+
   const now = Timestamp.now();
 
   const safeData = {
@@ -45,7 +66,6 @@ const addVendor = async (
     createdAt: now,
   };
 
-  // Remove undefined fields (Firestore doesn't allow undefined)
   const cleanData = Object.fromEntries(
     Object.entries(safeData).filter(([_, v]) => v !== undefined),
   );
@@ -76,6 +96,13 @@ const updateVendor = async (
   const safeUpdates = Object.fromEntries(
     Object.entries(data).filter(([_, v]) => v !== undefined),
   );
+  if (data.phone) {
+    const phoneExists = await isVendorPhoneUsedByAnother(data.phone, id);
+    if (phoneExists) {
+      throw new Error("VENDOR_PHONE_EXISTS");
+    }
+  }
+
   await updateDoc(vendorDoc, safeUpdates);
 };
 
@@ -125,18 +152,20 @@ export function useVendors() {
   const handleUpdateVendor = async (
     id: string,
     data: Partial<Omit<Vendor, "id" | "createdAt">>,
-  ): Promise<boolean> => {
+  ): Promise<void> => {
     try {
       await updateVendor(id, data);
       setVendors((prev) =>
         prev.map((v) => (v.id === id ? { ...v, ...data } : v)),
       );
       toast.success("Vendor updated");
-      return true;
     } catch (err: any) {
-      setError(err.message);
-      toast.error("Update failed");
-      return false;
+      if (err?.message === "VENDOR_PHONE_EXISTS") {
+        setError("Another vendor already uses this phone number");
+      } else {
+        setError("Failed to update vendor");
+      }
+      throw err;
     }
   };
 
@@ -206,6 +235,12 @@ export function useVendors() {
         return false;
       }
 
+      const phoneRegex = /^[6-9]\d{9}$/;
+      if (!phoneRegex.test(form.phone.trim())) {
+        setFormError("Enter a valid 10-digit mobile number");
+        return false;
+      }
+
       setIsSubmitting(true);
       setFormError(null);
 
@@ -239,7 +274,11 @@ export function useVendors() {
         resetForm();
         return true;
       } catch (err: any) {
-        setFormError(err.message || "Operation failed");
+        if (err?.message === "VENDOR_PHONE_EXISTS") {
+          setFormError("Vendor with this phone number already exists");
+        } else {
+          setFormError("Operation failed");
+        }
         return false;
       } finally {
         setIsSubmitting(false);

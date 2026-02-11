@@ -143,9 +143,12 @@ export function VendorList({ items, onRefresh, onDelete }: VendorListProps) {
   };
 
   const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await submit();
-  };
+  e.preventDefault();
+
+  const success = await submit();
+  if (!success) return; // ⛔ stay open on error
+};
+
 
   const handleDeleteVendor = async () => {
     if (!vendorToDelete) return;
@@ -351,11 +354,21 @@ export function VendorList({ items, onRefresh, onDelete }: VendorListProps) {
                   Phone Number <span className="text-red-500 text-xs">*</span>
                 </Label>
                 <Input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => updateField("phone", e.target.value)}
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20"
-                />
+  type="tel"
+  value={form.phone}
+  onChange={(e) =>
+    updateField(
+      "phone",
+      e.target.value.replace(/\D/g, "").slice(0, 10)
+    )
+  }
+  className={cn(
+    "border-slate-300 focus:border-primary focus:ring-primary/20",
+    error?.toLowerCase().includes("phone") &&
+      "border-red-500 focus:border-red-500 focus:ring-red-200"
+  )}
+/>
+
               </div>
 
               {/* GSTIN */}
@@ -390,7 +403,7 @@ export function VendorList({ items, onRefresh, onDelete }: VendorListProps) {
                 <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
                   <Landmark className="h-4 w-4 text-primary" />
                   State / UT{" "}
-                  <span className="text-xs text-slate-500">(optional)</span>
+                  <span className="text-xs text-slate-500">*</span>
                 </Label>
                 <select
                   value={form.state || ""}

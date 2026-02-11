@@ -10,6 +10,7 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase"; // adjust path if your firebase init is elsewhere
 
@@ -34,18 +35,44 @@ function removeUndefinedFields<T extends Record<string, any>>(obj: T): Partial<T
   ) as Partial<T>;
 }
 
+
+const isVendorPhoneExists = async (phone: string): Promise<boolean> => {
+  const q = query(vendorsRef, where("phone", "==", phone));
+  const snapshot = await getDocs(q);
+  return !snapshot.empty;
+};
+
+const isVendorPhoneUsedByAnother = async (
+  phone: string,
+  currentId: string
+): Promise<boolean> => {
+  const q = query(vendorsRef, where("phone", "==", phone));
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.some((doc) => doc.id !== currentId);
+};
+
+
+
 export const addVendor = async (
   data: Omit<Vendor, "id" | "createdAt">
 ): Promise<Vendor> => {
   const now = Timestamp.now();
 
+  const phoneExists = await isVendorPhoneExists(data.phone);
+  if (phoneExists) {
+    throw new Error("VENDOR_PHONE_EXISTS");
+  }
+
   const preparedData = {
     ...data,
-    openingBalance: data.openingBalance !== undefined ? Number(data.openingBalance) : undefined,
+    openingBalance:
+      data.openingBalance !== undefined
+        ? Number(data.openingBalance)
+        : undefined,
     createdAt: now,
   };
 
-  // Remove any undefined fields
   const safeData = removeUndefinedFields(preparedData);
 
   try {
@@ -53,13 +80,14 @@ export const addVendor = async (
 
     return {
       id: docRef.id,
-      ...preparedData, // return original prepared data (with possible undefined for local state)
+      ...preparedData,
     };
   } catch (err) {
     console.error("Failed to add vendor:", err);
     throw err;
   }
 };
+
 
 export const getVendors = async (): Promise<Vendor[]> => {
   try {
@@ -87,7 +115,13 @@ export const updateVendor = async (
 ): Promise<void> => {
   const vendorDoc = doc(db, "vendors", id);
 
-  // Clean updates
+  if (data.phone) {
+    const phoneExists = await isVendorPhoneUsedByAnother(data.phone, id);
+    if (phoneExists) {
+      throw new Error("VENDOR_PHONE_EXISTS");
+    }
+  }
+
   const preparedUpdates = {
     ...data,
     ...(data.openingBalance !== undefined && {
@@ -95,7 +129,6 @@ export const updateVendor = async (
     }),
   };
 
-  // Remove undefined fields
   const safeUpdates = removeUndefinedFields(preparedUpdates);
 
   try {
@@ -105,6 +138,7 @@ export const updateVendor = async (
     throw err;
   }
 };
+
 
 export const deleteVendor = async (id: string): Promise<void> => {
   const vendorDoc = doc(db, "vendors", id);

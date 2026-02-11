@@ -198,6 +198,15 @@ export function TransactionsTable(props: TransactionsTableProps) {
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
+  const totalPages = Math.ceil(sortedInvoices.length / itemsPerPage);
+
+  const paginatedInvoices = sortedInvoices.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
   useEffect(() => {
     return () => {
       if (pdfBlobUrl) {
@@ -206,6 +215,10 @@ export function TransactionsTable(props: TransactionsTableProps) {
       }
     };
   }, [pdfBlobUrl]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredInvoices.length]);
 
   function safeToDate(value: any): Date | undefined {
     if (!value) return undefined;
@@ -653,7 +666,7 @@ export function TransactionsTable(props: TransactionsTableProps) {
           </TableHeader>
 
           <TableBody>
-            {sortedInvoices.map((invoice, index) => (
+            {paginatedInvoices.map((invoice, index) => (
               <TableRow
                 key={invoice.id}
                 className={cn(
@@ -858,6 +871,38 @@ export function TransactionsTable(props: TransactionsTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <Button
+              key={page}
+              variant={currentPage === page ? "default" : "outline"}
+              size="sm"
+              onClick={() => setCurrentPage(page)}
+            >
+              {page}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+        </div>
+      )}
 
       {/* Record Payment Dialog */}
       <Dialog

@@ -195,7 +195,6 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
       return true;
     } catch (err: any) {
   if (err?.message === "CUSTOMER_PHONE_EXISTS") {
-    // 🔕 expected business validation error
     toast.error("Customer with this phone number already exists");
     return false;
   }

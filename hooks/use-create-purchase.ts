@@ -46,7 +46,6 @@ export function useCreatePurchase(options?: {
   const { vendors, loading: vendorsLoading } = useVendors();
   const { cgst: gstCgst, sgst: gstSgst } = useGst();
 
-
   const [partySearch, setPartySearch] = useState("");
   const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
   const [billingAddress, setBillingAddress] = useState("");
@@ -112,6 +111,17 @@ export function useCreatePurchase(options?: {
     pricePerKg?: number;
     pricePerUnit?: number;
   }) => {
+    const height =
+      data.measurementType === "height_width" ? (data.height ?? 1) : undefined;
+
+    const width =
+      data.measurementType === "height_width" ? (data.width ?? 1) : undefined;
+
+    const kg = data.measurementType === "kg" ? (data.kg ?? 1) : undefined;
+
+    const units =
+      data.measurementType === "unit" ? (data.units ?? 1) : undefined;
+
     let base = 0;
 
     switch (data.measurementType) {
@@ -121,10 +131,10 @@ export function useCreatePurchase(options?: {
           (data.pricePerWidth ?? 0) * (data.width ?? 1);
         break;
       case "kg":
-        base = (data.pricePerKg ?? 0) * (data.kg ?? 1);
+        base = (data.pricePerKg ?? 0) * kg!;
         break;
       case "unit":
-        base = (data.pricePerUnit ?? 0) * (data.units ?? 1);
+        base = (data.pricePerUnit ?? 0) * units!;
         break;
     }
 
@@ -133,10 +143,11 @@ export function useCreatePurchase(options?: {
       name: data.name.trim() || "Unnamed Item",
       quantity: 1,
       measurementType: data.measurementType,
-      height: data.height?.toString(),
-      width: data.width?.toString(),
-      kg: data.kg?.toString(),
-      units: data.units?.toString(),
+      height: height?.toString(),
+      width: width?.toString(),
+      kg: kg?.toString(),
+      units: units?.toString(),
+
       pricePerHeight: data.pricePerHeight,
       pricePerWidth: data.pricePerWidth,
       pricePerKg: data.pricePerKg,
@@ -321,11 +332,12 @@ export function useCreatePurchase(options?: {
   const taxableAmount = subtotal - totalDiscount;
 
   const isKarnatakaVendor =
-  selectedVendor?.state?.trim().toLowerCase() === "karnataka";
+    selectedVendor?.state?.trim().toLowerCase() === "karnataka";
 
-const cgst = taxableAmount * ((isKarnatakaVendor ? gstCgst : 0) / 100);
-const sgst = taxableAmount * ((isKarnatakaVendor ? gstSgst : 0) / 100);
-const igst = taxableAmount * ((isKarnatakaVendor ? 0 : gstCgst + gstSgst) / 100);
+  const cgst = taxableAmount * ((isKarnatakaVendor ? gstCgst : 0) / 100);
+  const sgst = taxableAmount * ((isKarnatakaVendor ? gstSgst : 0) / 100);
+  const igst =
+    taxableAmount * ((isKarnatakaVendor ? 0 : gstCgst + gstSgst) / 100);
 
   const netAmount = taxableAmount + cgst + sgst + igst;
 

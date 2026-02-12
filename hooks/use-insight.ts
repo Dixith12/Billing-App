@@ -20,6 +20,12 @@ const isBetween = (date: Date, start: Date, end: Date) =>
 function safeParseDate(raw: any): Date | null {
   if (!raw) return null;
 
+  // ✅ HANDLE JS DATE OBJECTS (THIS WAS MISSING)
+if (raw instanceof Date) {
+  return isNaN(raw.getTime()) ? null : raw;
+}
+
+
   // ── Firestore Timestamp as plain object (most common when coming from hooks/serialization)
   if (
     raw &&
@@ -50,10 +56,18 @@ function safeParseDate(raw: any): Date | null {
     if (parts.length >= 3) {
       if (parts[0].length === 4) {
         // YYYY-MM-DD
-        return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return new Date(
+          Number(parts[0]),
+          Number(parts[1]) - 1,
+          Number(parts[2]),
+        );
       } else if (parts[2].length === 4) {
         // DD/MM/YYYY or DD-MM-YYYY
-        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+        return new Date(
+          Number(parts[2]),
+          Number(parts[1]) - 1,
+          Number(parts[0]),
+        );
       }
     }
   }
@@ -68,7 +82,11 @@ function safeParseDate(raw: any): Date | null {
   return null;
 }
 
-
+function normalizeLocalDate(d: Date) {
+  const copy = new Date(d);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
 
 /* -------------------- TYPES -------------------- */
 
@@ -76,90 +94,186 @@ interface UseInsightsInput {
   invoices: Invoice[];
   expenses: Expense[];
   purchases: Purchase[];
+
+  datePreset?: string | null;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export function useInsights({
   invoices,
   expenses,
   purchases,
+  datePreset,
+  dateFrom,
+  dateTo,
 }: UseInsightsInput) {
   return useMemo(() => {
+    const getDateRange = () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let start: Date | null = null;
+      let end: Date | null = null;
+
+      if (datePreset) {
+        switch (datePreset) {
+          case "today":
+            start = new Date(today);
+            end = new Date(today);
+            end.setHours(23, 59, 59, 999);
+            break;
+
+          case "yesterday":
+            start = new Date(today);
+            start.setDate(start.getDate() - 1);
+            end = new Date(start);
+            end.setHours(23, 59, 59, 999);
+            break;
+
+          case "thisMonth":
+            start = new Date(today.getFullYear(), today.getMonth(), 1);
+            end = new Date(
+              today.getFullYear(),
+              today.getMonth() + 1,
+              0,
+              23,
+              59,
+              59,
+              999,
+            );
+            break;
+
+          case "last30days":
+            start = new Date(today);
+            start.setDate(start.getDate() - 30);
+            end = new Date(today);
+            end.setHours(23, 59, 59, 999);
+            break;
+        }
+      } else if (dateFrom || dateTo) {
+        if (dateFrom) {
+          const [y, m, d] = dateFrom.split("-").map(Number);
+          start = new Date(y, m - 1, d, 0, 0, 0, 0); // local start
+        }
+
+        if (dateTo) {
+          const [y, m, d] = dateTo.split("-").map(Number);
+          end = new Date(y, m - 1, d, 23, 59, 59, 999); // local end
+        }
+      }
+
+      return { start, end };
+    };
+
+    const { start, end } = getDateRange();
+
+    const filterByDate = <T>(
+      items: T[],
+      getDate: (item: T) => any,
+    ) => {
+      if (!start && !end) return items;
+
+      return items.filter((item) => {
+        const date = safeParseDate(getDate(item));
+        if (!date) return false;
+
+        return (!start || date >= start) && (!end || date <= end);
+      });
+    };
+
+    const filteredInvoices = filterByDate(
+      invoices,
+      (inv) => inv.invoiceDate ?? inv.createdAt,
+    );
+
+    const filteredExpenses = filterByDate(
+      expenses,
+      (exp) => exp.date ?? exp.createdAt,
+    );
+
+    const filteredPurchases = filterByDate(
+      purchases,
+      (pur) => pur.purchaseDate ?? pur.createdAt,
+    );
+
     /* ===================== HELPERS ===================== */
     const toFixedNumber = (value: number) => Number(value.toFixed(2));
 
     /* ===================== KPI CALCULATIONS ===================== */
 
     const totalSales = toFixedNumber(
-      invoices.reduce((sum, inv) => sum + Number(inv.netAmount || 0), 0)
+      filteredInvoices.reduce(
+        (sum, inv) => sum + Number(inv.netAmount || 0),
+        0,
+      ),
     );
 
     const totalExpenses = toFixedNumber(
-      expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0)
+      filteredExpenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0),
     );
 
     const totalPurchase = toFixedNumber(
-      purchases.reduce((sum, pur) => sum + Number(pur.netAmount || 0), 0)
+      filteredPurchases.reduce(
+        (sum, pur) => sum + Number(pur.netAmount || 0),
+        0,
+      ),
     );
 
     const netProfit = toFixedNumber(totalSales - totalExpenses - totalPurchase);
 
-/* ===================== PREVIOUS MONTH KPI CALCULATIONS ===================== */
+    /* ===================== PREVIOUS MONTH KPI CALCULATIONS ===================== */
 
-const now = new Date();
+    const now = new Date();
 
+    // Last month range
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
-// Last month range
-const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    // ---- Previous Sales ----
+    let prevSales = 0;
 
-// ---- Previous Sales ----
-let prevSales = 0;
+    invoices.forEach((inv) => {
+      const date = safeParseDate(inv.invoiceDate ?? inv.createdAt);
+      if (!date) return;
 
-invoices.forEach(inv => {
-  const date = safeParseDate(inv.invoiceDate ?? inv.createdAt);
-  if (!date) return;
+      if (isBetween(date, startOfLastMonth, endOfLastMonth)) {
+        prevSales += Number(inv.netAmount || 0);
+      }
+    });
 
-  if (isBetween(date, startOfLastMonth, endOfLastMonth)) {
-    prevSales += Number(inv.netAmount || 0);
-  }
-});
+    prevSales = toFixedNumber(prevSales);
 
-prevSales = toFixedNumber(prevSales);
+    // ---- Previous Expenses ----
+    let prevExpenses = 0;
 
-// ---- Previous Expenses ----
-let prevExpenses = 0;
+    expenses.forEach((exp) => {
+      const date = safeParseDate(exp.date ?? exp.createdAt);
+      if (!date) return;
 
-expenses.forEach(exp => {
-  const date = safeParseDate(exp.createdAt);
-  if (!date) return;
+      if (isBetween(date, startOfLastMonth, endOfLastMonth)) {
+        prevExpenses += Number(exp.amount || 0);
+      }
+    });
 
-  if (isBetween(date, startOfLastMonth, endOfLastMonth)) {
-    prevExpenses += Number(exp.amount || 0);
-  }
-});
+    prevExpenses = toFixedNumber(prevExpenses);
 
-prevExpenses = toFixedNumber(prevExpenses);
+    // ---- Previous Purchases ----
+    let prevPurchase = 0;
 
-// ---- Previous Purchases ----
-let prevPurchase = 0;
+    purchases.forEach((pur) => {
+      const date = safeParseDate(pur.purchaseDate ?? pur.createdAt);
+      if (!date) return;
 
-purchases.forEach(pur => {
-  const date = safeParseDate(pur.createdAt);
-  if (!date) return;
+      if (isBetween(date, startOfLastMonth, endOfLastMonth)) {
+        prevPurchase += Number(pur.netAmount || 0);
+      }
+    });
 
-  if (isBetween(date, startOfLastMonth, endOfLastMonth)) {
-    prevPurchase += Number(pur.netAmount || 0);
-  }
-});
+    prevPurchase = toFixedNumber(prevPurchase);
 
-prevPurchase = toFixedNumber(prevPurchase);
-
-// ---- Previous Net Profit ----
-const prevProfit = toFixedNumber(
-  prevSales - prevExpenses - prevPurchase
-);
-
-
+    // ---- Previous Net Profit ----
+    const prevProfit = toFixedNumber(prevSales - prevExpenses - prevPurchase);
 
     /* ===================== SALES TREND – LAST 6 MONTHS ===================== */
 
@@ -173,11 +287,9 @@ const prevProfit = toFixedNumber(
     }
     monthKeys.reverse(); // Sep → Feb order
 
-
     const salesTrendMap = new Map<string, number>();
-    monthKeys.forEach(key => salesTrendMap.set(key, 0));
+    monthKeys.forEach((key) => salesTrendMap.set(key, 0));
 
-  
     let matched = 0;
     let skipped = 0;
 
@@ -194,7 +306,7 @@ const prevProfit = toFixedNumber(
       const amount = Number(inv.netAmount || 0);
 
       console.log(
-        `[${idx + 1}] ${monthKey.padEnd(12)} | amount: ${amount.toFixed(2)} | id: ${inv.id || "?"}`
+        `[${idx + 1}] ${monthKey.padEnd(12)} | amount: ${amount.toFixed(2)} | id: ${inv.id || "?"}`,
       );
 
       if (salesTrendMap.has(monthKey)) {
@@ -206,11 +318,10 @@ const prevProfit = toFixedNumber(
       }
     });
 
-    const salesTrend = monthKeys.map(month => ({
+    const salesTrend = monthKeys.map((month) => ({
       month,
       amount: salesTrendMap.get(month) || 0,
     }));
-
 
     /* ===================== EXPENSE BREAKDOWN ===================== */
 
@@ -229,10 +340,7 @@ const prevProfit = toFixedNumber(
 
     /* ===================== TOP PRODUCTS ===================== */
 
-    const productMap = new Map<
-      string,
-      { revenue: number; quantity: number }
-    >();
+    const productMap = new Map<string, { revenue: number; quantity: number }>();
 
     invoices.forEach((inv) => {
       inv.products?.forEach((p) => {
@@ -257,22 +365,22 @@ const prevProfit = toFixedNumber(
 
     return {
       kpis: {
-  totalSales,
-  prevSales,
+        totalSales,
+        prevSales,
 
-  totalExpenses,
-  prevExpenses,
+        totalExpenses,
+        prevExpenses,
 
-  totalPurchase,
-  prevPurchase,
+        totalPurchase,
+        prevPurchase,
 
-  netProfit,
-  prevProfit,
-},
+        netProfit,
+        prevProfit,
+      },
 
       salesTrend,
       expenseBreakdown,
       topProducts,
     };
-  }, [invoices, expenses, purchases]);
+  }, [invoices, expenses, purchases, datePreset, dateFrom, dateTo]);
 }

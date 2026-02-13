@@ -186,44 +186,83 @@ export const updateInvoice = async (
   id: string,
   updates: Partial<CreateInvoiceInput>,
 ): Promise<void> => {
-  const docRef = doc(db, "invoices", id);
+  const invoiceDocRef = doc(db, "invoices", id);
 
-  const now = new Date();
-  let safeUpdates: any = { ...updates };
+  await runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(invoiceDocRef);
 
-  if (updates.invoiceDate) {
-    const date = new Date(updates.invoiceDate);
-    const isToday =
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth() &&
-      date.getDate() === now.getDate();
+    if (!snap.exists()) {
+      throw new Error("Invoice not found");
+    }
 
-    if (!isToday) date.setHours(0, 0, 0, 0);
-    safeUpdates.invoiceDate = Timestamp.fromDate(date);
-  }
+    const data = snap.data() as Invoice;
 
-  if (updates.dueDate) {
-    const date = new Date(updates.dueDate);
-    const isToday =
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth() &&
-      date.getDate() === now.getDate();
+    const now = new Date();
+    let safeUpdates: any = { ...updates };
 
-    if (!isToday) date.setHours(0, 0, 0, 0);
-    safeUpdates.dueDate = Timestamp.fromDate(date);
-  }
+    // Normalize invoiceDate
+    if (updates.invoiceDate) {
+      const d = new Date(updates.invoiceDate);
+      if (
+        d.getFullYear() !== now.getFullYear() ||
+        d.getMonth() !== now.getMonth() ||
+        d.getDate() !== now.getDate()
+      ) {
+        d.setHours(0, 0, 0, 0);
+      }
+      safeUpdates.invoiceDate = Timestamp.fromDate(d);
+    }
 
-  const cleanUpdates = cleanUndefined({
-    ...safeUpdates,
-    products: updates.products?.map((p) => ({
-      ...p,
-      wasteAmount: p.wasteEnabled ? (p.wasteAmount ?? 0) : undefined,
-    })),
-    updatedAt: serverTimestamp(),
+    // Normalize dueDate
+    if (updates.dueDate) {
+      const d = new Date(updates.dueDate);
+      if (
+        d.getFullYear() !== now.getFullYear() ||
+        d.getMonth() !== now.getMonth() ||
+        d.getDate() !== now.getDate()
+      ) {
+        d.setHours(0, 0, 0, 0);
+      }
+      safeUpdates.dueDate = Timestamp.fromDate(d);
+    }
+
+    // Normalize products
+    if (updates.products) {
+      safeUpdates.products = updates.products.map((p) => ({
+        ...p,
+        wasteAmount: p.wasteEnabled ? (p.wasteAmount ?? 0) : undefined,
+      }));
+    }
+
+    // FINAL netAmount (new if edited, else existing)
+    const finalNetAmount =
+      typeof safeUpdates.netAmount === "number"
+        ? safeUpdates.netAmount
+        : data.netAmount;
+
+    const paidAmount = data.paidAmount || 0;
+
+    // 🔥 STATUS RECONCILIATION (CORE FIX)
+    let newStatus: Invoice["status"];
+    if (paidAmount >= finalNetAmount) {
+      newStatus = "paid";
+    } else if (paidAmount > 0) {
+      newStatus = "partially paid";
+    } else {
+      newStatus = "pending";
+    }
+
+    const cleanUpdates = cleanUndefined({
+      ...safeUpdates,
+      status: newStatus,
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.update(invoiceDocRef, cleanUpdates);
   });
-
-  await updateDoc(docRef, cleanUpdates);
 };
+
+
 
 export const deleteInvoice = async (invoiceId: string): Promise<void> => {
   const invoiceDocRef = doc(db, "invoices", invoiceId);

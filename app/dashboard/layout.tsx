@@ -29,7 +29,7 @@ export default function DashboardLayout({
           </button>
 
           {/* Optional: small app name or page title on mobile */}
-          <span className="ml-4 text-lg font-semibold lg:hidden">BigBotCo</span>
+          <span className="ml-4 text-lg font-semibold lg:hidden">Design Factory</span>
         </header>
 
         {/* The actual page content goes here */}

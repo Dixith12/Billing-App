@@ -53,6 +53,7 @@ function InvoiceContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+
   const [isCreateItemModalOpen, setIsCreateItemModalOpen] = useState(false);
 
   const invoiceHook = useCreateInvoice();
@@ -122,6 +123,10 @@ function InvoiceContent() {
     igst,
     netAmount,
     totalGross,
+    gstEnabled,
+setGstEnabled,
+saleType,
+setSaleType,
 
     // dates
     documentDate,
@@ -140,31 +145,41 @@ function InvoiceContent() {
     loadForEdit,
   } = hook as any;
 
-  useEffect(() => {
-    if (!isEditMode || !editId) {
+// ✅ OUTSIDE (separate useEffect for saleType)
+useEffect(() => {
+  if (saleType === "cash") {
+    setSelectedParty(null);
+  }
+}, [saleType]);
+
+// ✅ EDIT LOAD useEffect (clean, no nested hooks)
+useEffect(() => {
+  if (!isEditMode || !editId) {
+    setLoading(false);
+    return;
+  }
+
+  if (hasLoadedRef.current) return;
+  hasLoadedRef.current = true;
+
+  setLoading(true);
+
+  loadForEdit(editId)
+    .catch((err: any) => {
+      console.error(err);
+      setError("Failed to load invoice");
+    })
+    .finally(() => {
       setLoading(false);
-      return;
-    }
+    });
+}, [isEditMode, editId]);
 
-    if (hasLoadedRef.current) return;
-    hasLoadedRef.current = true;
-
-    setLoading(true);
-
-    loadForEdit(editId)
-      .catch((err: any) => {
-        console.error(err);
-        setError("Failed to load invoice");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [isEditMode, editId]);
-
-  const isValidForSave = isPurchaseMode
-    ? !!selectedVendor && items.length > 0
-    : isQuotationMode
-      ? !!selectedParty && products.length > 0
+ const isValidForSave = isPurchaseMode
+  ? !!selectedVendor && items.length > 0
+  : isQuotationMode
+    ? !!selectedParty && products.length > 0
+    : saleType === "cash"
+      ? billedProducts.length > 0
       : !!selectedParty && billedProducts.length > 0;
 
   const handleSave = async () => {
@@ -348,23 +363,43 @@ function InvoiceContent() {
 
         {/* Main Form */}
         <div className="space-y-8">
-          <CustomerSelector
-            mode={isPurchaseMode ? "vendor" : "customer"}
-            partySearch={partySearch}
-            setPartySearch={setPartySearch}
-            filteredParties={
-              isPurchaseMode ? filteredVendors : filteredCustomers
-            }
-            selectedParty={isPurchaseMode ? selectedVendor : selectedParty}
-            setSelectedParty={
-              isPurchaseMode ? setSelectedVendor : setSelectedParty
-            }
-            isAddPartyOpen={isAddPartyOpen}
-            setIsAddPartyOpen={setIsAddPartyOpen}
-            newParty={newParty}
-            setNewParty={setNewParty}
-            addNewParty={addNewParty}
-          />
+
+          {isInvoiceMode && (
+  <div className="flex gap-2">
+    <Button
+      variant={saleType === "credit" ? "default" : "outline"}
+      onClick={() => setSaleType("credit")}
+    >
+      Credit
+    </Button>
+
+    <Button
+      variant={saleType === "cash" ? "default" : "outline"}
+      onClick={() => setSaleType("cash")}
+    >
+      Cash
+    </Button>
+  </div>
+)}
+         {(isPurchaseMode || isQuotationMode || saleType === "credit") && (
+  <CustomerSelector
+    mode={isPurchaseMode ? "vendor" : "customer"}
+    partySearch={partySearch}
+    setPartySearch={setPartySearch}
+    filteredParties={
+      isPurchaseMode ? filteredVendors : filteredCustomers
+    }
+    selectedParty={isPurchaseMode ? selectedVendor : selectedParty}
+    setSelectedParty={
+      isPurchaseMode ? setSelectedVendor : setSelectedParty
+    }
+    isAddPartyOpen={isAddPartyOpen}
+    setIsAddPartyOpen={setIsAddPartyOpen}
+    newParty={newParty}
+    setNewParty={setNewParty}
+    addNewParty={addNewParty}
+  />
+)}
 
           <section className="space-y-6 bg-white border border-slate-200 rounded-xl p-6">
             <div className="flex items-start justify-between gap-6 flex-wrap">
@@ -524,18 +559,20 @@ function InvoiceContent() {
               <>
                 <div className="rounded-lg">
                   <InvoiceSummary
-                    address={billingAddress}
-                    onAddressChange={setBillingAddress}
-                    grandTotal={subtotal}
-                    discount={safeDiscount}
-                    cgst={safeCgst}
-                    sgst={safeSgst}
-                    igst={safeIgst}
-                    netAmount={netAmount}
-                    cgstRate={gstCgst}
-                    sgstRate={gstSgst}
-                    igstRate={gstCgst + gstSgst}
-                  />
+  address={billingAddress}
+  onAddressChange={setBillingAddress}
+  grandTotal={subtotal}
+  discount={safeDiscount}
+  cgst={safeCgst}
+  sgst={safeSgst}
+  igst={safeIgst}
+  netAmount={netAmount}
+  cgstRate={gstCgst}
+  sgstRate={gstSgst}
+  igstRate={gstCgst + gstSgst}
+  gstEnabled={gstEnabled}
+  setGstEnabled={setGstEnabled}
+/>
                 </div>
 
                 <TotalsFooter

@@ -49,6 +49,7 @@ export function useCreatePurchase(options?: {
   const [partySearch, setPartySearch] = useState("");
   const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
   const [billingAddress, setBillingAddress] = useState("");
+  const [gstEnabled, setGstEnabled] = useState(true);
 
   const [isAddPartyOpen, setIsAddPartyOpen] = useState(false);
 
@@ -334,10 +335,17 @@ export function useCreatePurchase(options?: {
   const isKarnatakaVendor =
     selectedVendor?.state?.trim().toLowerCase() === "karnataka";
 
-  const cgst = taxableAmount * ((isKarnatakaVendor ? gstCgst : 0) / 100);
-  const sgst = taxableAmount * ((isKarnatakaVendor ? gstSgst : 0) / 100);
-  const igst =
-    taxableAmount * ((isKarnatakaVendor ? 0 : gstCgst + gstSgst) / 100);
+  const cgst = gstEnabled
+  ? taxableAmount * ((isKarnatakaVendor ? gstCgst : 0) / 100)
+  : 0;
+
+const sgst = gstEnabled
+  ? taxableAmount * ((isKarnatakaVendor ? gstSgst : 0) / 100)
+  : 0;
+
+const igst = gstEnabled
+  ? taxableAmount * ((isKarnatakaVendor ? 0 : gstCgst + gstSgst) / 100)
+  : 0;
 
   const netAmount = taxableAmount + cgst + sgst + igst;
 
@@ -389,6 +397,7 @@ export function useCreatePurchase(options?: {
       cgst,
       sgst,
       igst,
+      gstEnabled,
       netAmount,
     };
 
@@ -433,6 +442,7 @@ export function useCreatePurchase(options?: {
 
     // date
     setPurchaseDate(normalizeDate(doc.purchaseDate));
+    setGstEnabled(doc.gstEnabled??true);
 
     // items
     setItems(
@@ -526,6 +536,8 @@ export function useCreatePurchase(options?: {
     sgst,
     igst,
     netAmount,
+    gstEnabled,
+setGstEnabled,
 
     savePurchase,
     resetForm,

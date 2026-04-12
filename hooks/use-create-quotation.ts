@@ -61,6 +61,7 @@ export function useCreateQuotation() {
   const [editingQuotationId, setEditingQuotationId] = useState<string | null>(
     null,
   );
+  const [gstEnabled, setGstEnabled] = useState(true);
 
   const [newParty, setNewParty] = useState({
     name: "",
@@ -320,10 +321,17 @@ export function useCreateQuotation() {
   const taxableAmount = subtotal - discountTotal;
 
   const isKarnataka = selectedParty?.state?.toLowerCase() === "karnataka";
+const cgst = gstEnabled
+  ? taxableAmount * ((isKarnataka ? gstCgst : 0) / 100)
+  : 0;
 
-  const cgst = taxableAmount * ((isKarnataka ? gstCgst : 0) / 100);
-  const sgst = taxableAmount * ((isKarnataka ? gstSgst : 0) / 100);
-  const igst = taxableAmount * ((isKarnataka ? 0 : gstCgst + gstSgst) / 100);
+const sgst = gstEnabled
+  ? taxableAmount * ((isKarnataka ? gstSgst : 0) / 100)
+  : 0;
+
+const igst = gstEnabled
+  ? taxableAmount * ((isKarnataka ? 0 : gstCgst + gstSgst) / 100)
+  : 0;
 
   const netAmount = taxableAmount + cgst + sgst + igst;
 
@@ -372,6 +380,7 @@ export function useCreateQuotation() {
       cgst,
       sgst,
       igst,
+      gstEnabled, 
       netAmount,
     };
 
@@ -428,6 +437,7 @@ export function useCreateQuotation() {
     setQuotationDate(
       doc.quotationDate instanceof Date ? doc.quotationDate : new Date(),
     );
+    setGstEnabled(doc.gstEnabled ?? true);
 
     setProducts(
       doc.products.map((p: any) => ({
@@ -490,6 +500,8 @@ export function useCreateQuotation() {
     sgst,
     igst,
     netAmount,
+    gstEnabled,
+setGstEnabled,
 
     saveQuotation,
     resetForm,

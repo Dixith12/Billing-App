@@ -96,6 +96,13 @@ export interface UseCreateInvoiceReturn {
   // Actions
   saveDocument: () => Promise<{ success: boolean; message?: string }>;
   resetForm: () => void;
+
+  // 🆕 ADD THESE
+saleType: "cash" | "credit";
+setSaleType: React.Dispatch<React.SetStateAction<"cash" | "credit">>;
+
+gstEnabled: boolean;
+setGstEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function useCreateInvoice(): UseCreateInvoiceReturn {
@@ -103,6 +110,8 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
   const { cgst: gstCgst, sgst: gstSgst } = useGst();
 
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [saleType, setSaleType] = useState<"cash" | "credit">("credit");
+const [gstEnabled, setGstEnabled] = useState(true);
 
   // ── Date states ────────────────────────────────────────────────────────
   const [documentDate, setDocumentDate] = useState<Date>(new Date());
@@ -126,8 +135,10 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
     state: "",
     openingBalanceType: "debit" as "debit" | "credit",
     openingBalanceAmount: "",
+    
   });
 
+  
   // ── Products & Billing ─────────────────────────────────────────────────
   const [productSearch, setProductSearch] = useState("");
   const [billedProducts, setBilledProducts] = useState<BilledProduct[]>([]);
@@ -436,49 +447,55 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
   const sgstRate = isKarnatakaParty ? gstSgst : 0;
   const igstRate = isKarnatakaParty ? 0 : gstCgst + gstSgst;
 
-  const cgstAmount = taxableAmount * (cgstRate / 100);
-  const sgstAmount = taxableAmount * (sgstRate / 100);
-  const igstAmount = taxableAmount * (igstRate / 100);
+const cgstAmount = gstEnabled ? taxableAmount * (cgstRate / 100) : 0;
+const sgstAmount = gstEnabled ? taxableAmount * (sgstRate / 100) : 0;
+const igstAmount = gstEnabled ? taxableAmount * (igstRate / 100) : 0;
 
-  const netAmount = taxableAmount + cgstAmount + sgstAmount + igstAmount;
+  const netAmount = gstEnabled
+  ? taxableAmount + cgstAmount + sgstAmount + igstAmount
+  : taxableAmount;
 
   // ── Save logic (main change here) ──────────────────────────────────────
   const saveDocument = async () => {
-    if (!selectedParty) {
-      return { success: false, message: "No party selected" };
-    }
+    if (saleType === "credit" && !selectedParty) {
+  return { success: false, message: "No party selected" };
+}
 
     const payload = {
-      billingAddress,
-      products: billedProducts.map((p) => ({
-        name: p.name,
-        hsnCode: p.hsncode ?? undefined,
-        quantity: p.quantity,
-        measurementType: p.measurementType,
-        height: p.height,
-        width: p.width,
-        kg: p.kg,
-        units: p.units,
-        wasteEnabled: p.wasteEnabled,
-        wasteHeight: p.wasteHeight,
-        wasteWidth: p.wasteWidth,
-        wasteKg: p.wasteKg,
-        wasteUnits: p.wasteUnits,
-        wasteAmount: p.wasteAmount,
-        discount: p.discount,
-        discountType: p.discountType,
-        total: p.netTotal,
-        grossTotal: p.grossTotal,
-      })),
-      subtotal,
-      discount: totalDiscount,
-      cgst: cgstAmount,
-      sgst: sgstAmount,
-      igst: igstAmount,
-      netAmount,
-      invoiceDate: new Date(documentDate),
-      dueDate: new Date(dueDate),
-    };
+  billingAddress,
+  products: billedProducts.map((p) => ({
+    name: p.name,
+    hsnCode: p.hsncode ?? undefined,
+    quantity: p.quantity,
+    measurementType: p.measurementType,
+    height: p.height,
+    width: p.width,
+    kg: p.kg,
+    units: p.units,
+    wasteEnabled: p.wasteEnabled,
+    wasteHeight: p.wasteHeight,
+    wasteWidth: p.wasteWidth,
+    wasteKg: p.wasteKg,
+    wasteUnits: p.wasteUnits,
+    wasteAmount: p.wasteAmount,
+    discount: p.discount,
+    discountType: p.discountType,
+    total: p.netTotal,
+    grossTotal: p.grossTotal,
+  })),
+  subtotal,
+  discount: totalDiscount,
+  cgst: cgstAmount,
+  sgst: sgstAmount,
+  igst: igstAmount,
+  netAmount,
+  invoiceDate: new Date(documentDate),
+  dueDate: new Date(dueDate),
+
+  // 🆕 ADD THESE
+  saleType,
+  gstEnabled,
+};
 
     try {
       if (editingInvoiceId) {
@@ -488,13 +505,14 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
       } else {
         // CREATE MODE
         await addInvoice({
-          ...payload,
-          customerId: selectedParty.id,
-          customerName: selectedParty.name,
-          customerPhone: selectedParty.phone,
-          customerGstin: selectedParty.gstin ?? undefined,
-          placeOfSupply: selectedParty.state?.trim() || "Karnataka",
-        });
+  ...payload,
+  customerId: saleType === "cash" ? "" : selectedParty?.id ?? "",
+customerName: saleType === "cash" ? "Cash Sale" : selectedParty?.name ?? "",
+customerPhone: saleType === "cash" ? "" : selectedParty?.phone ?? "",
+  customerGstin: selectedParty?.gstin ?? undefined,
+  placeOfSupply: selectedParty?.state?.trim() || "Karnataka",
+
+});
         toast.success("Invoice created successfully");
       }
 
@@ -529,14 +547,18 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
 
     setEditingInvoiceId(id);
 
-    setSelectedParty({
-      id: doc.customerId,
-      name: doc.customerName,
-      phone: doc.customerPhone,
-      gstin: doc.customerGstin,
-      address: doc.billingAddress,
-      state: doc.placeOfSupply ?? "Karnataka",
-    });
+    if (doc.saleType === "cash") {
+  setSelectedParty(null); // ✅ no customer for cash
+} else {
+  setSelectedParty({
+    id: doc.customerId,
+    name: doc.customerName,
+    phone: doc.customerPhone,
+    gstin: doc.customerGstin,
+    address: doc.billingAddress,
+    state: doc.placeOfSupply ?? "Karnataka",
+  });
+}
 
     setBillingAddress(doc.billingAddress);
 
@@ -566,6 +588,9 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
         netTotal: p.total,
       })),
     );
+    // ✅ RESTORE STATE FROM DB
+setGstEnabled(doc.gstEnabled ?? true);
+setSaleType(doc.saleType ?? "credit");
   }
 
   const loadingParties = customersLoading;
@@ -615,5 +640,10 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
     dueDate,
     setDueDate, // useful if component needs to know mode
     loadForEdit,
+
+    saleType,
+setSaleType,
+gstEnabled,
+setGstEnabled,
   };
 }

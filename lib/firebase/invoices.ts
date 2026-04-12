@@ -60,6 +60,9 @@ export interface Invoice {
   paidAmount: number;
   status: "pending" | "paid" | "cancelled" | "partially paid";
   mode: "cash" | "upi" | "card";
+  saleType?: "cash" | "credit";   // 🆕
+gstEnabled?: boolean;           // 🆕
+  
 
   createdAt?: Timestamp | null;
   invoiceDate?: Timestamp;
@@ -125,9 +128,11 @@ export const addInvoice = async (input: CreateInvoiceInput) => {
   const payload = {
     ...input,
     invoiceNumber: nextNumber,
-    status: "pending" as const,
+    gstEnabled: input.gstEnabled ?? true,
+saleType: input.saleType ?? "credit",
     mode: "cash" as const,
-    paidAmount: 0,
+    status: input.saleType === "cash" ? "paid" : "pending",
+paidAmount: input.saleType === "cash" ? input.netAmount : 0,
 
     products: input.products.map((p) => ({
       ...p,

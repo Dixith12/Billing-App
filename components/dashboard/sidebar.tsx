@@ -71,7 +71,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Logo / Header */}
           <div className="relative h-16 px-6 flex items-center justify-between border-b border-slate-200">
             <div className="flex items-center gap-3 group">
-              <span className="font-bold text-xl">BigBotCo</span>
+              <span className="font-bold text-xl">Design Factory</span>
             </div>
 
             <button

@@ -40,6 +40,7 @@ export interface Quotation {
   igst: number;
   netAmount: number;
   totalGross?: number;
+  gstEnabled?: boolean;
 
   quotationDate?: Date;
   createdAt?: Date;
@@ -86,6 +87,7 @@ export const addQuotation = async (
 
   const payload = {
     ...safeData,
+    gstEnabled: data.gstEnabled ?? true,
     totalGross: data.totalGross ?? data.netAmount,
     quotationDate: data.quotationDate
       ? Timestamp.fromDate(data.quotationDate)
@@ -146,6 +148,7 @@ export const getQuotations = async (): Promise<Quotation[]> => {
       igst: data.igst ?? 0,
       netAmount: data.netAmount ?? 0,
       totalGross: data.totalGross ?? data.netAmount ?? 0,
+      gstEnabled: data.gstEnabled ?? true,
 
       quotationDate,
 
@@ -204,6 +207,7 @@ export const getQuotationById = async (id: string) => {
     igst: data.igst ?? 0,
     netAmount: data.netAmount ?? 0,
     totalGross: data.totalGross ?? data.netAmount ?? 0,
+    gstEnabled: data.gstEnabled ?? true,
 
     quotationDate,
 

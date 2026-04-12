@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Billing App",
-  description: "Billing App powered by BigBotCo",
+  description: "Billing App powered by Design Factory",
 };
 
 export default function RootLayout({

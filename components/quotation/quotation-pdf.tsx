@@ -40,6 +40,19 @@ const styles = StyleSheet.create({
     color: "white",
     letterSpacing: 1,
   },
+    companyName: {
+  fontSize: 16,
+  fontWeight: "bold",
+  color: "white",
+  letterSpacing: 1,
+  marginBottom:2,
+},
+
+companySubText: {
+  fontSize: 10,
+  color: "#dbeafe", // light blue-white
+  marginTop: 2,
+},
 
   /* ───────── BILLING ───────── */
   billSection: {
@@ -203,8 +216,24 @@ export default function QuotationPDF({ quotation }: QuotationPDFProps) {
               <View style={styles.headerRow}>
                 <Text style={styles.quotationText}>QUOTATION</Text>
                 <View style={styles.companyRight}>
-                  <Text style={styles.companyBrand}>HANOVER</Text>
-                  <Text style={styles.companyBrand}>& TYKE</Text>
+  <Text style={styles.companyName}>Design Factory</Text>
+  
+
+<Text style={styles.companySubText}>
+  Akshaya Arcade, Ambatedka
+</Text>
+
+<Text style={styles.companySubText}>
+  Sullia, D.K - 574239
+</Text>
+
+<Text style={styles.companySubText}>
+  GSTIN - 29BGXPA4595G2ZQ
+</Text>
+
+<Text style={styles.companySubText}>
+  PH NO - 9353426475
+</Text>
                 </View>
               </View>
             </View>

@@ -54,6 +54,7 @@ export interface Purchase {
   cgst?: number;
   sgst?: number;
   igst?: number;
+  gstEnabled?: boolean;
   netAmount: number;
   totalGross?: number;
 
@@ -78,6 +79,7 @@ export type CreatePurchaseInput = Omit<
   | "mode"
 > & {
   purchaseDate?: Date;
+  gstEnabled?: boolean;
 };
 
 const purchasesRef = collection(db, "purchases");
@@ -117,6 +119,7 @@ export const addPurchase = async (
     ...safeData,
 
     purchaseNumber: nextNumber,
+    gstEnabled: data.gstEnabled ?? true,
 
     // DEFAULT FINANCIAL STATE
     status: "pending" as const,
@@ -258,6 +261,7 @@ export const updatePurchase = async (
 
   const safeUpdates = cleanUndefined({
     ...data,
+    gstEnabled:data.gstEnabled,
 
     // FIX: ALWAYS store purchaseDate as Timestamp
     ...(data.purchaseDate && {

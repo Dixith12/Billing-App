@@ -370,7 +370,7 @@ useEffect(() => {
       variant={saleType === "credit" ? "default" : "outline"}
       onClick={() => setSaleType("credit")}
     >
-      Credit
+      Customer
     </Button>
 
     <Button

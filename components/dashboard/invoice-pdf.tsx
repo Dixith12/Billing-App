@@ -249,9 +249,11 @@ export default function InvoicePDF({ invoice }: InvoicePDFProps) {
             <View style={styles.billSection}>
               <View style={styles.leftCol}>
                 <Text style={styles.label}>BILL TO:</Text>
-                <Text>{invoice.customerName || "—"}</Text>
-                <Text>{invoice.billingAddress || "—"}</Text>
-                <Text>Phone: {invoice.customerPhone || "—"}</Text>
+                <Text>{invoice.customerName || " "}</Text>
+                <Text>{invoice.billingAddress || " "}</Text>
+                {invoice.customerPhone && (
+  <Text>Phone: {invoice.customerPhone}</Text>
+)}
               </View>
 
               <View style={styles.rightCol}>

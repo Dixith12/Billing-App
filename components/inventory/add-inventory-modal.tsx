@@ -82,26 +82,24 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
             </div>
 
             <div className="space-y-2">
-  <Label
-    htmlFor="pricePerSqFt"
-    className="text-sm font-medium text-slate-700"
-  >
-    Price Per Sq Ft
-  </Label>
+              <Label
+                htmlFor="pricePerSqFt"
+                className="text-sm font-medium text-slate-700"
+              >
+                Price Per Sq Ft
+              </Label>
 
-  <Input
-    id="pricePerSqFt"
-    type="number"
-    placeholder="0.00"
-    value={form.pricePerSqFt ?? ""}
-    onChange={(e) =>
-      updateField("pricePerSqFt", e.target.value)
-    }
-    onWheel={(e) => e.currentTarget.blur()}
-    required
-    className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
-  />
-</div>
+              <Input
+                id="pricePerSqFt"
+                type="number"
+                placeholder="0.00"
+                value={form.pricePerSqFt ?? ""}
+                onChange={(e) => updateField("pricePerSqFt", e.target.value)}
+                onWheel={(e) => e.currentTarget.blur()}
+                required
+                className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
+              />
+            </div>
           </div>
         </div>
       );
@@ -242,8 +240,8 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
               onValueChange={(value) => {
                 updateField("measurementType", value);
                 if (value !== "height_width") {
-  updateField("pricePerSqFt", "");
-}
+                  updateField("pricePerSqFt", "");
+                }
                 if (value !== "kg") updateField("pricePerKg", "");
                 if (value !== "unit") updateField("pricePerUnit", "");
               }}

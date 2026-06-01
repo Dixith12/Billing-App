@@ -9,13 +9,13 @@ export function useAddInventory(onSuccess?: () => void) {
   const { addItem } = useInventory();
 
   const [form, setForm] = useState({
-  name: "",
-  measurementType: "" as MeasurementType,
-  pricePerSqFt: "",
-  pricePerKg: "",
-  pricePerUnit: "",
-  hsnCode: "",
-});
+    name: "",
+    measurementType: "" as MeasurementType,
+    pricePerSqFt: "",
+    pricePerKg: "",
+    pricePerUnit: "",
+    hsnCode: "",
+  });
 
   const [error, setError] = useState<string | null>(null);
 
@@ -26,13 +26,13 @@ export function useAddInventory(onSuccess?: () => void) {
 
   const reset = () => {
     setForm({
-  name: "",
-  measurementType: "",
-  pricePerSqFt: "",
-  pricePerKg: "",
-  pricePerUnit: "",
-  hsnCode: "",
-});
+      name: "",
+      measurementType: "",
+      pricePerSqFt: "",
+      pricePerKg: "",
+      pricePerUnit: "",
+      hsnCode: "",
+    });
     setError(null);
   };
 
@@ -58,17 +58,17 @@ export function useAddInventory(onSuccess?: () => void) {
 
     let dataToSave: any;
 
-   if (type === "height_width") {
-  if (!form.pricePerSqFt.toString().trim()) {
-    setError("Price per sq ft is required");
-    return false;
-  }
+    if (type === "height_width") {
+      if (!form.pricePerSqFt.toString().trim()) {
+        setError("Price per sq ft is required");
+        return false;
+      }
 
-  dataToSave = {
-    ...baseData,
-    pricePerSqFt: Number(form.pricePerSqFt),
-  };
-} else if (type === "kg") {
+      dataToSave = {
+        ...baseData,
+        pricePerSqFt: Number(form.pricePerSqFt),
+      };
+    } else if (type === "kg") {
       if (!form.pricePerKg.toString().trim()) {
         setError("Price per kg is required");
         return false;

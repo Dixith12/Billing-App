@@ -60,9 +60,9 @@ export interface Invoice {
   paidAmount: number;
   status: "pending" | "paid" | "cancelled" | "partially paid";
   mode: "cash" | "upi" | "card";
-  saleType?: "cash" | "credit";   // 🆕
-gstEnabled?: boolean;           // 🆕
-  
+  saleType?: "cash" | "credit"; // 🆕
+  gstEnabled?: boolean;
+  gstInclusive?: boolean; // 🆕
 
   createdAt?: Timestamp | null;
   invoiceDate?: Timestamp;
@@ -129,10 +129,11 @@ export const addInvoice = async (input: CreateInvoiceInput) => {
     ...input,
     invoiceNumber: nextNumber,
     gstEnabled: input.gstEnabled ?? true,
-saleType: input.saleType ?? "credit",
+    gstInclusive: input.gstInclusive ?? false,
+    saleType: input.saleType ?? "credit",
     mode: "cash" as const,
     status: input.saleType === "cash" ? "paid" : "pending",
-paidAmount: input.saleType === "cash" ? input.netAmount : 0,
+    paidAmount: input.saleType === "cash" ? input.netAmount : 0,
 
     products: input.products.map((p) => ({
       ...p,
@@ -204,6 +205,9 @@ export const updateInvoice = async (
 
     const now = new Date();
     let safeUpdates: any = { ...updates };
+    if (typeof updates.gstInclusive === "boolean") {
+      safeUpdates.gstInclusive = updates.gstInclusive;
+    }
 
     // Normalize invoiceDate
     if (updates.invoiceDate) {
@@ -266,8 +270,6 @@ export const updateInvoice = async (
     transaction.update(invoiceDocRef, cleanUpdates);
   });
 };
-
-
 
 export const deleteInvoice = async (invoiceId: string): Promise<void> => {
   const invoiceDocRef = doc(db, "invoices", invoiceId);

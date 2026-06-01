@@ -14,15 +14,11 @@ export function useEditInventory(
   const [form, setForm] = useState({
     name: "",
     measurementType: "" as InventoryItem["measurementType"],
-    height: 1,
-    width: 1,
-    pricePerHeight: "",
-    pricePerWidth: "",
+    pricePerSqFt: "",
     pricePerKg: "",
     pricePerUnit: "",
-    hsnCode: "", // ← NEW FIELD
+    hsnCode: "",
   });
-
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,13 +26,10 @@ export function useEditInventory(
       setForm({
         name: item.name || "",
         measurementType: item.measurementType || "",
-        height: item.height ?? 1,
-        width: item.width ?? 1,
-        pricePerHeight: item.pricePerHeight?.toString() ?? "",
-        pricePerWidth: item.pricePerWidth?.toString() ?? "",
+        pricePerSqFt: item.pricePerSqFt?.toString() ?? "",
         pricePerKg: item.pricePerKg?.toString() ?? "",
         pricePerUnit: item.pricePerUnit?.toString() ?? "",
-        hsnCode: item.hsnCode || "", // ← Load existing HSN
+        hsnCode: item.hsnCode || "",
       });
       setError(null);
     }
@@ -63,18 +56,12 @@ export function useEditInventory(
     };
 
     if (type === "height_width") {
-      if (!form.pricePerHeight.trim()) {
-        setError("Price per height is required");
+      if (!form.pricePerSqFt.trim()) {
+        setError("Price per sq ft is required");
         return false;
       }
-      if (!form.pricePerWidth.trim()) {
-        setError("Price per width is required");
-        return false;
-      }
-      dataToSave.height = Number(form.height);
-      dataToSave.width = Number(form.width);
-      dataToSave.pricePerHeight = Number(form.pricePerHeight);
-      dataToSave.pricePerWidth = Number(form.pricePerWidth);
+
+      dataToSave.pricePerSqFt = Number(form.pricePerSqFt);
     } else if (type === "kg") {
       if (!form.pricePerKg.trim()) {
         setError("Price per kg is required");

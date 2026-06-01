@@ -84,14 +84,14 @@ export function InventoryList({ items }: InventoryListProps) {
   const getMeasurementDisplay = (item: InventoryItem) => {
     switch (item.measurementType) {
       case "height_width":
-  return (
-    <Badge
-      variant="outline"
-      className="bg-primary/5 text-primary border-primary/20 px-3 py-1"
-    >
-      {formatINR(item.pricePerSqFt ?? 0)} / sq ft
-    </Badge>
-  );
+        return (
+          <Badge
+            variant="outline"
+            className="bg-primary/5 text-primary border-primary/20 px-3 py-1"
+          >
+            {formatINR(item.pricePerSqFt ?? 0)} / sq ft
+          </Badge>
+        );
 
       case "kg":
         return (
@@ -268,7 +268,6 @@ export function InventoryList({ items }: InventoryListProps) {
             {/* Conditional pricing fields */}
             {form.measurementType === "height_width" && (
               <div className="space-y-5">
-
                 <div className="p-5 rounded-xl bg-primary/5 border border-slate-200">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-primary rounded-lg text-white">
@@ -278,22 +277,22 @@ export function InventoryList({ items }: InventoryListProps) {
                       Pricing
                     </span>
                   </div>
-                <div className="space-y-2">
-  <Label className="text-sm font-medium text-slate-700">
-    Price Per Sq Ft
-  </Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">
+                      Price Per Sq Ft
+                    </Label>
 
-  <Input
-    type="number"
-    step="0.01"
-    value={form.pricePerSqFt ?? ""}
-    onChange={(e) =>
-      updateField("pricePerSqFt", e.target.value)
-    }
-    onWheel={(e) => e.currentTarget.blur()}
-    className="border-slate-300 focus:border-primary focus:ring-primary/20"
-  />
-</div>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.pricePerSqFt ?? ""}
+                      onChange={(e) =>
+                        updateField("pricePerSqFt", e.target.value)
+                      }
+                      onWheel={(e) => e.currentTarget.blur()}
+                      className="border-slate-300 focus:border-primary focus:ring-primary/20"
+                    />
+                  </div>
                 </div>
               </div>
             )}

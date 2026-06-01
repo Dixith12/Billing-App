@@ -7,15 +7,16 @@ export interface InventoryItem {
   id: string;
   name: string;
   measurementType: "height_width" | "kg" | "unit";
-  height?: number;
-  width?: number;
+
   kg?: number;
   units?: number;
-  pricePerHeight?: number;
-  pricePerWidth?: number;
+
+  pricePerSqFt?: number;
+
   pricePerKg?: number;
   pricePerUnit?: number;
-  hsnCode?: string | null; // FIXED
+
+  hsnCode?: string | null;
   createdAt?: any;
 }
 
@@ -72,11 +73,10 @@ export interface PurchaseItemDraft {
   name: string;
   measurementType: "height_width" | "kg" | "unit";
 
-  // Height × Width
+  // Sq Ft
   height?: number;
   width?: number;
-  pricePerHeight?: number;
-  pricePerWidth?: number;
+  pricePerSqFt?: number;
 
   // KG
   kg?: number;
@@ -86,7 +86,6 @@ export interface PurchaseItemDraft {
   units?: number;
   pricePerUnit?: number;
 
-  // Optional GST info (if entered during purchase)
   hsnCode?: string;
 }
 

@@ -24,8 +24,7 @@ export interface BilledProduct {
   kg?: string;
   units?: string;
 
-  pricePerHeight?: number;
-  pricePerWidth?: number;
+  pricePerSqFt?: number;
   pricePerKg?: number;
   pricePerUnit?: number;
 
@@ -98,11 +97,13 @@ export interface UseCreateInvoiceReturn {
   resetForm: () => void;
 
   // 🆕 ADD THESE
-saleType: "cash" | "credit";
-setSaleType: React.Dispatch<React.SetStateAction<"cash" | "credit">>;
+  saleType: "cash" | "credit";
+  setSaleType: React.Dispatch<React.SetStateAction<"cash" | "credit">>;
 
-gstEnabled: boolean;
-setGstEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  gstEnabled: boolean;
+  setGstEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  gstInclusive: boolean;
+  setGstInclusive: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function useCreateInvoice(): UseCreateInvoiceReturn {
@@ -111,7 +112,8 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
 
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [saleType, setSaleType] = useState<"cash" | "credit">("credit");
-const [gstEnabled, setGstEnabled] = useState(true);
+  const [gstEnabled, setGstEnabled] = useState(true);
+  const [gstInclusive, setGstInclusive] = useState(false);
 
   // ── Date states ────────────────────────────────────────────────────────
   const [documentDate, setDocumentDate] = useState<Date>(new Date());
@@ -135,10 +137,8 @@ const [gstEnabled, setGstEnabled] = useState(true);
     state: "",
     openingBalanceType: "debit" as "debit" | "credit",
     openingBalanceAmount: "",
-    
   });
 
-  
   // ── Products & Billing ─────────────────────────────────────────────────
   const [productSearch, setProductSearch] = useState("");
   const [billedProducts, setBilledProducts] = useState<BilledProduct[]>([]);
@@ -205,17 +205,16 @@ const [gstEnabled, setGstEnabled] = useState(true);
       toast.success("Party added successfully");
       return true;
     } catch (err: any) {
-  if (err?.message === "CUSTOMER_PHONE_EXISTS") {
-    toast.error("Customer with this phone number already exists");
-    return false;
-  }
+      if (err?.message === "CUSTOMER_PHONE_EXISTS") {
+        toast.error("Customer with this phone number already exists");
+        return false;
+      }
 
-  // unexpected error
-  console.error("Failed to add party:", err);
-  toast.error("Could not add party");
-  return false;
-}
-
+      // unexpected error
+      console.error("Failed to add party:", err);
+      toast.error("Could not add party");
+      return false;
+    }
   };
 
   const filteredCustomers = useMemo(() => {
@@ -240,9 +239,7 @@ const [gstEnabled, setGstEnabled] = useState(true);
 
     switch (item.measurementType) {
       case "height_width":
-        basePrice =
-          (item.pricePerHeight ?? 0) * (item.height ?? 1) +
-          (item.pricePerWidth ?? 0) * (item.width ?? 1);
+        basePrice = item.pricePerSqFt ?? 0;
         break;
       case "kg":
         basePrice = item.pricePerKg ?? 0;
@@ -262,14 +259,9 @@ const [gstEnabled, setGstEnabled] = useState(true);
       hsncode: item.hsnCode ?? undefined,
       quantity: 1,
       measurementType: item.measurementType ?? "height_width",
-      height:
-        item.measurementType === "height_width"
-          ? (item.height ?? 1).toString()
-          : undefined,
-      width:
-        item.measurementType === "height_width"
-          ? (item.width ?? 1).toString()
-          : undefined,
+      height: item.measurementType === "height_width" ? "1" : undefined,
+
+      width: item.measurementType === "height_width" ? "1" : undefined,
       kg: item.measurementType === "kg" ? "1" : undefined,
       units: item.measurementType === "unit" ? "1" : undefined,
       wasteEnabled: false,
@@ -295,9 +287,10 @@ const [gstEnabled, setGstEnabled] = useState(true);
 
     switch (p.measurementType) {
       case "height_width":
-        base =
-          (Number(p.height) || 0) * (inv.pricePerHeight ?? 0) +
-          (Number(p.width) || 0) * (inv.pricePerWidth ?? 0);
+        const area = (Number(p.height) || 0) * (Number(p.width) || 0);
+
+        base = area * (inv.pricePerSqFt ?? 0);
+
         break;
 
       case "kg":
@@ -323,10 +316,11 @@ const [gstEnabled, setGstEnabled] = useState(true);
 
     switch (p.measurementType) {
       case "height_width":
-        waste =
-          (parseFloat(p.wasteHeight || "0") || 0) * (inv.pricePerHeight ?? 0) +
-          (parseFloat(p.wasteWidth || "0") || 0) * (inv.pricePerWidth ?? 0);
-        break;
+        const wasteArea =
+          (parseFloat(p.wasteHeight || "0") || 0) *
+          (parseFloat(p.wasteWidth || "0") || 0);
+
+        waste = wasteArea * (inv.pricePerSqFt ?? 0);
 
       case "kg":
         waste = (parseFloat(p.wasteKg || "0") || 0) * (inv.pricePerKg ?? 0);
@@ -447,55 +441,77 @@ const [gstEnabled, setGstEnabled] = useState(true);
   const sgstRate = isKarnatakaParty ? gstSgst : 0;
   const igstRate = isKarnatakaParty ? 0 : gstCgst + gstSgst;
 
-const cgstAmount = gstEnabled ? taxableAmount * (cgstRate / 100) : 0;
-const sgstAmount = gstEnabled ? taxableAmount * (sgstRate / 100) : 0;
-const igstAmount = gstEnabled ? taxableAmount * (igstRate / 100) : 0;
+  let cgstAmount = 0;
+  let sgstAmount = 0;
+  let igstAmount = 0;
+  let netAmount = taxableAmount;
 
-  const netAmount = gstEnabled
-  ? taxableAmount + cgstAmount + sgstAmount + igstAmount
-  : taxableAmount;
+  if (gstEnabled) {
+    if (gstInclusive) {
+      const totalGstRate = cgstRate + sgstRate + igstRate;
+
+      const gstAmount = (taxableAmount * totalGstRate) / (100 + totalGstRate);
+
+      if (isKarnatakaParty) {
+        cgstAmount = gstAmount / 2;
+        sgstAmount = gstAmount / 2;
+      } else {
+        igstAmount = gstAmount;
+      }
+
+      // Total remains same
+      netAmount = taxableAmount;
+    } else {
+      cgstAmount = taxableAmount * (cgstRate / 100);
+      sgstAmount = taxableAmount * (sgstRate / 100);
+      igstAmount = taxableAmount * (igstRate / 100);
+
+      netAmount = taxableAmount + cgstAmount + sgstAmount + igstAmount;
+    }
+  }
 
   // ── Save logic (main change here) ──────────────────────────────────────
   const saveDocument = async () => {
     if (saleType === "credit" && !selectedParty) {
-  return { success: false, message: "No party selected" };
-}
+      return { success: false, message: "No party selected" };
+    }
 
     const payload = {
-  billingAddress,
-  products: billedProducts.map((p) => ({
-    name: p.name,
-    hsnCode: p.hsncode ?? undefined,
-    quantity: p.quantity,
-    measurementType: p.measurementType,
-    height: p.height,
-    width: p.width,
-    kg: p.kg,
-    units: p.units,
-    wasteEnabled: p.wasteEnabled,
-    wasteHeight: p.wasteHeight,
-    wasteWidth: p.wasteWidth,
-    wasteKg: p.wasteKg,
-    wasteUnits: p.wasteUnits,
-    wasteAmount: p.wasteAmount,
-    discount: p.discount,
-    discountType: p.discountType,
-    total: p.netTotal,
-    grossTotal: p.grossTotal,
-  })),
-  subtotal,
-  discount: totalDiscount,
-  cgst: cgstAmount,
-  sgst: sgstAmount,
-  igst: igstAmount,
-  netAmount,
-  invoiceDate: new Date(documentDate),
-  dueDate: new Date(dueDate),
+      billingAddress,
+      products: billedProducts.map((p) => ({
+        name: p.name,
+        hsnCode: p.hsncode ?? undefined,
+        quantity: p.quantity,
+        measurementType: p.measurementType,
+        height: p.height,
+        width: p.width,
+        kg: p.kg,
+        units: p.units,
+        wasteEnabled: p.wasteEnabled,
+        wasteHeight: p.wasteHeight,
+        wasteWidth: p.wasteWidth,
+        wasteKg: p.wasteKg,
+        wasteUnits: p.wasteUnits,
+        wasteAmount: p.wasteAmount,
+        discount: p.discount,
+        discountType: p.discountType,
+        total: p.netTotal,
+        grossTotal: p.grossTotal,
+      })),
+      subtotal,
+      discount: totalDiscount,
+      cgst: cgstAmount,
+      sgst: sgstAmount,
+      igst: igstAmount,
+      netAmount,
+      invoiceDate: new Date(documentDate),
+      dueDate: new Date(dueDate),
 
-  // 🆕 ADD THESE
-  saleType,
-  gstEnabled,
-};
+      // 🆕 ADD THESE
+      saleType,
+      gstEnabled,
+      gstInclusive,
+    };
 
     try {
       if (editingInvoiceId) {
@@ -505,14 +521,15 @@ const igstAmount = gstEnabled ? taxableAmount * (igstRate / 100) : 0;
       } else {
         // CREATE MODE
         await addInvoice({
-  ...payload,
-  customerId: saleType === "cash" ? "" : selectedParty?.id ?? "",
-customerName: saleType === "cash" ? "Cash Sale" : selectedParty?.name ?? "",
-customerPhone: saleType === "cash" ? "" : selectedParty?.phone ?? "",
-  customerGstin: selectedParty?.gstin ?? undefined,
-  placeOfSupply: selectedParty?.state?.trim() || "Karnataka",
-
-});
+          ...payload,
+          customerId: saleType === "cash" ? "" : (selectedParty?.id ?? ""),
+          customerName:
+            saleType === "cash" ? "Cash Sale" : (selectedParty?.name ?? ""),
+          customerPhone:
+            saleType === "cash" ? "" : (selectedParty?.phone ?? ""),
+          customerGstin: selectedParty?.gstin ?? undefined,
+          placeOfSupply: selectedParty?.state?.trim() || "Karnataka",
+        });
         toast.success("Invoice created successfully");
       }
 
@@ -548,17 +565,17 @@ customerPhone: saleType === "cash" ? "" : selectedParty?.phone ?? "",
     setEditingInvoiceId(id);
 
     if (doc.saleType === "cash") {
-  setSelectedParty(null); // ✅ no customer for cash
-} else {
-  setSelectedParty({
-    id: doc.customerId,
-    name: doc.customerName,
-    phone: doc.customerPhone,
-    gstin: doc.customerGstin,
-    address: doc.billingAddress,
-    state: doc.placeOfSupply ?? "Karnataka",
-  });
-}
+      setSelectedParty(null); // ✅ no customer for cash
+    } else {
+      setSelectedParty({
+        id: doc.customerId,
+        name: doc.customerName,
+        phone: doc.customerPhone,
+        gstin: doc.customerGstin,
+        address: doc.billingAddress,
+        state: doc.placeOfSupply ?? "Karnataka",
+      });
+    }
 
     setBillingAddress(doc.billingAddress);
 
@@ -589,8 +606,9 @@ customerPhone: saleType === "cash" ? "" : selectedParty?.phone ?? "",
       })),
     );
     // ✅ RESTORE STATE FROM DB
-setGstEnabled(doc.gstEnabled ?? true);
-setSaleType(doc.saleType ?? "credit");
+    setGstEnabled(doc.gstEnabled ?? true);
+    setGstInclusive(doc.gstInclusive ?? false);
+    setSaleType(doc.saleType ?? "credit");
   }
 
   const loadingParties = customersLoading;
@@ -642,8 +660,10 @@ setSaleType(doc.saleType ?? "credit");
     loadForEdit,
 
     saleType,
-setSaleType,
-gstEnabled,
-setGstEnabled,
+    setSaleType,
+    gstEnabled,
+    gstInclusive,
+    setGstInclusive,
+    setGstEnabled,
   };
 }

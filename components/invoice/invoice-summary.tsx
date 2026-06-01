@@ -22,6 +22,8 @@ interface InvoiceSummaryProps {
   // 🆕 NEW PROPS
   gstEnabled: boolean;
   setGstEnabled: (value: boolean) => void;
+  gstInclusive: boolean;
+  setGstInclusive: (value: boolean) => void;
 }
 
 export function InvoiceSummary({
@@ -38,12 +40,13 @@ export function InvoiceSummary({
   igstRate,
   gstEnabled,
   setGstEnabled,
+  gstInclusive,
+  setGstInclusive,
 }: InvoiceSummaryProps) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
       <div className="relative group">
         <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
-          
           {/* Left: Billing Address */}
           <div className="space-y-4">
             <Label className="text-base font-semibold text-slate-800 flex items-center gap-2">
@@ -62,17 +65,23 @@ export function InvoiceSummary({
 
           {/* Right: Amount Summary */}
           <div className="space-y-5 bg-slate-50/70 rounded-lg p-6 border border-slate-100">
-            
             {/* 🆕 GST TOGGLE */}
             <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-700 font-medium">
-                GST Enabled
-              </span>
-              <Switch
-                checked={gstEnabled}
-                onCheckedChange={setGstEnabled}
-              />
+              <span className="text-slate-700 font-medium">GST Enabled</span>
+              <Switch checked={gstEnabled} onCheckedChange={setGstEnabled} />
             </div>
+
+            {gstEnabled && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-700 font-medium">
+                  GST Inclusive
+                </span>
+                <Switch
+                  checked={gstInclusive}
+                  onCheckedChange={setGstInclusive}
+                />
+              </div>
+            )}
 
             <div className="space-y-4">
               <div className="flex justify-between items-center text-sm">
@@ -93,27 +102,21 @@ export function InvoiceSummary({
               {gstEnabled && (
                 <>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-600">
-                      CGST ({cgstRate}%)
-                    </span>
+                    <span className="text-slate-600">CGST ({cgstRate}%)</span>
                     <span className="font-medium text-slate-900">
                       ₹{cgst.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-600">
-                      SGST ({sgstRate}%)
-                    </span>
+                    <span className="text-slate-600">SGST ({sgstRate}%)</span>
                     <span className="font-medium text-slate-900">
                       ₹{sgst.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-600">
-                      IGST ({igstRate}%)
-                    </span>
+                    <span className="text-slate-600">IGST ({igstRate}%)</span>
                     <span className="font-medium text-slate-900">
                       ₹{igst.toFixed(2)}
                     </span>
@@ -132,7 +135,6 @@ export function InvoiceSummary({
               </span>
             </div>
           </div>
-
         </div>
       </div>
     </div>

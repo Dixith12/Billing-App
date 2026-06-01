@@ -9,16 +9,13 @@ export function useAddInventory(onSuccess?: () => void) {
   const { addItem } = useInventory();
 
   const [form, setForm] = useState({
-    name: "",
-    measurementType: "" as MeasurementType,
-    height: 1,
-    width: 1,
-    pricePerHeight: "",
-    pricePerWidth: "",
-    pricePerKg: "",
-    pricePerUnit: "",
-    hsnCode: "", // ← NEW FIELD
-  });
+  name: "",
+  measurementType: "" as MeasurementType,
+  pricePerSqFt: "",
+  pricePerKg: "",
+  pricePerUnit: "",
+  hsnCode: "",
+});
 
   const [error, setError] = useState<string | null>(null);
 
@@ -29,16 +26,13 @@ export function useAddInventory(onSuccess?: () => void) {
 
   const reset = () => {
     setForm({
-      name: "",
-      measurementType: "",
-      height: 1,
-      width: 1,
-      pricePerHeight: "",
-      pricePerWidth: "",
-      pricePerKg: "",
-      pricePerUnit: "",
-      hsnCode: "", // ← Reset HSN too
-    });
+  name: "",
+  measurementType: "",
+  pricePerSqFt: "",
+  pricePerKg: "",
+  pricePerUnit: "",
+  hsnCode: "",
+});
     setError(null);
   };
 
@@ -64,24 +58,17 @@ export function useAddInventory(onSuccess?: () => void) {
 
     let dataToSave: any;
 
-    if (type === "height_width") {
-      if (!form.pricePerHeight.toString().trim()) {
-        setError("Price per height is required");
-        return false;
-      }
-      if (!form.pricePerWidth.toString().trim()) {
-        setError("Price per width is required");
-        return false;
-      }
+   if (type === "height_width") {
+  if (!form.pricePerSqFt.toString().trim()) {
+    setError("Price per sq ft is required");
+    return false;
+  }
 
-      dataToSave = {
-        ...baseData,
-        height: form.height,
-        width: form.width,
-        pricePerHeight: Number(form.pricePerHeight),
-        pricePerWidth: Number(form.pricePerWidth),
-      };
-    } else if (type === "kg") {
+  dataToSave = {
+    ...baseData,
+    pricePerSqFt: Number(form.pricePerSqFt),
+  };
+} else if (type === "kg") {
       if (!form.pricePerKg.toString().trim()) {
         setError("Price per kg is required");
         return false;

@@ -151,58 +151,31 @@ export function CreatePurchaseItemModal({
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="pricePerHeight"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Price per Height (ft)
-                </Label>
-                <Input
-                  id="pricePerHeight"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={itemData.pricePerHeight ?? ""}
-                  onChange={(e) =>
-                    updateField(
-                      "pricePerHeight",
-                      Number(e.target.value) || undefined,
-                    )
-                  }
-                  onWheel={(e) => e.currentTarget.blur()}
-                  required
-                  className="border-slate-300 focus:border-indigo-400 selection:bg-slate-300 focus:ring-indigo-200"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="pricePerSqFt"
+                className="text-sm font-medium text-slate-700"
+              >
+                Price per Sq Ft
+              </Label>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="pricePerWidth"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Price per Width (ft)
-                </Label>
-                <Input
-                  id="pricePerWidth"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={itemData.pricePerWidth ?? ""}
-                  onChange={(e) =>
-                    updateField(
-                      "pricePerWidth",
-                      Number(e.target.value) || undefined,
-                    )
-                  }
-                  onWheel={(e) => e.currentTarget.blur()}
-                  required
-                  className="border-slate-300 focus:border-indigo-400 selection:bg-slate-300 focus:ring-indigo-200"
-                />
-              </div>
+              <Input
+                id="pricePerSqFt"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={itemData.pricePerSqFt ?? ""}
+                onChange={(e) =>
+                  updateField(
+                    "pricePerSqFt",
+                    Number(e.target.value) || undefined,
+                  )
+                }
+                onWheel={(e) => e.currentTarget.blur()}
+                required
+                className="border-slate-300 focus:border-indigo-400 selection:bg-slate-300 focus:ring-indigo-200"
+              />
             </div>
           </div>
         </div>
@@ -316,8 +289,7 @@ export function CreatePurchaseItemModal({
                 if (value !== "height_width") {
                   updateField("height", undefined);
                   updateField("width", undefined);
-                  updateField("pricePerHeight", undefined);
-                  updateField("pricePerWidth", undefined);
+                  updateField("pricePerSqFt", undefined);
                 }
 
                 if (value !== "kg") {

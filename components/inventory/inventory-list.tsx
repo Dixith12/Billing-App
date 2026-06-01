@@ -84,22 +84,14 @@ export function InventoryList({ items }: InventoryListProps) {
   const getMeasurementDisplay = (item: InventoryItem) => {
     switch (item.measurementType) {
       case "height_width":
-        return (
-          <div className="space-y-1">
-            <Badge
-              variant="outline"
-              className="bg-primary/5 text-primary border-primary/20 px-2.5 py-0.5 mr-1 text-xs"
-            >
-              {formatINR(item.pricePerHeight ?? 0)} / ft height
-            </Badge>
-            <Badge
-              variant="outline"
-              className="bg-primary/5 text-primary border-primary/20 px-2.5 py-0.5 text-xs"
-            >
-              {formatINR(item.pricePerWidth ?? 0)} / ft width
-            </Badge>
-          </div>
-        );
+  return (
+    <Badge
+      variant="outline"
+      className="bg-primary/5 text-primary border-primary/20 px-3 py-1"
+    >
+      {formatINR(item.pricePerSqFt ?? 0)} / sq ft
+    </Badge>
+  );
 
       case "kg":
         return (
@@ -276,32 +268,6 @@ export function InventoryList({ items }: InventoryListProps) {
             {/* Conditional pricing fields */}
             {form.measurementType === "height_width" && (
               <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                      <Ruler className="h-4 w-4 text-primary" />
-                      Height (ft)
-                    </Label>
-                    <Input
-                      type="number"
-                      value={form.height}
-                      disabled
-                      className="bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                      <Ruler className="h-4 w-4 text-primary" />
-                      Width (ft)
-                    </Label>
-                    <Input
-                      type="number"
-                      value={form.width}
-                      disabled
-                      className="bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed"
-                    />
-                  </div>
-                </div>
 
                 <div className="p-5 rounded-xl bg-primary/5 border border-slate-200">
                   <div className="flex items-center gap-3 mb-4">
@@ -312,38 +278,22 @@ export function InventoryList({ items }: InventoryListProps) {
                       Pricing
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-5">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-700">
-                        Price per Height (ft)
-                      </Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={form.pricePerHeight ?? ""}
-                        onChange={(e) =>
-                          updateField("pricePerHeight", e.target.value)
-                        }
-                        onWheel={(e) => e.currentTarget.blur()}
-                        className="border-slate-300 focus:border-primary focus:ring-primary/20"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-700">
-                        Price per Width (ft)
-                      </Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={form.pricePerWidth ?? ""}
-                        onChange={(e) =>
-                          updateField("pricePerWidth", e.target.value)
-                        }
-                        onWheel={(e) => e.currentTarget.blur()}
-                        className="border-slate-300 focus:border-primary focus:ring-primary/20"
-                      />
-                    </div>
-                  </div>
+                <div className="space-y-2">
+  <Label className="text-sm font-medium text-slate-700">
+    Price Per Sq Ft
+  </Label>
+
+  <Input
+    type="number"
+    step="0.01"
+    value={form.pricePerSqFt ?? ""}
+    onChange={(e) =>
+      updateField("pricePerSqFt", e.target.value)
+    }
+    onWheel={(e) => e.currentTarget.blur()}
+    className="border-slate-300 focus:border-primary focus:ring-primary/20"
+  />
+</div>
                 </div>
               </div>
             )}

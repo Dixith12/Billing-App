@@ -17,17 +17,16 @@ export interface InventoryItem {
   id: string;
   name: string;
   measurementType: "height_width" | "kg" | "unit";
-  height?: number;
-  width?: number;
+
   kg?: number;
   units?: number;
-  pricePerHeight?: number;
-  pricePerWidth?: number;
+
+  pricePerSqFt?: number;
   pricePerKg?: number;
   pricePerUnit?: number;
-  hsnCode?: string | null; // ← NEW FIELD (optional)
-  createdAt?: any; // Timestamp or Date
-  // Add any other fields you already have...
+
+  hsnCode?: string | null;
+  createdAt?: any;
 }
 
 const inventoryRef = collection(db, "inventory");

@@ -70,55 +70,6 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
     if (type === "height_width") {
       return (
         <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
-          {/* Dimensions – disabled inputs */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label
-                htmlFor="height"
-                className="text-sm font-medium text-slate-700 flex items-center gap-1.5"
-              >
-                <Ruler className="h-3.5 w-3.5 text-primary" />
-                Height (ft)
-              </Label>
-              <div className="relative">
-                <Input
-                  id="height"
-                  type="number"
-                  value={form.height ?? 1}
-                  disabled
-                  className="bg-slate-50 border-slate-200 text-slate-500 selection:bg-slate-300 cursor-not-allowed"
-                />
-              </div>
-              <p className="text-xs text-slate-500 flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-green-600" />
-                Default: 1 ft
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="width"
-                className="text-sm font-medium text-slate-700 flex items-center gap-1.5"
-              >
-                <Ruler className="h-3.5 w-3.5 text-primary" />
-                Width (ft)
-              </Label>
-              <div className="relative">
-                <Input
-                  id="width"
-                  type="number"
-                  value={form.width ?? 1}
-                  disabled
-                  className="bg-slate-50 border-slate-200 text-slate-500 selection:bg-slate-300 cursor-not-allowed"
-                />
-              </div>
-              <p className="text-xs text-slate-500 flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-green-600" />
-                Default: 1 ft
-              </p>
-            </div>
-          </div>
-
           {/* Pricing block */}
           <div className="p-5 rounded-xl bg-primary/5 border border-slate-200">
             <div className="flex items-center gap-2 mb-4">
@@ -130,47 +81,27 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="pricePerHeight"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Price per Height (ft)
-                </Label>
-                <Input
-                  id="pricePerHeight"
-                  type="number"
-                  placeholder="0.00"
-                  value={form.pricePerHeight ?? ""}
-                  onChange={(e) =>
-                    updateField("pricePerHeight", e.target.value)
-                  }
-                  onWheel={(e) => e.currentTarget.blur()}
-                  required
-                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
-                />
-              </div>
+            <div className="space-y-2">
+  <Label
+    htmlFor="pricePerSqFt"
+    className="text-sm font-medium text-slate-700"
+  >
+    Price Per Sq Ft
+  </Label>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="pricePerWidth"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Price per Width (ft)
-                </Label>
-                <Input
-                  id="pricePerWidth"
-                  type="number"
-                  placeholder="0.00"
-                  value={form.pricePerWidth ?? ""}
-                  onChange={(e) => updateField("pricePerWidth", e.target.value)}
-                  onWheel={(e) => e.currentTarget.blur()}
-                  required
-                  className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
-                />
-              </div>
-            </div>
+  <Input
+    id="pricePerSqFt"
+    type="number"
+    placeholder="0.00"
+    value={form.pricePerSqFt ?? ""}
+    onChange={(e) =>
+      updateField("pricePerSqFt", e.target.value)
+    }
+    onWheel={(e) => e.currentTarget.blur()}
+    required
+    className="border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20"
+  />
+</div>
           </div>
         </div>
       );
@@ -311,9 +242,8 @@ export function AddInventoryModal({ isOpen, onClose }: AddInventoryModalProps) {
               onValueChange={(value) => {
                 updateField("measurementType", value);
                 if (value !== "height_width") {
-                  updateField("pricePerHeight", "");
-                  updateField("pricePerWidth", "");
-                }
+  updateField("pricePerSqFt", "");
+}
                 if (value !== "kg") updateField("pricePerKg", "");
                 if (value !== "unit") updateField("pricePerUnit", "");
               }}

@@ -40,19 +40,19 @@ const styles = StyleSheet.create({
     color: "white",
     letterSpacing: 1,
   },
-    companyName: {
-  fontSize: 16,
-  fontWeight: "bold",
-  color: "white",
-  letterSpacing: 1,
-  marginBottom:2,
-},
+  companyName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "white",
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
 
-companySubText: {
-  fontSize: 10,
-  color: "#dbeafe", // light blue-white
-  marginTop: 2,
-},
+  companySubText: {
+    fontSize: 10,
+    color: "#dbeafe", // light blue-white
+    marginTop: 2,
+  },
 
   /* ───────── VENDOR SECTION ───────── */
   billSection: {
@@ -183,14 +183,19 @@ export default function PurchasePDF({ purchase }: PurchasePDFProps) {
 
   const getMeasurementText = (p: any) => {
     if (p.measurementType === "height_width") {
-      return `Height: ${p.height ?? "—"} | Width: ${p.width ?? "—"}`;
+      const area = (Number(p.height || 0) * Number(p.width || 0)).toFixed(2);
+
+      return `${p.height || 0} × ${p.width || 0} = ${area} sq.ft`;
     }
+
     if (p.measurementType === "kg") {
-      return `Kg: ${p.kg ?? "—"}`;
+      return `${p.kg ?? "—"} Kg`;
     }
+
     if (p.measurementType === "unit") {
-      return `Unit: ${p.units ?? "—"}`;
+      return `${p.units ?? "—"} Unit`;
     }
+
     return "—";
   };
 
@@ -211,24 +216,21 @@ export default function PurchasePDF({ purchase }: PurchasePDFProps) {
               <View style={styles.headerRow}>
                 <Text style={styles.titleText}>PURCHASE</Text>
                 <View style={styles.companyRight}>
-                    <Text style={styles.companyName}>Design Factory</Text>
-                    
-                  
+                  <Text style={styles.companyName}>Design Factory</Text>
+
                   <Text style={styles.companySubText}>
                     Akshaya Arcade, Ambatedka
                   </Text>
-                  
+
                   <Text style={styles.companySubText}>
                     Sullia, D.K - 574239
                   </Text>
-                  
+
                   <Text style={styles.companySubText}>
                     GSTIN - 29BGXPA4595G2ZQ
                   </Text>
-                  
-                  <Text style={styles.companySubText}>
-                    PH NO - 9353426475
-                  </Text>
+
+                  <Text style={styles.companySubText}>PH NO - 9353426475</Text>
                 </View>
               </View>
             </View>

@@ -144,9 +144,7 @@ export function useCreateQuotation() {
 
     switch (item.measurementType) {
       case "height_width":
-        base =
-          (item.pricePerHeight ?? 0) * (item.height ?? 1) +
-          (item.pricePerWidth ?? 0) * (item.width ?? 1);
+        base = item.pricePerSqFt ?? 0;
         break;
       case "kg":
         base = item.pricePerKg ?? 0;
@@ -170,14 +168,9 @@ export function useCreateQuotation() {
         // FIX 2: hard narrow measurementType
         measurementType: item.measurementType as "height_width" | "kg" | "unit",
 
-        height:
-          item.measurementType === "height_width"
-            ? item.height?.toString()
-            : undefined,
-        width:
-          item.measurementType === "height_width"
-            ? item.width?.toString()
-            : undefined,
+        height: item.measurementType === "height_width" ? "1" : undefined,
+
+        width: item.measurementType === "height_width" ? "1" : undefined,
         kg: item.measurementType === "kg" ? "1" : undefined,
         units: item.measurementType === "unit" ? "1" : undefined,
 
@@ -228,10 +221,10 @@ export function useCreateQuotation() {
         let base = 0;
         switch (updated.measurementType) {
           case "height_width":
-            base =
-              ((Number(updated.height) || 0) * (inv.pricePerHeight ?? 0) +
-                (Number(updated.width) || 0) * (inv.pricePerWidth ?? 0)) *
-              (updated.quantity || 1);
+            const sqft =
+              (Number(updated.height) || 0) * (Number(updated.width) || 0);
+
+            base = sqft * (inv.pricePerSqFt ?? 0) * (updated.quantity || 1);
             break;
 
           case "kg":
@@ -261,12 +254,12 @@ export function useCreateQuotation() {
           else {
             switch (updated.measurementType) {
               case "height_width":
+                const wasteSqFt =
+                  (Number(updated.wasteHeight) || 0) *
+                  (Number(updated.wasteWidth) || 0);
+
                 waste =
-                  ((Number(updated.wasteHeight) || 0) *
-                    (inv.pricePerHeight ?? 0) +
-                    (Number(updated.wasteWidth) || 0) *
-                      (inv.pricePerWidth ?? 0)) *
-                  (updated.quantity || 1);
+                  wasteSqFt * (inv.pricePerSqFt ?? 0) * (updated.quantity || 1);
                 break;
 
               case "kg":
@@ -321,17 +314,17 @@ export function useCreateQuotation() {
   const taxableAmount = subtotal - discountTotal;
 
   const isKarnataka = selectedParty?.state?.toLowerCase() === "karnataka";
-const cgst = gstEnabled
-  ? taxableAmount * ((isKarnataka ? gstCgst : 0) / 100)
-  : 0;
+  const cgst = gstEnabled
+    ? taxableAmount * ((isKarnataka ? gstCgst : 0) / 100)
+    : 0;
 
-const sgst = gstEnabled
-  ? taxableAmount * ((isKarnataka ? gstSgst : 0) / 100)
-  : 0;
+  const sgst = gstEnabled
+    ? taxableAmount * ((isKarnataka ? gstSgst : 0) / 100)
+    : 0;
 
-const igst = gstEnabled
-  ? taxableAmount * ((isKarnataka ? 0 : gstCgst + gstSgst) / 100)
-  : 0;
+  const igst = gstEnabled
+    ? taxableAmount * ((isKarnataka ? 0 : gstCgst + gstSgst) / 100)
+    : 0;
 
   const netAmount = taxableAmount + cgst + sgst + igst;
 
@@ -380,7 +373,7 @@ const igst = gstEnabled
       cgst,
       sgst,
       igst,
-      gstEnabled, 
+      gstEnabled,
       netAmount,
     };
 
@@ -501,7 +494,7 @@ const igst = gstEnabled
     igst,
     netAmount,
     gstEnabled,
-setGstEnabled,
+    setGstEnabled,
 
     saveQuotation,
     resetForm,

@@ -22,11 +22,8 @@ export function ProductSearcher({
 }: ProductSearcherProps) {
   const getPriceDisplay = (item: InventoryItem) => {
     switch (item.measurementType) {
-      case "height_width": {
-        const ph = item.pricePerHeight ?? 0;
-        const pw = item.pricePerWidth ?? 0;
-        return `Height: ${formatINR(ph)} / Width: ${formatINR(pw)}`;
-      }
+      case "height_width":
+        return `${formatINR(item.pricePerSqFt ?? 0)} / sq ft`;
       case "kg":
         return `${formatINR(item.pricePerKg ?? 0)} / kg`;
       case "unit":

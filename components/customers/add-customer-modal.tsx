@@ -51,14 +51,13 @@ export function AddCustomerModal({
     });
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  try {
-    await submit();
-  } catch {
-    // 🔕 swallow expected business error (duplicate phone)
-  }
-};
-
+    e.preventDefault();
+    try {
+      await submit();
+    } catch {
+      // 🔕 swallow expected business error (duplicate phone)
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -203,8 +202,7 @@ export function AddCustomerModal({
                 className="text-sm font-medium text-slate-700 flex items-center gap-2"
               >
                 <Landmark className="h-4 w-4 text-primary" />
-                State / UT{" "}
-                <span className="text-xs text-slate-500">(optional)</span>
+                State / UT <span className="text-red-500 text-xs">*</span>
               </Label>
               <select
                 id="state"

@@ -129,32 +129,57 @@ export function CustomerSelector(props: PartySelectorProps) {
     ? "Vendor / Supplier name"
     : "Full name or contact name";
 
-  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    state: "",
+  });
 
   const validateForm = () => {
-    if (!newParty.name.trim()) return `${nameLabel} is required`;
-    if (!newParty.phone.trim()) return "Phone Number is required";
+    const errors = {
+      name: "",
+      phone: "",
+      address: "",
+      state: "",
+    };
 
-    const phoneRegex = /^[6-9]\d{9}$/;
-    if (!phoneRegex.test(newParty.phone.trim())) {
-      return "Enter a valid 10-digit mobile number";
+    if (!newParty.name.trim()) {
+      errors.name = `${nameLabel} is required`;
     }
 
-    if (!newParty.address.trim()) return "Address is required";
-    return null;
-  };
+    if (!newParty.phone.trim()) {
+      errors.phone = "Phone Number is required";
+    } else {
+      const phoneRegex = /^[6-9]\d{9}$/;
 
+      if (!phoneRegex.test(newParty.phone.trim())) {
+        errors.phone = "Enter a valid 10-digit mobile number";
+      }
+    }
+
+    if (!newParty.address.trim()) {
+      errors.address = "Address is required";
+    }
+
+    if (!newParty.state.trim()) {
+      errors.state = "State is required";
+    }
+
+    setFieldErrors(errors);
+
+    return Object.values(errors).some(Boolean);
+  };
   const handleSave = async () => {
-    const error = validateForm();
-    if (error) {
-      setFormError(error);
+    const hasErrors = validateForm();
+
+    if (hasErrors) {
       return;
     }
-    setFormError(null);
+
     const success = await addNewParty();
 
     if (!success) {
-      setFormError("Customer with this phone number already exists");
       return;
     }
 
@@ -274,14 +299,6 @@ export function CustomerSelector(props: PartySelectorProps) {
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin scrollbar-thumb-slate-300">
             <div className="space-y-6">
-              {/* Error */}
-              {formError && (
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-100 text-red-800">
-                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
-                  <span className="text-sm font-medium">{formError}</span>
-                </div>
-              )}
-
               {/* Name */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
@@ -294,12 +311,25 @@ export function CustomerSelector(props: PartySelectorProps) {
                 </Label>
                 <Input
                   value={newParty.name}
-                  onChange={(e) =>
-                    setNewParty({ ...newParty, name: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setNewParty({ ...newParty, name: e.target.value });
+
+                    if (fieldErrors.name) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        name: "",
+                      }));
+                    }
+                  }}
+                  className={cn(
+                    "border-slate-300 focus:border-primary focus:ring-primary/20 h-11",
+                    fieldErrors.name && "border-red-500 focus:border-red-500",
+                  )}
                   placeholder={namePlaceholder}
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20 h-11"
                 />
+                {fieldErrors.name && (
+                  <p className="text-red-500 text-xs">{fieldErrors.name}</p>
+                )}
               </div>
 
               {/* Company Name */}
@@ -333,14 +363,23 @@ export function CustomerSelector(props: PartySelectorProps) {
                       .replace(/\D/g, "")
                       .slice(0, 10);
                     setNewParty({ ...newParty, phone: digitsOnly });
+                    if (fieldErrors.phone) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        phone: "",
+                      }));
+                    }
                   }}
                   className={cn(
                     "border-slate-300 focus:border-primary selection:bg-slate-300 focus:ring-primary/20 h-11",
-                    formError?.toLowerCase().includes("phone") &&
+                    fieldErrors.phone &&
                       "border-red-500 focus:border-red-500 focus:ring-red-200",
                   )}
                   placeholder="10-digit mobile number"
                 />
+                {fieldErrors.phone && (
+                  <p className="text-red-500 text-xs">{fieldErrors.phone}</p>
+                )}
               </div>
 
               {/* GSTIN */}
@@ -368,28 +407,61 @@ export function CustomerSelector(props: PartySelectorProps) {
                 </Label>
                 <Textarea
                   value={newParty.address}
-                  onChange={(e) =>
-                    setNewParty({ ...newParty, address: e.target.value })
-                  }
-                  placeholder="Street, area, city, PIN code..."
-                  className="border-slate-300 focus:border-primary focus:ring-primary/20 min-h-25 resize-none"
+                  onChange={(e) => {
+                    setNewParty({
+                      ...newParty,
+                      address: e.target.value,
+                    });
+
+                    if (fieldErrors.address) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        address: "",
+                      }));
+                    }
+                  }}
+                  className={cn(
+                    "border-slate-300 focus:border-primary focus:ring-primary/20 min-h-25 resize-none",
+                    fieldErrors.address &&
+                      "border-red-500 focus:border-red-500",
+                  )}
                 />
+                {fieldErrors.address && (
+                  <p className="text-red-500 text-xs">{fieldErrors.address}</p>
+                )}
               </div>
 
               {/* State */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
                   <Landmark className="h-4 w-4 text-primary" />
-                  State / UT{" "}
-                  <span className="text-xs text-slate-500">(optional)</span>
+                  State / UT
+                  <span className="text-red-500 text-xs">*</span>
                 </Label>
                 <Select
                   value={newParty.state}
-                  onValueChange={(val) =>
-                    setNewParty({ ...newParty, state: val })
-                  }
+                  onValueChange={(val) => {
+                    setNewParty({
+                      ...newParty,
+                      state: val,
+                    });
+
+                    if (fieldErrors.state) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        state: "",
+                      }));
+                    }
+                  }}
                 >
-                  <SelectTrigger className="border-slate-300 focus:border-primary h-11">
+                  <SelectTrigger
+                    className={cn(
+                      "border-slate-300 focus:border-primary h-11",
+                      fieldErrors.state &&
+                        "border-red-500 focus:border-red-500",
+                    )}
+                  >
+                    {" "}
                     <SelectValue placeholder="Select state / union territory" />
                   </SelectTrigger>
                   <SelectContent className="bg-white max-h-60">
@@ -400,6 +472,9 @@ export function CustomerSelector(props: PartySelectorProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                {fieldErrors.state && (
+                  <p className="text-red-500 text-xs">{fieldErrors.state}</p>
+                )}
               </div>
 
               {/* Opening Balance */}

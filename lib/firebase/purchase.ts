@@ -24,8 +24,7 @@ export interface PurchaseProduct {
   kg?: string;
   units?: string;
 
-  pricePerHeight?: number;
-  pricePerWidth?: number;
+  pricePerSqFt?: number;
   pricePerKg?: number;
   pricePerUnit?: number;
 
@@ -261,7 +260,7 @@ export const updatePurchase = async (
 
   const safeUpdates = cleanUndefined({
     ...data,
-    gstEnabled:data.gstEnabled,
+    gstEnabled: data.gstEnabled,
 
     // FIX: ALWAYS store purchaseDate as Timestamp
     ...(data.purchaseDate && {

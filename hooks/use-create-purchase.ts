@@ -25,8 +25,7 @@ export interface PurchaseItem {
   kg?: string;
   units?: string;
 
-  pricePerHeight?: number;
-  pricePerWidth?: number;
+  pricePerSqFt?: number;
   pricePerKg?: number;
   pricePerUnit?: number;
   discount: string;
@@ -107,8 +106,7 @@ export function useCreatePurchase(options?: {
     width?: number;
     kg?: number;
     units?: number;
-    pricePerHeight?: number;
-    pricePerWidth?: number;
+    pricePerSqFt?: number;
     pricePerKg?: number;
     pricePerUnit?: number;
   }) => {
@@ -127,9 +125,9 @@ export function useCreatePurchase(options?: {
 
     switch (data.measurementType) {
       case "height_width":
-        base =
-          (data.pricePerHeight ?? 0) * (data.height ?? 1) +
-          (data.pricePerWidth ?? 0) * (data.width ?? 1);
+        const sqft = (data.height ?? 1) * (data.width ?? 1);
+
+        base = sqft * (data.pricePerSqFt ?? 0);
         break;
       case "kg":
         base = (data.pricePerKg ?? 0) * kg!;
@@ -148,9 +146,7 @@ export function useCreatePurchase(options?: {
       width: width?.toString(),
       kg: kg?.toString(),
       units: units?.toString(),
-
-      pricePerHeight: data.pricePerHeight,
-      pricePerWidth: data.pricePerWidth,
+      pricePerSqFt: data.pricePerSqFt,
       pricePerKg: data.pricePerKg,
       pricePerUnit: data.pricePerUnit,
       discount: "0",
@@ -263,8 +259,7 @@ export function useCreatePurchase(options?: {
           return isNaN(n) ? 0 : n;
         };
 
-        const priceH = num(updated.pricePerHeight);
-        const priceW = num(updated.pricePerWidth);
+        const priceSqFt = num(updated.pricePerSqFt);
         const priceKg = num(updated.pricePerKg);
         const priceUnit = num(updated.pricePerUnit);
 
@@ -278,7 +273,8 @@ export function useCreatePurchase(options?: {
 
         switch (updated.measurementType) {
           case "height_width":
-            base = height * priceH + width * priceW;
+            const sqft = height * width;
+            base = sqft * priceSqFt;
             break;
           case "kg":
             base = kg * priceKg;
@@ -336,16 +332,16 @@ export function useCreatePurchase(options?: {
     selectedVendor?.state?.trim().toLowerCase() === "karnataka";
 
   const cgst = gstEnabled
-  ? taxableAmount * ((isKarnatakaVendor ? gstCgst : 0) / 100)
-  : 0;
+    ? taxableAmount * ((isKarnatakaVendor ? gstCgst : 0) / 100)
+    : 0;
 
-const sgst = gstEnabled
-  ? taxableAmount * ((isKarnatakaVendor ? gstSgst : 0) / 100)
-  : 0;
+  const sgst = gstEnabled
+    ? taxableAmount * ((isKarnatakaVendor ? gstSgst : 0) / 100)
+    : 0;
 
-const igst = gstEnabled
-  ? taxableAmount * ((isKarnatakaVendor ? 0 : gstCgst + gstSgst) / 100)
-  : 0;
+  const igst = gstEnabled
+    ? taxableAmount * ((isKarnatakaVendor ? 0 : gstCgst + gstSgst) / 100)
+    : 0;
 
   const netAmount = taxableAmount + cgst + sgst + igst;
 
@@ -380,8 +376,7 @@ const igst = gstEnabled
         kg: p.kg,
         units: p.units,
 
-        pricePerHeight: p.pricePerHeight,
-        pricePerWidth: p.pricePerWidth,
+        pricePerSqFt: p.pricePerSqFt,
         pricePerKg: p.pricePerKg,
         pricePerUnit: p.pricePerUnit,
 
@@ -442,7 +437,7 @@ const igst = gstEnabled
 
     // date
     setPurchaseDate(normalizeDate(doc.purchaseDate));
-    setGstEnabled(doc.gstEnabled??true);
+    setGstEnabled(doc.gstEnabled ?? true);
 
     // items
     setItems(
@@ -452,9 +447,9 @@ const igst = gstEnabled
         let base = 0;
         switch (p.measurementType) {
           case "height_width":
-            base =
-              (Number(p.height) || 0) * (Number(p.pricePerHeight) || 0) +
-              (Number(p.width) || 0) * (Number(p.pricePerWidth) || 0);
+            const sqft = (Number(p.height) || 0) * (Number(p.width) || 0);
+
+            base = sqft * (Number(p.pricePerSqFt) || 0);
             break;
 
           case "kg":
@@ -487,8 +482,7 @@ const igst = gstEnabled
           kg: p.kg?.toString(),
           units: p.units?.toString(),
 
-          pricePerHeight: Number(p.pricePerHeight) || 0,
-          pricePerWidth: Number(p.pricePerWidth) || 0,
+          pricePerSqFt: Number(p.pricePerSqFt) || 0,
           pricePerKg: Number(p.pricePerKg) || 0,
           pricePerUnit: Number(p.pricePerUnit) || 0,
 
@@ -537,7 +531,7 @@ const igst = gstEnabled
     igst,
     netAmount,
     gstEnabled,
-setGstEnabled,
+    setGstEnabled,
 
     savePurchase,
     resetForm,

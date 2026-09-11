@@ -321,6 +321,7 @@ export function useCreateInvoice(): UseCreateInvoiceReturn {
           (parseFloat(p.wasteWidth || "0") || 0);
 
         waste = wasteArea * (inv.pricePerSqFt ?? 0);
+        break;
 
       case "kg":
         waste = (parseFloat(p.wasteKg || "0") || 0) * (inv.pricePerKg ?? 0);
